@@ -1,0 +1,1241 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include "TurionPowerControl.h"
+
+//This program is supposed to compile with GCC under Linux x86/x86-64 platforms
+//and with Microsoft Visual C++ 2005/2008 under Windows x86/x86-64 platforms
+
+#ifdef _WIN32
+	#include <windows.h>
+	#include "OlsApi.h"
+	#include "OlsDef.h"
+	#include <tchar.h>
+#endif
+
+#ifdef __linux
+	#include "cpuPrimitives.h"
+#endif
+
+#include <string.h>
+
+//Main include for processor definitions:
+#include "Processor.h"
+
+//Include for processor families:
+#include "Griffin.h"
+#include "K10Processor.h"
+
+#include "config.h"
+#include "scaler.h"
+
+#ifdef _WIN32
+int initWinRing0 () {
+
+	int dllStatus;
+	BYTE verMajor,verMinor,verRevision,verRelease;
+
+	InitializeOls ();
+
+	dllStatus=GetDllStatus ();
+	
+	if (dllStatus!=0) {
+		printf ("Unable to initialize WinRing0 library\n");
+
+		switch (dllStatus) {
+			case OLS_DLL_UNSUPPORTED_PLATFORM:
+				printf ("Error: unsupported platform\n");
+				break;
+			case OLS_DLL_DRIVER_NOT_LOADED:
+				printf ("Error: driver not loaded\n");
+				break;
+			case OLS_DLL_DRIVER_NOT_FOUND:
+				printf ("Error: driver not found\n");
+				break;
+			case OLS_DLL_DRIVER_UNLOADED:
+				printf ("Error: driver unloaded by other process\n");
+				break;
+			case OLS_DLL_DRIVER_NOT_LOADED_ON_NETWORK:
+				printf ("Error: driver not loaded from network\n");
+				break;
+			case OLS_DLL_UNKNOWN_ERROR:
+				printf ("Error: unknown error\n");
+				break;
+			default:
+				printf ("Error: unknown error\n");
+		}
+
+		return false;
+	}
+
+	GetDriverVersion (&verMajor,&verMinor,&verRevision,&verRelease);
+
+	if ((verMajor>=1) && (verMinor>=2)) return true;
+
+	return false;
+
+}
+
+int closeWinRing0 () {
+
+	DeinitializeOls ();	
+
+	return true;
+
+}
+#endif
+
+#ifdef __linux
+int initWinRing0 () {
+	return true;
+}
+
+int closeWinRing0 () {
+	return true;
+}
+#endif
+
+
+//Converts an argument to integer
+int arg2i (const char **argV,int arg) {
+	return atoi(argV[arg]);
+}
+
+//Checks for all modules available and returns the right Processor object
+//for current system. If there isn't a valid module, returns null
+Processor *getSupportedProcessor () {
+
+	if (K10Processor::isProcessorSupported()) {
+		return (class Processor *)new K10Processor ();
+	}
+
+	if (Griffin::isProcessorSupported()) {
+		return (class Processor *)new Griffin();
+	}
+
+	/*TODO: This code should be moved somewhere else than here:
+	 *
+
+	#ifdef _WIN32
+		printf ("-> Check that you are running the program with administrative privileges.\n");
+	#endif
+	#ifdef __GNUC__	
+		printf ("-> Check that you are running the program as root\n");	
+		printf ("-> Also check that cpuid and msr modules are properly loaded\n");
+		printf ("-> and and functioning (see the included manual, Chapter 5)\n");
+	#endif
+
+	*/
+
+	return NULL;
+
+}
+
+void processorStatus (Processor *p) {
+
+	PState ps(0);
+	int i,k,j;
+
+	int cores=p->getProcessorCores();
+	int pstates=p->getPowerStates();
+	int nodes=p->getProcessorNodes();
+
+	printf ("\nMain processor is %s\n",p->getProcessorStrId());
+
+	printf ("\tFamily: 0x%x\t\tModel: 0x%x\t\tStepping: 0x%x\n",p->getSpecFamilyBase(),p->getSpecModel(),p->getSpecStepping());
+	printf ("\tExtended Family: 0x%x\tExtended Model: 0x%x\n",p->getSpecFamilyExtended(),p->getSpecModelExtended());
+	printf ("\tPackage Type: 0x%x\tBrandId: 0x%x\t\n",p->getSpecPkgType(),p->getSpecBrandId());
+	
+	printf ("Machine has %d nodes\n",p->getProcessorNodes());
+	printf ("Processor has %d cores\n",cores);
+	printf ("Processor has %d p-states\n",pstates);
+	printf ("\nPower States table:\n");
+
+	for (j = 0; j < nodes; j++) {
+		for (i = 0; i < cores; i++) {
+			printf("-- Node: %d Core %d\n", j, i);
+			for (k = 0; k < pstates; k++) {
+				ps.setPState(k);
+				p->setCore(i);
+				p->setNode(j);
+				printf(
+						"core %d pstate %d - En:%d VID:%d FID:%d DID:%d Freq:%d VCore: %.4f\n",
+						i, k, p->pStateEnabled(ps.getPState()),
+						p->getVID(ps.getPState()),
+						p->getFID(ps.getPState()),
+						p->getDID(ps.getPState()),
+						p->getFrequency(ps.getPState()),
+						p->getVCore(ps.getPState()));
+			}
+
+		}
+	}
+
+	printf ("Processor Maximum PState: ");
+	if (p->getMaximumPState().getPState() == 0 )
+		printf ("unsupported feature\n");
+	else
+		printf ("%d\n",p->getMaximumPState().getPState());
+	printf ("Processor Startup PState: %d\n", p->startupPState());
+	printf ("Processor Maximum Operating Frequency: ");
+	
+	if (p->maxCPUFrequency()==0)
+		printf ("No maximum defined. Unlocked multiplier.\n");
+	else
+		printf ("%d MHz\n", p->maxCPUFrequency());
+
+	printf ("\nMinimum allowed VID: %d (%.3fv) - Maximum allowed VID %d (%.3fv)\n", p->minVID(),
+		p->convertVIDtoVcore(p->minVID()),p->maxVID(),p->convertVIDtoVcore(p->maxVID()));
+	printf ("Processor AltVID: %d (%.3fv)\n",p->getAltVID(),p->convertVIDtoVcore(p->getAltVID()));
+
+}
+
+void processorTempMonitoring (Processor *p) {
+
+	unsigned int node, core;
+
+	printf("Detected processor: %s\n", p->getProcessorStrId());
+
+	printf("Machine has %d nodes\n", p->getProcessorNodes());
+	printf("Processor has %d cores\n", p->getProcessorCores());
+	printf("Processor has %d p-states\n", p->getPowerStates());
+
+	printf("Processor temperature slew rate:");
+	switch (p->getTctlMaxDiff()) {
+
+	case 0:
+		printf("slewing disabled\n");
+		break;
+
+	case 1:
+		printf("1.0°C\n");
+		break;
+
+	case 2:
+		printf("3.0°C\n");
+		break;
+
+	case 3:
+		printf("9.0°C\n");
+		break;
+
+	default:
+		printf("unknown\n");
+		break;
+
+	}
+
+	printf ("\nTemperature table (monitoring):\n");
+
+	while (1) {
+		for (node = 0; node < p->getProcessorNodes(); node++) {
+			printf("Node %d\t", node);
+			for (core = 0; core < p->getProcessorCores(); core++) {
+				p->setNode(node);
+				p->setCore(core);
+				printf("C%d:%d\t", core, p->getTctlRegister());
+			}
+		}
+		printf("\n");
+		Sleep(100);
+		Sleep(900);
+
+	};
+
+	return;
+}
+
+void processorTempStatus(Processor *p) {
+
+	unsigned int node, core;
+
+	printf("Detected processor: %s\n", p->getProcessorStrId());
+
+	printf("Machine has %d nodes\n", p->getProcessorNodes());
+	printf("Processor has %d cores\n", p->getProcessorCores());
+	printf("Processor has %d p-states\n", p->getPowerStates());
+
+	printf("Processor temperature slew rate:");
+	switch (p->getTctlMaxDiff()) {
+
+	case 0:
+		printf("slewing disabled\n");
+		break;
+
+	case 1:
+		printf("1.0°C\n");
+		break;
+
+	case 2:
+		printf("3.0°C\n");
+		break;
+
+	case 3:
+		printf("9.0°C\n");
+		break;
+
+	default:
+		printf("unknown\n");
+		break;
+
+	}
+
+	printf ("\nTemperature table:\n");
+
+	for (node = 0; node < p->getProcessorNodes(); node++) {
+		printf("Node %d\t", node);
+		for (core = 0; core < p->getProcessorCores(); core++) {
+			p->setNode(node);
+			p->setCore(core);
+			printf("C%d:%d\t", core, p->getTctlRegister());
+		}
+		printf("\n");
+	}
+
+	return;
+
+}
+
+void printUsage () {
+	printf ("Usage: TurionPowerControl.exe [option]\n");
+	printf ("Options:\n\n");
+	printf ("\t ----- Various information about processor states\n\n");
+	printf (" -l\n\tLists power states\n\n");
+	printf (" -spec\n\tLists detailed processor family specifications\n\n");
+	printf (" -dram\n\tLists detailed DRAM timings\n\n");
+	printf (" -htc\n\tShows Hardware Thermal Control status\n\n");
+	printf (" -htstatus\n\tShows Hypertransport status\n\n");
+	printf ("\t ----- PState VID, FID, DID manipulation -----\n\n");
+	printf (" -node (nodeId)\n\tSet the current operating node. Use \"all\" to affect all nodes\n\tin the system\n\n");
+	printf (" -pv (coreId) (pStateId) (vidId)\n\tSet a specified (vidId) for (pStateId) for (coreId)\n\n");
+	printf (" -pd (coreId) (pStateId) (didId)\n\tSet a specified (didId) for (pStateId) for (coreId)\n\n");
+	printf (" -pf (coreId) (pStateId) (fidId)\n\tSet a specified (fidId) for (pStateId) for (coreId)\n\n");
+	printf (" -pall (coreId) (pStateId) (vidId) (didId) (fidId)\n\tSet whole settings for specified (pStateId) for (coreId)\n\n");
+	printf (" -pallc (pStateId) (vidId) (didId) (fidId)\n\tSet whole settings for specified (pStateId) for all cores\n\n");
+	printf (" -en (coreId) (pStateId)\n\tEnables a specified (pStateId) for (coreId)\n\n");
+	printf (" -di (coreId) (pStateId)\n\tDisables a specified (pStateId) for (coreId)\n\n");
+	printf (" -fo (coreId) (pStateId)\n\tForce a pstate transition to specified (pStateId) for (coreId)\n\n");
+	printf (" -psmax (pStateId)\n\tSet maximum Power State\n\n");
+
+	printf (" -set (commands)\n\tUseful switch to set frequency and voltage without manual\n");
+	printf ("\tmanipulation of FID, DID and VID values. Check the documentation\n");
+	printf ("\tfor some easy example usages\n\n");
+
+	printf ("\t ----- Voltage control -----\n\n");	
+	printf (" -slamtime (value)\n -altvidslamtime (value)\n\tSet vsSlamTime for processor or vsAltVIDSlamTime for transitions\n");
+	printf ("\tto AltVID state. It is the the stabilization time between\n");
+	printf ("\ta SVI Voltage command and a FID change. Values range from 0 to 7 \n");
+	printf ("\tand corresponds to:\n\n");
+	printf ("\t\t0=10us\n\t\t1=20us\n\t\t2=30us\n\t\t3=40us\n\t\t4=60us\n\t\t5=100us\n\t\t6=200us\n\t\t7=500us\n\n");
+
+	printf (" -rampuptime (value)\n -rampdowntime (value)\n\tSet the StepUpTime or StepDownTime for the processor. \n");
+	printf ("\tIt is not documented in Turion (Family 11h) datasheet, but only in\n");
+	printf ("\tPhenom datasheet (Family 10h) with referring to desktop and mobile\n");
+	printf ("\tprocessors. Values range from 0 to 15 and corresponds to:\n\n");
+	printf ("\t\t0=400ns\t1=300ns\t2=200ns\t3=100ns\n\t\t4=90ns\t5=80ns\t6=70ns\t7=60ns\n\t\t8=50ns\t9=45ns\t10=40ns\t11=35ns\n\t\t");
+	printf ("12=30ns\t13=25ns\t14=20ns\t15=15ns\n\n");
+
+	printf ("\t ----- Northbridge (IMC) features -----\n\n");
+	printf ("\t For family 11h processors:\n");
+	printf (" -nbvid (vidId)\n\tSet Northbridge VID\n\n");
+	printf ("\t For family 10h processors:\n");
+	printf (" -nbvid (pstateId) (vidId)\n\tSet Northbridge VID to pstateId (this will be set to all cores\n\tautomatically\n\n");
+	printf (" -nbdid (pstateId) (didId)\n\tSet divisor didID to northbridge (set to all cores automatically,\n\t");
+	printf ("but usually causes the processor to lock to slowest pstate. Accepted\n\tvalues are 0 and 1)\n\n");
+
+	printf ("\t ----- Processor Temperature monitoring -----\n\n");
+	printf (" -temp \n\tShow temperature registers data\n\n");
+	printf (" -mtemp \n\tCostantly monitors processor temperatures\n\n");
+
+	printf ("\t ----- Hardware Thermal Control -----\n\n");
+	printf (" -htc\n\tShow information about Hardware Thermal Control status\n\n");
+	printf (" -htcenable\n\tEnables HTC features\n\n");
+	printf (" -htcdisable\n\tDisables HTC features\n\n");
+	printf (" -htctemplimit (temp)\n\tSet HTC high temperature limit\n\n");
+	printf (" -htchystlimit (temp)\n\tSet HTC hysteresis (exits from HTC state) temperature limit\n\n");
+	printf (" -altvid (vid)\n\tSet voltage identifier for AltVID status, invoked in low-consumption\n\tmode or during HTC active status\n\n");
+	
+	printf ("\t ----- PSI_L bit -----\n\n");
+	printf (" -psienable\n\tEnables PSI_L bit for improved Power Regulation with low loads\n\n");
+	printf (" -psidisable\n\tDisables PSI_L bit\n\n");
+	printf (" -psithreshold (vid)\n\tSets a specified VID as a threshold. When processor goes\n\t");
+	printf ("in a pstate with higher or equal vid, VRM is instructed\n\t");
+	printf (" to go in power management mode\n\n");
+
+	printf ("\t ----- Hypertransport Link -----\n\n");
+	printf (" -htstatus\n\tShows Hypertransport status\n\n");
+	printf (" -htset\n\tSet the hypertransport link frequency register\n\n");
+	
+	printf ("\t ----- Various and others -----\n\n");
+	printf (" -c1eenable (coreId)\n\tSets C1E on Cmp Halt bit enabled\n\n");
+	printf (" -c1edisable (coreId)\n\tSets C1E on Cmp Halt bit disabled\n\n");
+
+
+	printf ("\t ----- Performance Counters -----\n\n");
+	printf (" -pcgetinfo\n\tShows various informations about Performance Counters\n\n");
+	printf (" -pcgetvalue (core) (counter)\n\tShows the raw value of a specific performance counter\n\tslot of a specific core\n\n");
+	printf (" -pcmonitor (core) (counter)\n\tCostantly monitors the counter of a performance counter\n\tslot of a specific core\n\n");
+	printf (" -cpuusage\n\tCostantly monitors CPU Usage using performance counters\n\n");
+
+	printf ("\t ----- Daemon Mode -----\n\n");
+	printf (" -autorecall\n\tSet up daemon mode, autorecalling command line parameters\n\tevery 60 seconds\n\n");
+	printf (" -scaler\n\tSet up CPU Scaler mode. In this mode TurionPowerControl takes\n\t");
+	printf ("care of CPU power management and power state transitions.\n\t");
+	printf ("OS Scaler must be disable for reliable operation\n\n");
+	printf (" -CM\n\tEnabled Costant Monitor of frequency, voltage and pstate. Also will\n\t");
+	printf ("show every anomalous transition over pstate maximum register (useful to\n\t");
+	printf ("report pstate 6/7 anomalous transitions)\n\n");
+	
+	printf ("\t ----- Configuration File -----\n\n");
+	printf (" -cfgfile (file)\n\tImports configuration from a text based configuration file\n\t");
+	printf ("(see the attached example configuration file for details)\n\n");
+
+	printf ("\t ----- Miscellaneous -----\n\n");
+	printf (" -forcenumcores (value)\n\tForces the program to recognize as many cores as the user wants\n\t");
+	printf ("it is particularly useful on Unix multiprocessor machines\n\n");
+	printf (" -forcePVI\n\t(Only on Family 10h processors) Forces the program to use Parallel VID\n\t");
+	printf ("mode instead of autodetection\n\n");
+	printf (" -forceSVI\n\t(Only on Family 10h processors) Forces the program to use Serial VID\n\t");
+	printf ("mode instead of autodetection. It is useful if PVI mode is autodected\n\t");
+	printf ("and voltage values are non coherent or too low\n\n");
+
+}
+
+//Function used by parseSetCommand to obtain a valid integer.
+//The integer is put in output pointer if the function returns false (false
+//means no error)
+//Instead, if there is an error (no valid integer, a string where there 
+//should be a value, ...) , the function returns true.
+bool requireInteger (int argc, const char **argv, int offset, int *output) {
+
+	const char *argument;
+	int value;
+
+	if (offset>=argc) return true;
+
+	argument=argv[offset];
+
+	value=atoi (argument);
+
+	if (value==0)
+		if (strcmp(argument,"0")!=0) return true;
+
+	*output=value;
+
+	return false;
+
+}
+
+//Function used by parseSetCommand to obtain a valid float.
+//The float is put in output pointer if the function returns false (false
+//means no error)
+//Instead, if there is an error (no valid float, a string where there 
+//should be a value, ...) , the function returns true.
+bool requireFloat (int argc, const char **argv, int offset, float *output) {
+
+	const char *argument;
+	float value;
+
+	if (offset>=argc) return true;
+
+	argument=argv[offset];
+
+	value=atof (argument);
+
+	if (value==0)
+		if (strcmp(argument,"0")!=0) return true;
+
+	*output=value;
+
+	return false;
+
+}
+
+//Simple method used by parseSetCommand to show some useful and tidy informations.
+void print_stat (Processor *p, PState ps, const char *what, float value) {
+		if (p->getNode()==p->ALL_NODES) printf ("All nodes "); else printf ("Node: %d ",p->getNode());
+		if (p->getCore()==p->ALL_CORES) printf ("all cores "); else printf ("core: %d ",p->getCore());
+		printf ("pstate %d - ", ps.getPState());
+		printf ("set %s to %0.3f\n", what, value);
+		return;
+}
+
+//TODO: revise the following code
+//This procedure parse the -set switch
+int parseSetCommand (Processor *p, int argc, const char **argv, int argcOffset) {
+
+	PState ps(0);
+	int core=-1; //if core is set to -1, we will assume that the command is for all
+		//the cores.
+	int node=-1; //if node is set to -1, we will assume that the command is for all
+		//the nodes in the system
+	const char *currentCommand;
+
+	int frequency;
+	float voltage;
+	float nbvoltage;
+	int tempInt;
+
+	p->setCore(p->ALL_CORES);
+	p->setNode(p->ALL_NODES);
+
+	do {
+
+		//If we exceed the commands, get out of the loop
+		if (argcOffset>=argc) break;
+
+		currentCommand=argv[argcOffset];
+
+		//If we read a command that starts with -, it means
+		//that we read a new switch, so we get out of the loop
+		if (currentCommand[0]=='-') break;
+
+		/*
+		 * Following section will alter operating pstate. By default, pstate 0 is set
+		 */
+		if ((strcmp (currentCommand,"pstate")==0) ||
+			strcmp (currentCommand,"ps")==0) {
+
+			argcOffset++;
+
+			if (!requireInteger(argc,argv,argcOffset,&tempInt)) {
+				ps.setPState (atoi(argv[argcOffset]));
+				argcOffset++;
+			} else {
+				printf (" pstate: expecting a valid integer\n");
+			}
+
+		/*
+		 * Following section will alter operating core. Default setting is core=all
+		 */
+		} else if (strcmp(currentCommand,"core")==0) {
+
+			argcOffset++;
+
+			if (strcmp ((const char*)argv[argcOffset],"all")==0) {
+				p->setCore(p->ALL_CORES);
+				argcOffset++;
+			}
+			else
+			{
+				if (!requireInteger(argc,argv,argcOffset,&core)) {
+					p->setCore (core);
+					argcOffset++;
+				}
+				else
+					printf ("core: expecting a valid integer or value 'all'\n");
+
+			}
+
+		/*
+		 * Following section will alter operating node. Default setting is node=all
+		 */
+		} else if (strcmp(currentCommand, "node") == 0) {
+
+			argcOffset++;
+
+			if (strcmp((const char*) argv[argcOffset], "all") == 0) {
+				p->setNode(p->ALL_CORES);
+				argcOffset++;
+			} else {
+				if (!requireInteger(argc, argv, argcOffset, &node)) {
+					p->setNode(node);
+					argcOffset++;
+				} else
+					printf("node: expecting a valid integer or value 'all'\n");
+
+			}
+
+		/*
+		 * Following section will set a new frequency for selected pstate/core/node
+		 */
+		} else if ((strcmp(currentCommand,"freq")==0) || 
+			(strcmp(currentCommand,"f")==0) || 
+			(strcmp(currentCommand,"frequency")==0)) {
+
+			argcOffset++;
+
+			if (!requireInteger(argc,argv,argcOffset, &frequency)) {
+
+				argcOffset++;
+				print_stat (p,ps,"frequency",frequency);
+				p->setFrequency(ps, frequency);
+
+			} else {
+				
+				printf ("frequency: expecting a valid integer\n");
+
+			}
+			
+		/*
+		 * Following section will set a new core voltage for operating pstate/core/node
+		 */
+		} else if ((strcmp(currentCommand,"vcore")==0) || 
+			(strcmp(currentCommand,"vc")==0) ||
+			(strcmp(currentCommand,"voltage")==0)) {
+			
+			argcOffset++;
+
+			if (!requireFloat(argc,argv,argcOffset,&voltage)) {
+
+				argcOffset++;
+				print_stat (p,ps,"core voltage",voltage);
+				p->setVCore (ps, voltage);
+
+			} else {
+	
+				printf ("vcore: expecting a valid float\n");
+
+			}
+
+		/*
+		 * Following section will set a new northbirdge voltage for operating
+		 * core on operating node
+		 */
+		} else if ((strcmp(currentCommand,"nbvoltage")==0) || 
+			(strcmp(currentCommand,"nbv")==0) ||
+			(strcmp(currentCommand,"nbvolt")==0)) {
+			
+			argcOffset++;
+
+			if (!requireFloat(argc,argv,argcOffset,&nbvoltage)) {
+
+				argcOffset++;
+
+				//Since family 10h and family 11h differs on northbridge voltage handling, we have to make a difference
+				//here. On family 10h changing northbridge voltage changes just to the pstate the user is manipulating
+				//instead on family 11h it changes the northbridge voltage independently of the pstate the user is
+				//manipulating
+				if (p->getProcessorIdentifier()==PROCESSOR_10H_FAMILY) {
+
+					print_stat (p,ps,"nbvoltage",nbvoltage);
+					p->setNBVid (ps, p->convertVcoretoVID(nbvoltage));
+					//if (p->convertVIDtoVcore(p->getNBVid(ps,0))!=nbvoltage) printf (" (voltage rounded to %0.4f)",p->convertVIDtoVcore(p->getNBVid(ps,0)));
+
+				} else {
+
+					print_stat (p,ps,"nbvoltage",nbvoltage);
+					p->setNBVid (p->convertVcoretoVID(nbvoltage));
+					//if (p->convertVIDtoVcore(p->getNBVid())!=nbvoltage) printf (" (voltage rounded to %0.4f)",p->convertVIDtoVcore(p->getNBVid()));
+				}
+
+
+				printf ("\n");
+
+			} else {
+	
+				printf ("vcore: expecting a valid float\n");
+
+			}
+
+		} else {
+			printf ("Unexpected command: %s\n",currentCommand);
+			argcOffset++;
+		}
+
+	} while (true);
+
+	return argcOffset;
+
+}
+
+int main (int argc,const char **argv) {
+
+	int argvStep;
+	unsigned int currentNode;
+	Processor *processor;
+	PState ps(0);
+	bool autoRecall=false;
+	int autoRecallTimer=60;
+	
+	CfgManager *cfgInstance;
+	int errorLine;
+	
+	Scaler *scaler;
+	
+	printf ("Turion Power States Optimization and Control - by blackshard - v0.xx.x\n");
+
+	if (argc<2) {
+		printUsage();
+
+		return 0;
+	}
+
+	if (initWinRing0()==false) {
+		return false;
+	}
+
+	processor=getSupportedProcessor ();
+	if (processor==NULL) {
+		printf ("No supported processor detected, sorry.\n");
+		return -2;
+	}
+	
+	//Initializes the scaler based on the processor found in the system
+	scaler=new Scaler (processor);
+	
+	for (argvStep=1;argvStep<argc;argvStep++) {
+
+		//Reinitializes the processor object for all nodes in the system
+		processor->setNode(processor->ALL_NODES);
+
+		//printf ("Parsing argument %d %s\n",argvStep,argv[argvStep]);
+
+		//List power states action
+		if (strcmp((const char *)argv[argvStep],"-l")==0) {
+			processorStatus (processor);
+		}
+
+		//Overrides number of cores
+		if (strcmp((const char *)argv[argvStep],"-forcenumcores")==0) {
+			
+			if ((argv[argvStep+1]==NULL)) {
+				printf ("Wrong -forcenumcores option\n");
+				return 1;
+			}
+						
+			if (arg2i(argv,argvStep+1)<=0) {
+				printf ("Error: -forcenumcores requires and positive value\n");
+				return 1;
+			}
+
+			if (arg2i(argv,argvStep+1)>MAX_CORES) {
+				printf ("Error: the value exceed the MAX_CORES constant\n");
+				return 1;
+			}
+
+			processor->setProcessorCores (arg2i(argv,argvStep+1));
+			
+			argvStep++;
+		}
+
+		//Overrides number of cores
+		if (strcmp((const char *) argv[argvStep], "-node") == 0) {
+
+			if ((argv[argvStep + 1] == NULL)) {
+				printf("Wrong -node setting\n");
+				return 1;
+			}
+
+			if (strcmp((const char *) argv[argvStep+1], "all")==0) {
+				currentNode=processor->ALL_NODES;
+			} else {
+				unsigned int thisNode;
+				thisNode=arg2i(argv, argvStep + 1);
+				if ((thisNode>=0) && (thisNode<processor->getProcessorNodes()))
+					currentNode=thisNode;
+				else
+					printf ("Node must be between 0 and %d\n", (processor->getProcessorNodes()-1));
+			}
+
+			argvStep++;
+		}
+
+
+		//Forces SVI mode, only on family 10h
+		if (strcmp((const char *)argv[argvStep],"-forceSVI")==0) {
+
+			processor->forceSVIMode (true);
+
+		}
+
+		//Forces PVI mode, only on family 10h
+		if (strcmp((const char *)argv[argvStep],"-forcePVI")==0) {
+
+			processor->forcePVIMode (true);
+
+		}
+
+		//Set VID for a specific power state
+		if (strcmp((const char *)argv[argvStep],"-pv")==0) {
+			
+			if ((argv[argvStep+1]==NULL) || (argv[argvStep+2]==NULL) || (argv[argvStep+3]==NULL)) {
+				printf ("Wrong -pv option\n");
+				return 1;
+			}
+			
+			ps.setPState (arg2i(argv,argvStep+2));
+			processor->setCore(arg2i(argv,argvStep+1));
+			processor->setVID (ps,arg2i(argv,argvStep+3));
+			
+			argvStep=argvStep+3;
+		}
+
+		//Set DID for a specific power state
+		if (strcmp((const char *)argv[argvStep],"-pd")==0) {
+			
+			if ((argv[argvStep+1]==NULL) || (argv[argvStep+2]==NULL) || (argv[argvStep+3]==NULL)) {
+				printf ("Wrong -pd option\n");
+				return 1;
+			}
+			
+			ps.setPState (arg2i(argv,argvStep+2));
+			processor->setCore(arg2i(argv,argvStep+1));
+			processor->setDID (ps,arg2i(argv,argvStep+3));
+			
+			argvStep=argvStep+3;
+		}
+
+		//Set FID for a specific power state
+		if (strcmp((const char *)argv[argvStep],"-pf")==0) {
+			
+			if ((argv[argvStep+1]==NULL) || (argv[argvStep+2]==NULL) || (argv[argvStep+3]==NULL)) {
+				printf ("Wrong -pf option\n");
+				return 1;
+			}
+			
+			ps.setPState (arg2i(argv,argvStep+2));
+			processor->setCore(arg2i(argv,argvStep+1));
+			processor->setFID (ps,arg2i(argv,argvStep+3));
+			
+			argvStep=argvStep+3;
+		}
+
+		//Set VID, DID and FID for a specific power state for a core
+		if (strcmp((const char *)argv[argvStep],"-pall")==0) {
+			
+			if ((argv[argvStep+1]==NULL) || (argv[argvStep+2]==NULL) || (argv[argvStep+3]==NULL) || 
+					(argv[argvStep+4]==NULL) || (argv[argvStep+5]==NULL)) {
+				printf ("Wrong -pall option\n");
+				return 1;
+			}
+			
+			ps.setPState (arg2i(argv,argvStep+2));
+			processor->setCore(arg2i(argv,argvStep+1));
+			processor->setVID (ps,arg2i(argv,argvStep+3));
+			processor->setDID (ps,arg2i(argv,argvStep+4));
+			processor->setFID (ps,arg2i(argv,argvStep+5));
+			
+			argvStep=argvStep+5;
+		}
+
+		//Set VID, DID and FID for a specific power state for all cores
+		if (strcmp((const char *)argv[argvStep],"-pallc")==0) {
+			
+			if ((argv[argvStep+1]==NULL) || (argv[argvStep+2]==NULL) || (argv[argvStep+3]==NULL) || 
+					(argv[argvStep+4]==NULL)) {
+				printf ("Wrong -pall option\n");
+				return 1;
+			}
+			
+			ps.setPState (arg2i(argv,argvStep+1));
+			processor->setCore(processor->ALL_CORES);
+			processor->setVID (ps,arg2i(argv,argvStep+2));
+			processor->setDID (ps,arg2i(argv,argvStep+3));
+			processor->setFID (ps,arg2i(argv,argvStep+4));
+			
+			argvStep=argvStep+4;
+		}
+
+		if (strcmp((const char *)argv[argvStep],"-nbvid")==0) {
+			
+			if (processor->getProcessorIdentifier()==PROCESSOR_10H_FAMILY) {
+				if ((argv[argvStep+1]==NULL) || (argv[argvStep+2]==NULL)) {
+					printf ("Wrong -nbvid option, Family 10h processor requires 2 parameters (pstate, nbvid).\n");
+					return 1;
+				}
+
+				processor->setNBVid (arg2i(argv,argvStep+1),arg2i(argv,argvStep+2));
+				argvStep=argvStep+2;
+
+			} else {
+
+				if ((argv[argvStep+1]==NULL)) {
+					printf ("Wrong -nbvid option, Family 11h processor requires 1 parameter (nbdid).\n");
+					return 1;
+				}
+
+				processor->setNBVid (arg2i(argv,argvStep+1));
+				argvStep=argvStep+1;
+
+			}
+			
+		}
+
+		if (strcmp((const char *)argv[argvStep],"-nbdid")==0) {
+			
+			if ((argv[argvStep+1]==NULL) || (argv[argvStep+2]==NULL)) {
+				printf ("Wrong -nbdid option.\n");
+				return 1;
+			}
+
+			processor->setNBDid (arg2i(argv,argvStep+1),arg2i(argv,argvStep+2));
+			argvStep=argvStep+2;
+			
+		}
+
+
+		//Enables a specified PState in coreId
+		if (strcmp((const char *)argv[argvStep],"-en")==0) {
+			
+			if ((argv[argvStep+1]==NULL) || (argv[argvStep+2]==NULL)) {
+				printf ("Wrong -en option\n");
+				return 1;
+			}
+			
+			ps.setPState (arg2i(argv,argvStep+2));
+			processor->setCore(arg2i(argv,argvStep+1));
+			processor->pStateEnable (ps.getPState());
+
+			argvStep=argvStep+2;
+		}
+
+		//Disables a specified PState in coreId
+		if (strcmp((const char *)argv[argvStep],"-di")==0) {
+			
+			if ((argv[argvStep+1]==NULL) || (argv[argvStep+2]==NULL)) {
+				printf ("Wrong -di option\n");
+				return 1;
+			}
+			
+			ps.setPState (arg2i(argv,argvStep+2));
+			processor->setCore(arg2i(argv,argvStep+1));
+			processor->pStateDisable (ps.getPState());
+
+			argvStep=argvStep+2;
+		}
+
+		//Set maximum PState
+		if (strcmp((const char *)argv[argvStep],"-psmax")==0) {
+			
+			if ((argv[argvStep+1]==NULL)) {
+				printf ("Wrong -psmax option\n");
+				return 1;
+			}
+			
+			ps.setPState (arg2i(argv,argvStep+1));
+			processor->setMaximumPState (ps);
+			argvStep=argvStep+1;
+		}
+
+		if (strcmp((const char *)argv[argvStep],"-fo")==0) {
+			
+			if ((argv[argvStep+1]==NULL) || (argv[argvStep+2]==NULL)) {
+				printf ("Wrong -fo option\n");
+				return 1;
+			}
+			
+			ps.setPState (arg2i(argv,argvStep+2));
+			processor->setCore(arg2i(argv,argvStep+1));
+			processor->forcePState (ps.getPState());
+
+			argvStep=argvStep+2;
+		}
+
+		//Show temperature table
+		if (strcmp((const char *)argv[argvStep],"-temp")==0) {
+			
+			processorTempStatus(processor);
+		
+		}
+
+		//Set vsSlamTime
+		if (strcmp((const char *)argv[argvStep],"-slamtime")==0) {
+			
+			if ((argv[argvStep+1]==NULL)) {
+				printf ("Wrong -slamtime option\n");
+				return 1;
+			}
+			
+			processor->setSlamTime (arg2i(argv,argvStep+1));
+			argvStep=argvStep+1;
+		}
+
+		//Set vsAltVIDSlamTime
+		if (strcmp((const char *)argv[argvStep],"-altvidslamtime")==0) {
+			
+			if ((argv[argvStep+1]==NULL)) {
+				printf ("Wrong -altvidslamtime option\n");
+				return 1;
+			}
+			
+			processor->setAltVidSlamTime (arg2i(argv,argvStep+1));
+			argvStep=argvStep+1;
+		}
+
+
+		//Set Ramp time for StepUpTime
+		if (strcmp((const char *)argv[argvStep],"-rampuptime")==0) {
+			
+			if ((argv[argvStep+1]==NULL)) {
+				printf ("Wrong -rampuptime option\n");
+				return 1;
+			}
+			
+			processor->setStepUpRampTime (arg2i(argv,argvStep+1));
+			argvStep=argvStep+1;
+		}
+
+		//Set Ramp time for StepDownTime
+		if (strcmp((const char *)argv[argvStep],"-rampdowntime")==0) {
+			
+			if ((argv[argvStep+1]==NULL)) {
+				printf ("Wrong -rampdowntime option\n");
+				return 1;
+			}
+			
+			processor->setStepDownRampTime (arg2i(argv,argvStep+1));
+			argvStep=argvStep+1;
+		}
+
+		//Show information about per-family specifications
+		if (strcmp((const char *) argv[argvStep], "-spec") == 0) {
+
+			processor->showFamilySpecs();
+		}
+
+		//Show information about DRAM timing register
+		if (strcmp((const char *) argv[argvStep], "-dram") == 0) {
+
+			processor->showDramTimings();
+		}
+
+		//Show information about HTC registers status
+		if (strcmp((const char *)argv[argvStep],"-htc")==0) {
+			
+			processor->showHTC();
+		}
+		
+		//Enables HTC Features
+		if (strcmp((const char *)argv[argvStep],"-htcenable")==0) {
+			
+			processor->HTCEnable();
+		}
+
+		//Disables HTC Features
+		if (strcmp((const char *)argv[argvStep],"-htcdisable")==0) {
+			
+			processor->HTCDisable();
+		}
+
+		//Set HTC temperature limit
+		if (strcmp((const char *)argv[argvStep],"-htctemplimit")==0) {
+			
+			if ((argv[argvStep+1]==NULL)) {
+				printf ("Wrong -htctemplimit option\n");
+				return 1;
+			}
+			
+			processor->HTCsetTempLimit(arg2i(argv,argvStep+1));
+			argvStep=argvStep+1;
+		}
+
+		//Set HTC hysteresis limit
+		if (strcmp((const char *)argv[argvStep],"-htchystlimit")==0) {
+			
+			if ((argv[argvStep+1]==NULL)) {
+				printf ("Wrong -htchystlimit option\n");
+				return 1;
+			}
+			
+			processor->HTCsetHystLimit(arg2i(argv,argvStep+1));
+			argvStep=argvStep+1;
+		}
+
+		//Set AltVID
+		if (strcmp((const char *)argv[argvStep],"-altvid")==0) {
+			
+			if ((argv[argvStep+1]==NULL)) {
+				printf ("Wrong -altvid option\n");
+				return 1;
+			}
+			
+			processor->setAltVid(arg2i(argv,argvStep+1));
+			argvStep=argvStep+1;
+		}
+
+		//Show information about Hypertransport registers
+		if (strcmp((const char *)argv[argvStep],"-htstatus")==0) {
+			
+			processor->showHTLink();
+		}
+
+		//Set Hypertransport Link frequency
+		if (strcmp((const char *)argv[argvStep],"-htset")==0) {
+			
+			if ((argv[argvStep+1]==NULL)) {
+				printf ("Wrong -htset option\n");
+				return 1;
+			}
+			
+			processor->setHTLinkSpeed(arg2i(argv,argvStep+1));
+			argvStep=argvStep+1;
+		}
+		
+		//Enables PSI_L bit
+		if (strcmp((const char *)argv[argvStep],"-psienable")==0) {
+			
+			processor->setPsiEnabled (true);
+		}
+		
+		//Disables PSI_L bit
+		if (strcmp((const char *)argv[argvStep],"-psidisable")==0) {
+			
+			processor->setPsiEnabled (false);
+		}
+		
+		//Set PSI_L bit threshold		
+		if (strcmp((const char *)argv[argvStep],"-psithreshold")==0) {
+			
+			if ((argv[argvStep+1]==NULL)) {
+				printf ("Wrong -psithreshold option\n");
+				return 1;
+			}
+			
+			processor->setPsiThreshold(arg2i(argv,argvStep+1));
+			argvStep=argvStep+1;
+		}
+
+		//Set C1E enabled on specific core
+		if (strcmp((const char *)argv[argvStep],"-c1eenable")==0) {
+			
+			if ((argv[argvStep+1]==NULL)) {
+				printf ("Wrong -c1eenable option\n");
+				return 1;
+			}
+			
+			processor->setCore(arg2i(argv,argvStep+1));
+			processor->setC1EStatus(true);
+			argvStep=argvStep+1;
+		}
+		
+		//Set C1E disabled on specific core
+		if (strcmp((const char *)argv[argvStep],"-c1edisable")==0) {
+			
+			if ((argv[argvStep+1]==NULL)) {
+				printf ("Wrong -c1edisable option\n");
+				return 1;
+			}
+			
+			processor->setCore(arg2i(argv,argvStep+1));
+			processor->setC1EStatus(false);
+			argvStep=argvStep+1;
+		}
+
+		//Goes in temperature monitoring
+		if (strcmp((const char *)argv[argvStep],"-mtemp")==0) {
+			
+			processorTempMonitoring(processor);
+		}
+
+
+		//Goes into Check Mode and controls very fastly if a transition to a wrong pstate happens
+		if (strcmp((const char *)argv[argvStep],"-CM")==0) {
+			
+			processor->checkMode ();
+			
+		}
+
+		//Allow cyclic parameter auto recall
+		if (strcmp((const char*)argv[argvStep],"-autorecall")==0) {
+		
+			if (autoRecall==false) {
+				autoRecall=true;
+				autoRecallTimer=60;
+			}
+		}
+
+		//Get general info about Performance counters
+		if (strcmp((const char*)argv[argvStep],"-pcgetinfo")==0) {
+
+			processor->perfCounterGetInfo ();
+
+		}
+
+		//Get Performance counter value about a specific performance counter
+		if (strcmp((const char*)argv[argvStep],"-pcgetvalue")==0) {
+
+			if ((argv[argvStep+1]==NULL) || (argv[argvStep+2]==NULL)) {
+				printf ("Wrong -pcgetvalue option\n");
+				return 1;
+			}
+
+			processor->perfCounterGetValue (atoi(argv[argvStep+1]), atoi (argv[argvStep+2]));
+			argvStep+=2;
+
+		}
+
+		//Costantly monitors Performance counter value about a specific performance counter
+		if (strcmp((const char*)argv[argvStep],"-pcmonitor")==0) {
+
+			if ((argv[argvStep+1]==NULL) || (argv[argvStep+2]==NULL)) {
+				printf ("Wrong -pcmonitor option\n");
+				return 1;
+			}
+
+			processor->perfCounterMonitor (atoi(argv[argvStep+1]), atoi (argv[argvStep+2]));
+			argvStep+=2;
+
+		}
+
+		//Handle -set switch. That is a user friendly way to set up a pstate or a pstate/core
+		//with frequency value and voltage value.
+		if (strcmp((const char*)argv[argvStep],"-set")==0) {
+
+			argvStep=parseSetCommand (processor,argc,argv,argvStep+1)-1;
+
+			printf ("*** -set parsing terminated\n");
+
+		}
+
+
+
+		//Costantly monitors CPU Usage 
+		if (strcmp((const char*)argv[argvStep],"-cpuusage")==0) {
+
+			processor->perfMonitorCPUUsage ();
+
+		}
+		
+		//Open a configuration file
+		if (strcmp((const char*)argv[argvStep],"-cfgfile")==0) {
+		
+			cfgInstance=new CfgManager (processor, scaler);
+			
+			if (cfgInstance->openCfgFile ((char *)argv[argvStep+1])) {
+				printf ("Error: invalid configuration file\n");
+				free (cfgInstance);
+				break;
+			}
+			
+			errorLine=cfgInstance->parseCfgFile ();
+			
+			if (errorLine!=0) {
+				printf ("Error: invalid configuration identifier at row %d\n",errorLine);
+				free (cfgInstance);
+				break;
+			}
+		
+			free (cfgInstance); 
+			
+			argvStep++;
+			
+		
+		}
+		
+		if (strcmp((const char *)argv[argvStep],"-scaler")==0) {
+
+			scaler->beginScaling ();
+
+		}
+
+		//Autorecall feature set argvStep back to 1 when it reaches end
+		if ((autoRecall==true) && (argvStep==(argc-1))) {
+			printf ("Autorecall activated. Timeout: %d seconds\n", autoRecallTimer);
+			Sleep (autoRecallTimer*1000);
+			printf ("Autorecalling...\n");
+			argvStep=0;
+		}
+
+
+	}
+
+	printf ("\n");
+
+	printf ("Done.\n");
+
+	free (processor);
+
+	closeWinRing0 ();
+
+	return 0;
+}
