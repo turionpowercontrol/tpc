@@ -296,7 +296,7 @@ void processorTempStatus(Processor *p) {
 }
 
 void printUsage () {
-	printf ("Usage: TurionPowerControl.exe [option]\n");
+	printf ("Usage: TurionPowerControl.exe [options]\n");
 	printf ("Options:\n\n");
 	printf ("\t ----- Various information about processor states\n\n");
 	printf (" -l\n\tLists power states\n\n");
@@ -305,30 +305,33 @@ void printUsage () {
 	printf (" -htc\n\tShows Hardware Thermal Control status\n\n");
 	printf (" -htstatus\n\tShows Hypertransport status\n\n");
 	printf ("\t ----- PState VID, FID, DID manipulation -----\n\n");
-	printf (" -node (nodeId)\n\tSet the current operating node. Use \"all\" to affect all nodes\n\tin the system\n\n");
-	printf (" -core (coreId)\n\tSet the current operating core. Use \"all\" to affect all cores\n\tin the current node\n\n");
-	printf (" -pv (coreId) (pStateId) (vidId)\n\tSet a specified (vidId) for (pStateId) for (coreId)\n\n");
-	printf (" -pd (coreId) (pStateId) (didId)\n\tSet a specified (didId) for (pStateId) for (coreId)\n\n");
-	printf (" -pf (coreId) (pStateId) (fidId)\n\tSet a specified (fidId) for (pStateId) for (coreId)\n\n");
-	printf (" -pall (coreId) (pStateId) (vidId) (didId) (fidId)\n\tSet whole settings for specified (pStateId) for (coreId)\n\n");
-	printf (" -pallc (pStateId) (vidId) (didId) (fidId)\n\tSet whole settings for specified (pStateId) for all cores\n\n");
-	printf (" -en (coreId) (pStateId)\n\tEnables a specified (pStateId) for (coreId)\n\n");
-	printf (" -di (coreId) (pStateId)\n\tDisables a specified (pStateId) for (coreId)\n\n");
-	printf (" -fo (coreId) (pStateId)\n\tForce a pstate transition to specified (pStateId) for (coreId)\n\n");
-	printf (" -psmax (pStateId)\n\tSet maximum Power State\n\n");
+	printf (" -node (nodeId)\n\tSet the current operating node. Use \"all\" to affect all nodes\n\tin the system. "
+			"By default all nodes in the system are selected.\n\tIf your system has a single processor you can safely ignore\n\t"
+			"this switch\n\n");
+	printf (" -core (coreId)\n\tSet the current operating core. Use \"all\" to affect all cores\n\tin the current node.\n\t"
+			"By default all cores in the system are selected.\n\n");
+	/*printf (" -pv (pStateId) (vidId)\n\tSet a specified (vidId) for (pStateId) for current cores and\n\tcurrent nodes\n\n");
+	printf (" -pd (pStateId) (didId)\n\tSet a specified (didId) for (pStateId) for current cores and\n\tcurrent nodes\n\n");
+	printf (" -pf (pStateId) (fidId)\n\tSet a specified (fidId) for (pStateId) for current cores and\n\t current nodes\n\n");
+	printf (" -pall (pStateId) (vidId) (didId) (fidId)\n\tSet whole settings for specified (pStateId) for\n\t"
+			"current cores and current nodes\n\n");*/
+	printf (" -en (coreId) (pStateId)\n\tEnables a specified (pStateId) for current cores and current nodes\n\n");
+	printf (" -di (coreId) (pStateId)\n\tDisables a specified (pStateId) for current cores and current nodes\n\n");
+	printf (" -fo (coreId) (pStateId)\n\tForce a pstate transition to specified (pStateId) for current cores\n\tand current nodes\n\n");
+	printf (" -psmax (pStateId)\n\tSet maximum Power State for current nodes\n\n");
 
 	printf (" -set (commands)\n\tUseful switch to set frequency and voltage without manual\n");
 	printf ("\tmanipulation of FID, DID and VID values. Check the documentation\n");
 	printf ("\tfor some easy example usages\n\n");
 
 	printf ("\t ----- Voltage control -----\n\n");	
-	printf (" -slamtime (value)\n -altvidslamtime (value)\n\tSet vsSlamTime for processor or vsAltVIDSlamTime for transitions\n");
+	printf (" -slamtime (value)\n -altvidslamtime (value)\n\tSet, on current nodes, vsSlamTime or vsAltVIDSlamTime for transitions \n");
 	printf ("\tto AltVID state. It is the the stabilization time between\n");
 	printf ("\ta SVI Voltage command and a FID change. Values range from 0 to 7 \n");
 	printf ("\tand corresponds to:\n\n");
 	printf ("\t\t0=10us\n\t\t1=20us\n\t\t2=30us\n\t\t3=40us\n\t\t4=60us\n\t\t5=100us\n\t\t6=200us\n\t\t7=500us\n\n");
 
-	printf (" -rampuptime (value)\n -rampdowntime (value)\n\tSet the StepUpTime or StepDownTime for the processor. \n");
+	printf (" -rampuptime (value)\n -rampdowntime (value)\n\tSet, on current nodes, the StepUpTime or StepDownTime. \n");
 	printf ("\tIt is not documented in Turion (Family 11h) datasheet, but only in\n");
 	printf ("\tPhenom datasheet (Family 10h) with referring to desktop and mobile\n");
 	printf ("\tprocessors. Values range from 0 to 15 and corresponds to:\n\n");
@@ -337,29 +340,29 @@ void printUsage () {
 
 	printf ("\t ----- Northbridge (IMC) features -----\n\n");
 	printf ("\t For family 11h processors:\n");
-	printf (" -nbvid (vidId)\n\tSet Northbridge VID\n\n");
+	printf (" -nbvid (vidId)\n\tSet Northbridge VID for current nodes\n\n");
 	printf ("\t For family 10h processors:\n");
-	printf (" -nbvid (pstateId) (vidId)\n\tSet Northbridge VID to pstateId (this will be set to all cores\n\tautomatically\n\n");
-	printf (" -nbdid (pstateId) (didId)\n\tSet divisor didID to northbridge (set to all cores automatically,\n\t");
-	printf ("but usually causes the processor to lock to slowest pstate. Accepted\n\tvalues are 0 and 1)\n\n");
+	printf (" -nbvid (pstateId) (vidId)\n\tSet Northbridge VID to pstateId for all cores and current nodes\n\n");
+	printf (" -nbdid (pstateId) (didId)\n\tSet divisor didID to northbridge for all cores and current nodes.\n\t");
+	printf ("Usually causes the processor to lock to slowest pstate. Accepted\n\tvalues are 0 and 1)\n\n");
 
 	printf ("\t ----- Processor Temperature monitoring -----\n\n");
 	printf (" -temp \n\tShow temperature registers data\n\n");
 	printf (" -mtemp \n\tCostantly monitors processor temperatures\n\n");
 
 	printf ("\t ----- Hardware Thermal Control -----\n\n");
-	printf (" -htc\n\tShow information about Hardware Thermal Control status\n\n");
-	printf (" -htcenable\n\tEnables HTC features\n\n");
-	printf (" -htcdisable\n\tDisables HTC features\n\n");
-	printf (" -htctemplimit (temp)\n\tSet HTC high temperature limit\n\n");
-	printf (" -htchystlimit (temp)\n\tSet HTC hysteresis (exits from HTC state) temperature limit\n\n");
-	printf (" -altvid (vid)\n\tSet voltage identifier for AltVID status, invoked in low-consumption\n\tmode or during HTC active status\n\n");
+	printf (" -htc\n\tShow information about Hardware Thermal Control status for\n\tcurrent nodes\n\n");
+	printf (" -htcenable\n\tEnables HTC features for current nodes\n\n");
+	printf (" -htcdisable\n\tDisables HTC features for current nodes\n\n");
+	printf (" -htctemplimit (temp)\n\tSet HTC high temperature limit for current nodes\n\n");
+	printf (" -htchystlimit (temp)\n\tSet HTC hysteresis (exits from HTC state) temperature\n\tlimit for current nodes\n\n");
+	printf (" -altvid (vid)\n\tSet voltage identifier for AltVID status for current nodes, invoked in \n\tlow-consumption mode or during HTC active status\n\n");
 	
 	printf ("\t ----- PSI_L bit -----\n\n");
-	printf (" -psienable\n\tEnables PSI_L bit for improved Power Regulation with low loads\n\n");
-	printf (" -psidisable\n\tDisables PSI_L bit\n\n");
-	printf (" -psithreshold (vid)\n\tSets a specified VID as a threshold. When processor goes\n\t");
-	printf ("in a pstate with higher or equal vid, VRM is instructed\n\t");
+	printf (" -psienable\n\tEnables PSI_L bit for current nodes for improved Power Regulation\n\twith low loads\n\n");
+	printf (" -psidisable\n\tDisables PSI_L bit for current nodes\n\n");
+	printf (" -psithreshold (vid)\n\tSets a specified VID as a threshold for current nodes.\n\tWhen processor goes ");
+	printf ("in a pstate with higher or equal vid, \n\tVRM is instructed");
 	printf (" to go in power management mode\n\n");
 
 	printf ("\t ----- Hypertransport Link -----\n\n");
@@ -367,8 +370,8 @@ void printUsage () {
 	printf (" -htset\n\tSet the hypertransport link frequency register\n\n");
 	
 	printf ("\t ----- Various and others -----\n\n");
-	printf (" -c1eenable (coreId)\n\tSets C1E on Cmp Halt bit enabled\n\n");
-	printf (" -c1edisable (coreId)\n\tSets C1E on Cmp Halt bit disabled\n\n");
+	printf (" -c1eenable (coreId)\n\tSets C1E on Cmp Halt bit enabled for current nodes and current cores\n\n");
+	printf (" -c1edisable (coreId)\n\tSets C1E on Cmp Halt bit disabled for current nodes and current cores\n\n");
 
 
 	printf ("\t ----- Performance Counters -----\n\n");
@@ -472,6 +475,7 @@ int parseSetCommand (Processor *p, int argc, const char **argv, int argcOffset) 
 	const char *currentCommand;
 
 	int frequency;
+	int fid, did, vid;
 	float voltage;
 	float nbvoltage;
 	int tempInt;
@@ -628,6 +632,54 @@ int parseSetCommand (Processor *p, int argc, const char **argv, int argcOffset) 
 
 			}
 
+		} else if (strcmp(currentCommand, "fid") == 0) {
+
+			argcOffset++;
+
+			if (!requireInteger(argc, argv, argcOffset, &fid)) {
+
+				argcOffset++;
+				print_stat(p, ps, "FID", fid);
+				p->setFID(ps, fid);
+
+			} else {
+
+				printf("fid: expecting a valid integer\n");
+
+			}
+
+		} else if (strcmp(currentCommand, "did") == 0) {
+
+			argcOffset++;
+
+			if (!requireInteger(argc, argv, argcOffset, &did)) {
+
+				argcOffset++;
+				print_stat(p, ps, "DID", did);
+				p->setDID(ps, did);
+
+			} else {
+
+				printf("did: expecting a valid integer\n");
+
+			}
+
+		} else if (strcmp(currentCommand, "vid") == 0) {
+
+			argcOffset++;
+
+			if (!requireInteger(argc, argv, argcOffset, &vid)) {
+
+				argcOffset++;
+				print_stat(p, ps, "VID", vid);
+				p->setVID(ps, vid);
+
+			} else {
+
+				printf("vid: expecting a valid integer\n");
+
+			}
+
 		} else {
 			printf ("Unexpected command: %s\n",currentCommand);
 			argcOffset++;
@@ -707,7 +759,7 @@ int main (int argc,const char **argv) {
 				return 1;
 			}
 
-			if (arg2i(argv,argvStep+1)>MAX_CORES) {
+			if ((unsigned int)arg2i(argv,argvStep+1)>MAX_CORES) {
 				printf ("Error: the value exceed the MAX_CORES constant\n");
 				return 1;
 			}
@@ -776,7 +828,7 @@ int main (int argc,const char **argv) {
 
 		}
 
-		/* TODO: committed for removal
+		/* TODO: suggested for removal
 
 		//Set VID for a specific power state
 		if (strcmp((const char *)argv[argvStep],"-pv")==0) {
@@ -908,7 +960,7 @@ int main (int argc,const char **argv) {
 			ps.setPState (arg2i(argv,argvStep+1));
 			processor->pStateEnable (ps.getPState());
 
-			argvStep=argvStep++;
+			argvStep++;
 		}
 
 		//Disables a specified PState for current cores and current nodes
@@ -922,10 +974,10 @@ int main (int argc,const char **argv) {
 			ps.setPState (arg2i(argv,argvStep+1));
 			processor->pStateDisable (ps.getPState());
 
-			argvStep=argvStep++;
+			argvStep++;
 		}
 
-		//Set maximum PState
+		//Set maximum PState for current nodes
 		if (strcmp((const char *)argv[argvStep],"-psmax")==0) {
 			
 			if ((argv[argvStep+1]==NULL)) {
@@ -935,9 +987,10 @@ int main (int argc,const char **argv) {
 			
 			ps.setPState (arg2i(argv,argvStep+1));
 			processor->setMaximumPState (ps);
-			argvStep=argvStep++;
+			argvStep++;
 		}
 
+		//Force transition to a pstate for current cores and current nodes
 		if (strcmp((const char *)argv[argvStep],"-fo")==0) {
 			
 			if (argv[argvStep+1]==NULL) {
@@ -948,7 +1001,7 @@ int main (int argc,const char **argv) {
 			ps.setPState (arg2i(argv,argvStep+1));
 			processor->forcePState (ps.getPState());
 
-			argvStep=argvStep++;
+			argvStep++;
 		}
 
 		//Show temperature table
@@ -967,7 +1020,7 @@ int main (int argc,const char **argv) {
 			}
 			
 			processor->setSlamTime (arg2i(argv,argvStep+1));
-			argvStep=argvStep+1;
+			argvStep++;
 		}
 
 		//Set vsAltVIDSlamTime for current nodes
@@ -979,7 +1032,7 @@ int main (int argc,const char **argv) {
 			}
 			
 			processor->setAltVidSlamTime (arg2i(argv,argvStep+1));
-			argvStep=argvStep+1;
+			argvStep++;
 		}
 
 
@@ -992,7 +1045,7 @@ int main (int argc,const char **argv) {
 			}
 			
 			processor->setStepUpRampTime (arg2i(argv,argvStep+1));
-			argvStep=argvStep+1;
+			argvStep++;
 		}
 
 		//Set Ramp time for StepDownTime for current nodes
@@ -1004,7 +1057,7 @@ int main (int argc,const char **argv) {
 			}
 			
 			processor->setStepDownRampTime (arg2i(argv,argvStep+1));
-			argvStep=argvStep+1;
+			argvStep++;
 		}
 
 		//Show information about per-family specifications
@@ -1046,7 +1099,7 @@ int main (int argc,const char **argv) {
 			}
 			
 			processor->HTCsetTempLimit(arg2i(argv,argvStep+1));
-			argvStep=argvStep+1;
+			argvStep++;
 		}
 
 		//Set HTC hysteresis limit for current nodes
@@ -1058,7 +1111,7 @@ int main (int argc,const char **argv) {
 			}
 			
 			processor->HTCsetHystLimit(arg2i(argv,argvStep+1));
-			argvStep=argvStep+1;
+			argvStep++;
 		}
 
 		//Set AltVID for current nodes
@@ -1070,7 +1123,7 @@ int main (int argc,const char **argv) {
 			}
 			
 			processor->setAltVid(arg2i(argv,argvStep+1));
-			argvStep=argvStep+1;
+			argvStep++;
 		}
 
 		//Show information about Hypertransport registers
@@ -1088,7 +1141,7 @@ int main (int argc,const char **argv) {
 			}
 			
 			processor->setHTLinkSpeed(arg2i(argv,argvStep+1));
-			argvStep=argvStep+1;
+			argvStep++;
 		}
 		
 		//Enables PSI_L bit for current nodes
@@ -1112,7 +1165,7 @@ int main (int argc,const char **argv) {
 			}
 			
 			processor->setPsiThreshold(arg2i(argv,argvStep+1));
-			argvStep=argvStep+1;
+			argvStep++;
 		}
 
 		//Set C1E enabled on current nodes and current cores
