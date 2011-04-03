@@ -5,6 +5,10 @@
 Scaler::Scaler (class Processor *prc) {
 
 	processor=prc;
+
+	processor->setNode(0);
+	processor->setCore(0);
+
 	samplingRate=DEFAULT_SAMPLING_RATE;
 	
 	upPolicy=POLICY_STEP;

@@ -200,7 +200,8 @@ void Griffin::showFamilySpecs () {
 	
 	printf ("\n");
 
-	for (i=0;i<getProcessorCores();i++) {		
+	for (i=0;i<getProcessorCores();i++) {
+		setCore(i);
 		if (getC1EStatus()==false)
 			printf ("Core %d C1E CMP halt bit is disabled\n", i);
 		else
@@ -2097,8 +2098,10 @@ void Griffin::setC1EStatus (bool toggle) {
 		return;
 	}
 
+	msrObject->setBitsLow(28,1,toggle);
+
 	//C1E bit is stored in bit 28
-	if (!msrObject->setBitsLow(28, 1, toggle)) {
+	if (!msrObject->writeMSR()) {
 		printf ("Griffin.cpp::setC1EStatus - unable to write MSR\n");
 		free (msrObject);
 		return;

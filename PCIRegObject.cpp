@@ -35,7 +35,7 @@ void PCIRegObject::newPCIReg(DWORD device, DWORD function, DWORD reg,
 
 	DWORD nid;
 	DWORD mask;
-	unsigned int count;
+	unsigned int count=0;
 
 	this->nodeMask = nodeMask;
 	this->reg = reg;
@@ -78,7 +78,7 @@ bool PCIRegObject::readPCIReg(DWORD device, DWORD function, DWORD reg, DWORD nod
 
 	DWORD nid;
 	DWORD mask;
-	unsigned int count;
+	unsigned int count=0;
 
 	this->nodeMask = nodeMask;
 	this->reg = reg;

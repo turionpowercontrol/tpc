@@ -19,12 +19,13 @@
 //K10Processor class constructor
 K10Processor::K10Processor () {
 
-	int physicalCores=1;
 	DWORD eax,ebx,ecx,edx;
 	PCIRegObject *pciReg60;
 	PCIRegObject *pciReg160;
 	bool pciReg60Success;
 	bool pciReg160Success;
+	DWORD nodes;
+	DWORD cores;
 
 	//Check extended CpuID Information - CPUID Function 0000_0001 reg EAX
 	if (Cpuid(0x1,&eax,&ebx,&ecx,&edx)!=TRUE) {
@@ -68,13 +69,12 @@ K10Processor::K10Processor () {
 	pciReg60=new PCIRegObject ();
 	pciReg160=new PCIRegObject ();
 
-	pciReg60Success=pciReg60->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_0, 0x60, getNodeMask(1));
-	pciReg160Success=pciReg160->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_0, 0x160, getNodeMask (1));
-
+	pciReg60Success=pciReg60->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_0, 0x60, getNodeMask(0));
+	pciReg160Success=pciReg160->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_0, 0x160, getNodeMask (0));
 
 	if (pciReg60Success && pciReg160Success) {
 
-		processorNodes=pciReg60->getBits(0,4,3)+1;
+		nodes=pciReg60->getBits(0,4,3)+1;
 
 		/* TODO: bugbug, physical cores is per processor or it is per system?
 		I suppose that the physical cores variable
@@ -90,6 +90,7 @@ K10Processor::K10Processor () {
 	} else {
 
 		printf ("Warning: unable to detect multiprocessor machine\n");
+		nodes=1;
 
 	}
 
@@ -103,13 +104,13 @@ K10Processor::K10Processor () {
 		return;
 	}
 
-	physicalCores = (ecx & 0xff) + 1;
+	cores = (ecx & 0xff) + 1;
 
-	setProcessorCores(physicalCores);
+	setProcessorCores(cores);
+	setProcessorNodes(nodes);
 	setPowerStates(5);
 	setProcessorIdentifier(PROCESSOR_10H_FAMILY);
 	setProcessorStrId("Family 10h Processor");
-	setProcessorNodes(1);
 
 	forcePVI = false;
 	forceSVI = false;
@@ -148,7 +149,7 @@ bool K10Processor::isProcessorSupported () {
 	if (familyExtended!=0x10) return false;
 	
 	//Detects a Family 10h processor, i.e. Phenom, Phenom II, Athlon II, Turion II processors.
-	return PROCESSOR_10H_FAMILY;
+	return true;
 }
 
 void K10Processor::showFamilySpecs() {
@@ -185,6 +186,7 @@ void K10Processor::showFamilySpecs() {
 		printf("\n");
 
 		for (i = 0; i < getProcessorCores(); i++) {
+			setCore(i);
 			if (getC1EStatus() == false)
 				printf("Core %d C1E CMP halt bit is disabled\n", i);
 			else
@@ -200,7 +202,7 @@ void K10Processor::showFamilySpecs() {
 
 		pciRegObject = new PCIRegObject();
 		if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE,
-				PCI_FUNC_MISC_CONTROL_3, 0xa0, getNodeMask(1)))
+				PCI_FUNC_MISC_CONTROL_3, 0xa0, getNodeMask()))
 			printf("Unable to read PCI Register (0xa0)\n");
 		else {
 			pstateId = pciRegObject->getBits(0, 16, 12);
@@ -453,7 +455,7 @@ DWORD K10Processor::getVID (PState ps) {
 	msrObject=new MSRObject ();
 
 	if (!msrObject->readMSR(BASE_K10_PSTATEMSR+ps.getPState(), getMask())) {
-		printf ("K10Processor.cpp: unable to read MSR\n");
+		printf ("K10Processor.cpp::getVID - unable to read MSR\n");
 		free (msrObject);
 		return false;
 	}
@@ -478,7 +480,7 @@ DWORD K10Processor::getFID (PState ps) {
 	msrObject=new MSRObject ();
 
 	if (!msrObject->readMSR(BASE_K10_PSTATEMSR+ps.getPState(), getMask())) {
-		printf ("K10Processor.cpp: unable to read MSR\n");
+		printf ("K10Processor.cpp::getFID - unable to read MSR\n");
 		free (msrObject);
 		return false;
 	}
@@ -503,7 +505,7 @@ DWORD K10Processor::getDID (PState ps) {
 	msrObject=new MSRObject ();
 
 	if (!msrObject->readMSR(BASE_K10_PSTATEMSR+ps.getPState(), getMask())) {
-		printf ("K10Processor.cpp: unable to read MSR\n");
+		printf ("K10Processor.cpp::getDID - unable to read MSR\n");
 		free (msrObject);
 		return false;
 	}
@@ -600,8 +602,8 @@ bool K10Processor::getPVIMode () {
 
 	if (forceSVI==true) return false;
 
-	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3, 0xa0, getNodeMask(1))) {
-		printf ("Unable to read PCI register (getPVIMode)\n");
+	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3, 0xa0, getNodeMask())) {
+		printf ("K10Processor.cpp::getPVIMode - Unable to read PCI register\n");
 		return false;
 	}
 
@@ -621,7 +623,7 @@ void K10Processor::pStateDisable (PState ps) {
 	msrObject=new MSRObject();
 
 	if (!msrObject->readMSR(BASE_K10_PSTATEMSR+ps.getPState(), getMask ())) {
-		printf ("K10Processor.cpp: unable to read MSR\n");
+		printf ("K10Processor.cpp::pStateDisable - unable to read MSR\n");
 		free (msrObject);
 		return;
 	}
@@ -630,7 +632,7 @@ void K10Processor::pStateDisable (PState ps) {
 	msrObject->setBitsHigh(31,1,0x0);
 
 	if (!msrObject->writeMSR()) {
-		printf ("K10Processor.cpp: unable to write MSR\n");
+		printf ("K10Processor.cpp::pStateDisable - unable to write MSR\n");
 		free (msrObject);
 		return;
 	}
@@ -648,7 +650,7 @@ void K10Processor::pStateEnable (PState ps) {
 	msrObject=new MSRObject();
 
 	if (!msrObject->readMSR(BASE_K10_PSTATEMSR+ps.getPState(), getMask ())) {
-		printf ("K10Processor.cpp: unable to read MSR\n");
+		printf ("K10Processor.cpp::pStateEnable - unable to read MSR\n");
 		free (msrObject);
 		return;
 	}
@@ -657,7 +659,7 @@ void K10Processor::pStateEnable (PState ps) {
 	msrObject->setBitsHigh(31,1,0x1);
 
 	if (!msrObject->writeMSR()) {
-		printf ("K10Processor.cpp: unable to write MSR\n");
+		printf ("K10Processor.cpp:pStateEnable - unable to write MSR\n");
 		free (msrObject);
 		return;
 	}
@@ -676,7 +678,7 @@ bool K10Processor::pStateEnabled(PState ps) {
 	msrObject = new MSRObject();
 
 	if (!msrObject->readMSR(BASE_K10_PSTATEMSR + ps.getPState(), getMask())) {
-		printf("K10Processor.cpp: unable to read MSR\n");
+		printf("K10Processor.cpp::pStateEnabled - unable to read MSR\n");
 		free(msrObject);
 		return false;
 	}
@@ -701,7 +703,7 @@ void K10Processor::setMaximumPState (PState ps) {
 	pciRegObject=new PCIRegObject ();
 
 	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3, 0xdc, getNodeMask())) {
-		printf ("K10Processor.cpp: unable to read PCI register\n");
+		printf ("K10Processor.cpp::setMaximumPState - unable to read PCI register\n");
 		free (pciRegObject);
 		return;
 	}
@@ -716,7 +718,7 @@ void K10Processor::setMaximumPState (PState ps) {
 	pciRegObject->setBits(8,3,ps.getPState());
 
 	if (!pciRegObject->writePCIReg()) {
-		printf ("K10Processor.cpp: unable to write PCI register\n");
+		printf ("K10Processor.cpp::setMaximumPState - unable to write PCI register\n");
 		free (pciRegObject);
 		return;
 	}
@@ -735,7 +737,7 @@ PState K10Processor::getMaximumPState () {
 	pciRegObject = new PCIRegObject();
 
 	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3, 0xdc, getNodeMask())) {
-		printf ("K10Processor.cpp: unable to read PCI register\n");
+		printf ("K10Processor.cpp::getMaximumPState - unable to read PCI register\n");
 		free (pciRegObject);
 		return NULL;
 	}
@@ -762,7 +764,7 @@ void K10Processor::setNBVid (PState ps, DWORD nbvid) {
 	msrObject=new MSRObject ();
 
 	if ((nbvid<maxVID()) || (nbvid>minVID())) {
-		printf ("K10Processor.cpp: Northbridge VID Allowed range 0-127\n");
+		printf ("K10Processor.cpp::setNBVid - Northbridge VID Allowed range 0-127\n");
 		return;
 	}
 
@@ -775,7 +777,7 @@ void K10Processor::setNBVid (PState ps, DWORD nbvid) {
 	 */
 
 	if (!msrObject->readMSR(BASE_K10_PSTATEMSR+ps.getPState(), getMask(ALL_NODES, selectedNode))) {
-		printf ("Unable to read MSR\n");
+		printf ("K10Processor::setNBVid - Unable to read MSR\n");
 		free (msrObject);
 		return;
 	}
@@ -784,7 +786,7 @@ void K10Processor::setNBVid (PState ps, DWORD nbvid) {
 	msrObject->setBitsLow(25,7,nbvid);
 
 	if (!msrObject->writeMSR()) {
-		printf ("Unable to write MSR\n");
+		printf ("K10Processor::setNBVid - Unable to write MSR\n");
 		free (msrObject);
 		return;
 	}
@@ -807,7 +809,7 @@ void K10Processor::setNBDid (PState ps, DWORD nbdid) {
 	}
 
 	if (!msrObject->readMSR(BASE_K10_PSTATEMSR+ps.getPState(), getMask(ALL_CORES, selectedNode))) {
-		printf ("Unable to read MSR\n");
+		printf ("K10Processor::setNBDid - Unable to read MSR\n");
 		free (msrObject);
 		return;
 	}
@@ -816,7 +818,7 @@ void K10Processor::setNBDid (PState ps, DWORD nbdid) {
 	msrObject->setBitsLow(22,1,nbdid);
 
 	if (!msrObject->writeMSR()) {
-		printf ("Unable to write MSR\n");
+		printf ("K10Processor::setNBDid - Unable to write MSR\n");
 		free (msrObject);
 		return;
 	}
@@ -840,7 +842,7 @@ DWORD K10Processor::getMaxNBFrequency() {
 	msrObject = new MSRObject();
 
 	if (!msrObject->readMSR(COFVID_STATUS_REG, getMask(0, selectedNode))) {
-		printf("Unable to read MSR\n");
+		printf("K10Processor::getMaxNBFrequency - Unable to read MSR\n");
 		free(msrObject);
 		return false;
 	}
@@ -865,7 +867,7 @@ void K10Processor::forcePState (PState ps) {
 	msrObject=new MSRObject();
 
 	if (!msrObject->readMSR(BASE_PSTATE_CTRL_REG, getMask ())) {
-		printf ("K10Processor.cpp: unable to read MSR\n");
+		printf ("K10Processor.cpp::forcePState - unable to read MSR\n");
 		free (msrObject);
 		return;
 	}
@@ -876,7 +878,7 @@ void K10Processor::forcePState (PState ps) {
 	msrObject->setBitsLow(0,3,ps.getPState());
 
 	if (!msrObject->writeMSR()) {
-		printf ("K10Processor.cpp: unable to write MSR\n");
+		printf ("K10Processor.cpp::forcePState - unable to write MSR\n");
 		free (msrObject);
 		return;
 	}
@@ -897,7 +899,7 @@ DWORD K10Processor::getNBVid(PState ps) {
 
 	if (!msrObject->readMSR(BASE_K10_PSTATEMSR + ps.getPState(),
 			getMask())) {
-		printf("Unable to read MSR\n");
+		printf("K10Processor::getNBVid - Unable to read MSR\n");
 		free(msrObject);
 		return false;
 	}
@@ -920,7 +922,7 @@ DWORD K10Processor::getNBDid (PState ps) {
 
 	if (!msrObject->readMSR(BASE_K10_PSTATEMSR + ps.getPState(),
 			getMask())) {
-		printf("Unable to read MSR\n");
+		printf("K10Processor::getNBDid - Unable to read MSR\n");
 		free(msrObject);
 		return false;
 	}
@@ -941,7 +943,7 @@ DWORD K10Processor::getNBFid () {
 	pciRegObject=new PCIRegObject();
 
 	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3,0xd4,getNodeMask())) {
-		printf ("Unable to read PCI register\n");
+		printf ("K10Processor::getNBFid - Unable to read PCI register\n");
 		free (pciRegObject);
 		return false;
 	}
@@ -976,7 +978,7 @@ void K10Processor::setNBFid(DWORD fid) {
 
 	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3,
 			0xd4, getNodeMask())) {
-		printf("Unable to read PCI register\n");
+		printf("K10Processor::setNBFid - Unable to read PCI register\n");
 		free(pciRegObject);
 		return;
 	}
@@ -992,7 +994,7 @@ void K10Processor::setNBFid(DWORD fid) {
 	pciRegObject->setBits(0, 5, fid);
 
 	if (!pciRegObject->writePCIReg()) {
-		printf("Unable to write PCI register\n");
+		printf("K10Processor::setNBFid - Unable to write PCI register\n");
 		free(pciRegObject);
 		return;
 	}
@@ -1053,7 +1055,7 @@ DWORD K10Processor::minVID () {
 	msrObject=new MSRObject;
 
 	if (!msrObject->readMSR(COFVID_STATUS_REG, getMask(0, selectedNode))) {
-		printf ("Unable to read MSR\n");
+		printf ("K10Processor::minVID - Unable to read MSR\n");
 		free (msrObject);
 		return false;
 	}
@@ -1084,7 +1086,7 @@ DWORD K10Processor::maxVID() {
 	msrObject = new MSRObject;
 
 	if (!msrObject->readMSR(COFVID_STATUS_REG, getMask(0, selectedNode))) {
-		printf("Unable to read MSR\n");
+		printf("K10Processor::maxVID - Unable to read MSR\n");
 		free(msrObject);
 		return false;
 	}
@@ -1110,7 +1112,7 @@ DWORD K10Processor::startupPState () {
 	msrObject = new MSRObject();
 
 	if (!msrObject->readMSR(COFVID_STATUS_REG, getMask(0, selectedNode))) {
-		printf("K10Processor.cpp: unable to read MSR\n");
+		printf("K10Processor.cpp::startupPState unable to read MSR\n");
 		free(msrObject);
 		return false;
 	}
@@ -1133,7 +1135,7 @@ DWORD K10Processor::maxCPUFrequency() {
 	msrObject = new MSRObject();
 
 	if (!msrObject->readMSR(COFVID_STATUS_REG, getMask(0, selectedNode))) {
-		printf("K10Processor.cpp: unable to read MSR\n");
+		printf("K10Processor.cpp::maxCPUFrequency unable to read MSR\n");
 		free(msrObject);
 		return false;
 	}
@@ -1333,7 +1335,7 @@ DWORD K10Processor::getTctlRegister (void) {
 
 		if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3,
 				0xa4, getNodeMask())) {
-			printf("K10Processor.cpp: unable to read PCI register\n");
+			printf("K10Processor.cpp::getTctlRegister - unable to read PCI register\n");
 			free(pciRegObject);
 			return NULL;
 		}
@@ -1361,7 +1363,7 @@ DWORD K10Processor::getTctlMaxDiff() {
 
 	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3,
 			0xa4, getNodeMask())) {
-		printf("K10Processor.cpp: unable to read PCI register\n");
+		printf("K10Processor.cpp::getTctlMaxDiff unable to read PCI register\n");
 		free(pciRegObject);
 		return NULL;
 	}
@@ -1390,7 +1392,7 @@ DWORD K10Processor::getSlamTime (void) {
 
 	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3,
 			0xd4, getNodeMask())) {
-		printf("K10Processor.cpp: unable to read PCI register\n");
+		printf("K10Processor.cpp::getSlamTime unable to read PCI register\n");
 		free(pciRegObject);
 		return NULL;
 	}
@@ -1422,7 +1424,7 @@ void K10Processor::setSlamTime (DWORD slmTime) {
 
 	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3, 0xd4,
 			getNodeMask())) {
-		printf("K10Processor.cpp: unable to read PCI Register\n");
+		printf("K10Processor::setSlamTime -  unable to read PCI Register\n");
 		free(pciRegObject);
 		return;
 	}
@@ -1438,7 +1440,7 @@ void K10Processor::setSlamTime (DWORD slmTime) {
 	pciRegObject->setBits(0, 3, slmTime);
 
 	if (!pciRegObject->writePCIReg()) {
-		printf("K10Processor.cpp: unable to write PCI register\n");
+		printf("K10Processor.cpp::setSlamTime - unable to write PCI register\n");
 		free(pciRegObject);
 		return;
 	}
@@ -1488,7 +1490,7 @@ DWORD K10Processor::getStepUpRampTime (void) {
 
 	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3, 0xd4,
 			getNodeMask())) {
-		printf("K10Processor.cpp: unable to read PCI Register\n");
+		printf("K10Processor.cpp::getStepUpRampTime unable to read PCI Register\n");
 		free(pciRegObject);
 		return false;
 	}
@@ -1518,7 +1520,7 @@ DWORD K10Processor::getStepDownRampTime (void) {
 
 	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3, 0xd4,
 			getNodeMask())) {
-		printf("K10Processor.cpp: unable to read PCI Register\n");
+		printf("K10Processor::getStepDownRampTime -  unable to read PCI Register\n");
 		free(pciRegObject);
 		return false;
 	}
@@ -1547,7 +1549,7 @@ void K10Processor::setStepUpRampTime (DWORD rmpTime) {
 
 		if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3, 0xd4,
 				getNodeMask())) {
-			printf("K10Processor.cpp: unable to read PCI Register\n");
+			printf("K10Processor::setStepUpRampTime unable to read PCI Register\n");
 			free(pciRegObject);
 			return;
 		}
@@ -1563,7 +1565,7 @@ void K10Processor::setStepUpRampTime (DWORD rmpTime) {
 		pciRegObject->setBits(24,4,rmpTime);
 
 		if (!pciRegObject->writePCIReg()) {
-			printf ("K10Processor.cpp: unable to write PCI register\n");
+			printf ("K10Processor::setStepUpRampTime - unable to write PCI register\n");
 			free (pciRegObject);
 			return;
 		}
@@ -1588,7 +1590,7 @@ void K10Processor::setStepDownRampTime(DWORD rmpTime) {
 
 	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3,
 			0xd4, getNodeMask())) {
-		printf("K10Processor.cpp: unable to read PCI Register\n");
+		printf("K10Processor::setStepDownRampTime - unable to read PCI Register\n");
 		free(pciRegObject);
 		return;
 	}
@@ -1604,7 +1606,7 @@ void K10Processor::setStepDownRampTime(DWORD rmpTime) {
 	pciRegObject->setBits(20, 4, rmpTime);
 
 	if (!pciRegObject->writePCIReg()) {
-		printf("K10Processor.cpp: unable to write PCI register\n");
+		printf("K10Processor::setStepDownRampTime - unable to write PCI register\n");
 		free(pciRegObject);
 		return;
 	}
@@ -1626,7 +1628,7 @@ bool K10Processor::HTCisCapable () {
 
 	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3,
 			0xe8, getNodeMask())) {
-		printf("K10Processor.cpp: unable to read PCI register\n");
+		printf("K10Processor::HTCisCapable - unable to read PCI register\n");
 		free(pciRegObject);
 		return false;
 	}
@@ -1654,7 +1656,7 @@ bool K10Processor::HTCisEnabled() {
 
 	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3,
 			0x64, getNodeMask())) {
-		printf("K10Processor.cpp: unable to read PCI register\n");
+		printf("K10Processor::HTCisEnabled - unable to read PCI register\n");
 		free(pciRegObject);
 		return false;
 	}
@@ -1683,7 +1685,7 @@ bool K10Processor::HTCisActive() {
 
 	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3,
 			0x64, getNodeMask())) {
-		printf("K10Processor.cpp: unable to read PCI register\n");
+		printf("K10Processor::HTCisActive - unable to read PCI register\n");
 		free(pciRegObject);
 		return false;
 	}
@@ -1712,7 +1714,7 @@ bool K10Processor::HTChasBeenActive () {
 
 	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3,
 			0x64, getNodeMask())) {
-		printf("K10Processor.cpp: unable to read PCI register\n");
+		printf("K10Processor::HTChasBeenActive - unable to read PCI register\n");
 		free(pciRegObject);
 		return false;
 	}
@@ -1741,7 +1743,7 @@ DWORD K10Processor::HTCTempLimit() {
 
 	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3,
 			0x64, getNodeMask())) {
-		printf("K10Processor.cpp: unable to read PCI register\n");
+		printf("K10Processor::HTCTempLimit - unable to read PCI register\n");
 		free(pciRegObject);
 		return false;
 	}
@@ -1770,7 +1772,7 @@ bool K10Processor::HTCSlewControl() {
 
 	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3,
 			0x64, getNodeMask())) {
-		printf("K10Processor.cpp: unable to read PCI register\n");
+		printf("K10Processor::HTCSlewControl - unable to read PCI register\n");
 		free(pciRegObject);
 		return false;
 	}
@@ -1799,7 +1801,7 @@ DWORD K10Processor::HTCHystTemp() {
 
 	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3,
 			0x64, getNodeMask())) {
-		printf("K10Processor.cpp: unable to read PCI register\n");
+		printf("K10Processor::HTCHystTemp - unable to read PCI register\n");
 		free(pciRegObject);
 		return false;
 	}
@@ -1829,7 +1831,7 @@ DWORD K10Processor::HTCPStateLimit () {
 
 	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3,
 			0x64, getNodeMask())) {
-		printf("K10Processor.cpp: unable to read PCI register\n");
+		printf("K10Processor::HTCPStateLimit - unable to read PCI register\n");
 		free(pciRegObject);
 		return false;
 	}
@@ -1858,7 +1860,7 @@ bool K10Processor::HTCLocked() {
 
 	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3,
 			0x64, getNodeMask())) {
-		printf("K10Processor.cpp: unable to read PCI register\n");
+		printf("K10Processor::HTCLocked - unable to read PCI register\n");
 		free(pciRegObject);
 		return false;
 	}
@@ -1885,7 +1887,7 @@ void K10Processor::HTCEnable() {
 
 	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3,
 			0x64, getNodeMask())) {
-		printf("K10Processor.cpp: unable to read PCI register\n");
+		printf("K10Processor::HTCEnable - unable to read PCI register\n");
 		free(pciRegObject);
 		return;
 	}
@@ -1901,7 +1903,7 @@ void K10Processor::HTCEnable() {
 	pciRegObject->setBits(0, 1, 1);
 
 	if (!pciRegObject->writePCIReg()) {
-		printf("K10Processor.cpp: unable to write PCI register\n");
+		printf("K10Processor::HTCEnable - unable to write PCI register\n");
 		free(pciRegObject);
 		return;
 	}
@@ -1918,7 +1920,7 @@ void K10Processor::HTCDisable() {
 
 	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3,
 			0x64, getNodeMask())) {
-		printf("K10Processor.cpp: unable to read PCI register\n");
+		printf("K10Processor::HTCDisable - unable to read PCI register\n");
 		free(pciRegObject);
 		return;
 	}
@@ -1934,7 +1936,7 @@ void K10Processor::HTCDisable() {
 	pciRegObject->setBits(0, 1, 0);
 
 	if (!pciRegObject->writePCIReg()) {
-		printf("K10Processor.cpp: unable to write PCI register\n");
+		printf("K10Processor::HTCDisable - unable to write PCI register\n");
 		free(pciRegObject);
 		return;
 	}
@@ -1958,7 +1960,7 @@ void K10Processor::HTCsetTempLimit (DWORD tempLimit) {
 
 	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3,
 			0x64, getNodeMask())) {
-		printf("K10Processor.cpp: unable to read PCI register\n");
+		printf("K10Processor::HTCsetTempLimit - unable to read PCI register\n");
 		free(pciRegObject);
 		return;
 	}
@@ -1974,7 +1976,7 @@ void K10Processor::HTCsetTempLimit (DWORD tempLimit) {
 	pciRegObject->setBits(16, 7, (tempLimit - 52) << 1);
 
 	if (!pciRegObject->writePCIReg()) {
-		printf("K10Processor.cpp: unable to write PCI register\n");
+		printf("K10Processor::HTCsetTempLimit - unable to write PCI register\n");
 		free(pciRegObject);
 		return;
 	}
@@ -1998,7 +2000,7 @@ void K10Processor::HTCsetHystLimit(DWORD hystLimit) {
 
 	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3,
 			0x64, getNodeMask())) {
-		printf("K10Processor.cpp: unable to read PCI register\n");
+		printf("K10Processor::HTCsetHystLimit - unable to read PCI register\n");
 		free(pciRegObject);
 		return;
 	}
@@ -2014,7 +2016,7 @@ void K10Processor::HTCsetHystLimit(DWORD hystLimit) {
 	pciRegObject->setBits(24, 4, hystLimit << 1);
 
 	if (!pciRegObject->writePCIReg()) {
-		printf("K10Processor.cpp: unable to write PCI register\n");
+		printf("K10Processor::HTCsetHystLimit - unable to write PCI register\n");
 		free(pciRegObject);
 		return;
 	}
@@ -2033,7 +2035,7 @@ DWORD K10Processor::getAltVID() {
 
 	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3,
 			0xdc, getNodeMask())) {
-		printf("K10Processor.cpp: unable to read PCI register\n");
+		printf("K10Processor.cpp::getAltVID - unable to read PCI register\n");
 		free(pciRegObject);
 		return false;
 	}
@@ -2066,7 +2068,7 @@ void K10Processor::setAltVid(DWORD altVid) {
 
 	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3,
 			0xdc, getNodeMask())) {
-		printf("K10Processor.cpp: unable to read PCI register\n");
+		printf("K10Processor.cpp::setAltVID - unable to read PCI register\n");
 		free(pciRegObject);
 		return;
 	}
@@ -2082,7 +2084,7 @@ void K10Processor::setAltVid(DWORD altVid) {
 	pciRegObject->setBits(0, 7, altVid);
 
 	if (!pciRegObject->writePCIReg()) {
-		printf("K10Processor.cpp: unable to write to PCI register\n");
+		printf("K10Processor.cpp::setAltVID - unable to write to PCI register\n");
 		free(pciRegObject);
 		return;
 	}
@@ -2599,7 +2601,7 @@ bool K10Processor::getPsiEnabled () {
 
 	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3,
 			0xa0, getNodeMask())) {
-		printf("K10Processor.cpp: unable to read PCI register\n");
+		printf("K10Processor.cpp::getPsiEnabled - unable to read PCI register\n");
 		free(pciRegObject);
 		return false;
 	}
@@ -2629,7 +2631,7 @@ DWORD K10Processor::getPsiThreshold () {
 
 	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3,
 			0xa0, getNodeMask())) {
-		printf("K10Processor.cpp: unable to read PCI register\n");
+		printf("K10Processor.cpp::getPsiThreshold - unable to read PCI register\n");
 		free(pciRegObject);
 		return false;
 	}
@@ -2658,7 +2660,7 @@ void K10Processor::setPsiEnabled (bool toggle) {
 
 	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3,
 			0xa0, getNodeMask())) {
-		printf("K10Processor.cpp: unable to read PCI register\n");
+		printf("K10Processor.cpp::setPsiEnabled - unable to read PCI register\n");
 		free(pciRegObject);
 		return;
 	}
@@ -2674,7 +2676,7 @@ void K10Processor::setPsiEnabled (bool toggle) {
 	pciRegObject->setBits(7, 1, toggle);
 
 	if (!pciRegObject->writePCIReg()) {
-		printf ("K10Processor.cpp: unable to write PCI register\n");
+		printf ("K10Processor.cpp::setPsiEnabled - unable to write PCI register\n");
 		free (pciRegObject);
 		return;
 	}
@@ -2699,7 +2701,7 @@ void K10Processor::setPsiThreshold (DWORD threshold) {
 
 	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3,
 			0xa0, getNodeMask())) {
-		printf("K10Processor.cpp: unable to read PCI register\n");
+		printf("K10Processor.cpp::setPsiThreshold - unable to read PCI register\n");
 		free(pciRegObject);
 		return;
 	}
@@ -2715,7 +2717,7 @@ void K10Processor::setPsiThreshold (DWORD threshold) {
 	pciRegObject->setBits(0, 7, threshold);
 
 	if (!pciRegObject->writePCIReg()) {
-		printf ("K10Processor.cpp: unable to write PCI register\n");
+		printf ("K10Processor.cpp::setPsiThreshold - unable to write PCI register\n");
 		free (pciRegObject);
 		return;
 	}
@@ -2736,7 +2738,7 @@ bool K10Processor::getC1EStatus () {
 	msrObject=new MSRObject ();
 
 	if (!msrObject->readMSR(CMPHALT_REG, getMask())) {
-		printf ("K10Processor.cpp: unable to read MSR\n");
+		printf ("K10Processor.cpp::getC1EStatus - unable to read MSR\n");
 		free (msrObject);
 		return false;
 	}
@@ -2758,14 +2760,16 @@ void K10Processor::setC1EStatus (bool toggle) {
 	msrObject=new MSRObject ();
 
 	if (!msrObject->readMSR(CMPHALT_REG, getMask())) {
-		printf ("K10Processor.cpp: unable to read MSR\n");
+		printf ("K10Processor.cpp::setC1EStatus - unable to read MSR\n");
 		free (msrObject);
 		return;
 	}
 
+	msrObject->setBitsLow(28, 1, toggle);
+
 	//C1E bit is stored in bit 28
-	if (!msrObject->setBitsLow(28, 1, toggle)) {
-		printf ("K10Processor.cpp: unable to write MSR\n");
+	if (!msrObject->writeMSR()) {
+		printf ("K10Processor.cpp::setC1EStatus - unable to write MSR\n");
 		free (msrObject);
 		return;
 	}

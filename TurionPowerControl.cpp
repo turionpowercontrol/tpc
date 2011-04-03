@@ -170,22 +170,27 @@ void processorStatus (Processor *p) {
 		}
 	}
 
-	printf ("Processor Maximum PState: ");
-	if (p->getMaximumPState().getPState() == 0 )
-		printf ("unsupported feature\n");
-	else
-		printf ("%d\n",p->getMaximumPState().getPState());
-	printf ("Processor Startup PState: %d\n", p->startupPState());
-	printf ("Processor Maximum Operating Frequency: ");
-	
-	if (p->maxCPUFrequency()==0)
-		printf ("No maximum defined. Unlocked multiplier.\n");
-	else
-		printf ("%d MHz\n", p->maxCPUFrequency());
+	for (j=0;j<p->getProcessorNodes();j++) {
+		p->setNode (j);
+		p->setCore (0);
+		printf ("\n --- Node %u:\n", p->getNode());
+		printf ("Processor Maximum PState: ");
+		if (p->getMaximumPState().getPState() == 0 )
+			printf ("unsupported feature\n");
+		else
+			printf ("%d\n",p->getMaximumPState().getPState());
+		printf ("Processor Startup PState: %d\n", p->startupPState());
+		printf ("Processor Maximum Operating Frequency: ");
+		
+		if (p->maxCPUFrequency()==0)
+			printf ("No maximum defined. Unlocked multiplier.\n");
+		else
+			printf ("%d MHz\n", p->maxCPUFrequency());
 
-	printf ("\nMinimum allowed VID: %d (%.3fv) - Maximum allowed VID %d (%.3fv)\n", p->minVID(),
-		p->convertVIDtoVcore(p->minVID()),p->maxVID(),p->convertVIDtoVcore(p->maxVID()));
-	printf ("Processor AltVID: %d (%.3fv)\n",p->getAltVID(),p->convertVIDtoVcore(p->getAltVID()));
+		printf ("\nMinimum allowed VID: %d (%.3fv) - Maximum allowed VID %d (%.3fv)\n", p->minVID(),
+			p->convertVIDtoVcore(p->minVID()),p->maxVID(),p->convertVIDtoVcore(p->maxVID()));
+		printf ("Processor AltVID: %d (%.3fv)\n",p->getAltVID(),p->convertVIDtoVcore(p->getAltVID()));
+	}
 
 }
 
@@ -370,8 +375,8 @@ void printUsage () {
 	printf (" -htset\n\tSet the hypertransport link frequency register\n\n");
 	
 	printf ("\t ----- Various and others -----\n\n");
-	printf (" -c1eenable (coreId)\n\tSets C1E on Cmp Halt bit enabled for current nodes and current cores\n\n");
-	printf (" -c1edisable (coreId)\n\tSets C1E on Cmp Halt bit disabled for current nodes and current cores\n\n");
+	printf (" -c1eenable\n\tSets C1E on Cmp Halt bit enabled for current nodes and current cores\n\n");
+	printf (" -c1edisable\n\tSets C1E on Cmp Halt bit disabled for current nodes and current cores\n\n");
 
 
 	printf ("\t ----- Performance Counters -----\n\n");
