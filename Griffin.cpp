@@ -31,7 +31,7 @@ Griffin::Griffin () {
 	int model = (eax & 0xf0) >> 4;
 	int stepping = eax & 0xf;
 	int familyExtended = ((eax & 0xff00000) >> 20)+familyBase;
-	int modelExtended = ((eax & 0xf0000) >> 16)+model;
+	int modelExtended = ((eax & 0xf0000) >> 12)+model;
 
 	//Check Brand ID and Package type - CPUID Function 8000_0001 reg EBX
 	if (Cpuid(0x80000001,&eax,&ebx,&ecx,&edx)!=TRUE) {

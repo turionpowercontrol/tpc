@@ -237,7 +237,18 @@ bool WrmsrPx (DWORD msr,DWORD eax,DWORD ebx,PROCESSORMASK processorMask) {
 			}
 	
 			close(fd);
+
+			/*
+			 * Removes the current processor from the mask to optimize the write loop with
+			 * a further check on processorMask variable
+			 */
+			processorMask=processorMask ^ (PROCESSORMASK)(1<<processor);
 	
+		}
+
+		//Breaks the loop if processorMask is empty.
+		if (processorMask==0) {
+			return true;
 		}
 
 		processor++;

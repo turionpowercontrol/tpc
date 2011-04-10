@@ -37,7 +37,7 @@ K10Processor::K10Processor () {
 	int model = (eax & 0xf0) >> 4;
 	int stepping = eax & 0xf;
 	int familyExtended = ((eax & 0xff00000) >> 20)+familyBase;
-	int modelExtended = ((eax & 0xf0000) >> 16)+model;
+	int modelExtended = ((eax & 0xf0000) >> 12)+model; /* family 10h: modelExtended is valid */
 
 	//Check Brand ID and Package type - CPUID Function 8000_0001 reg EBX
 	if (Cpuid(0x80000001,&eax,&ebx,&ecx,&edx)!=TRUE) {
@@ -100,13 +100,33 @@ K10Processor::K10Processor () {
 	//Check how many physical cores are present - CPUID Function 8000_0008 reg ECX
 	if (Cpuid(0x80000008, &eax, &ebx, &ecx, &edx) != TRUE) {
 		printf(
-				"Griffin::Griffin - Fatal error during querying for Cpuid(0x80000008) instruction.\n");
+				"K10Processor::K10Processor- Fatal error during querying for Cpuid(0x80000008) instruction.\n");
 		return;
 	}
 
-	cores = (ecx & 0xff) + 1;
+	cores = (ecx & 0xff) + 1; /* cores per package */
 
-	setProcessorCores(cores);
+	/*
+	 * Normally we assume that nodes per package is always 1 (one physical processor = one package), but
+	 * with Magny-Cours chips (modelExtended>=8) this is not true since they share a single package for two
+	 * chips (12 cores distributed on a single package but on two nodes).
+	 */
+	int nodes_per_package = 1;
+	if (modelExtended >= 8) {
+		PCIRegObject *pci_F3xE8_NbCapReg = new PCIRegObject();
+		
+		if ((pci_F3xE8_NbCapReg->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3, 0xE8, getNodeMask(0))) == TRUE) {
+			if (pci_F3xE8_NbCapReg->getBits(0, 29, 1)) {
+				nodes_per_package = 2;
+			}
+		} else {
+			printf ("K10Processor::K10Processor - Error discovering nodes per package, results may be unreliable\n");
+		}
+
+		free(pci_F3xE8_NbCapReg);
+	}
+
+	setProcessorCores(cores/nodes_per_package);
 	setProcessorNodes(nodes);
 	setPowerStates(5);
 	setProcessorIdentifier(PROCESSOR_10H_FAMILY);

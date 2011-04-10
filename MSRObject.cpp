@@ -76,11 +76,13 @@ bool MSRObject::readMSR (DWORD reg, PROCESSORMASK cpuMask) {
 bool MSRObject::writeMSR () {
 
 	PROCESSORMASK mask;
+	PROCESSORMASK cCpuMask;
 	DWORD pId;
 	unsigned int count;
 
 	if (this->cpuCount==0) return true;
 
+	cCpuMask=this->cpuMask;
 	pId=0;
 	count=0;
 
@@ -88,8 +90,10 @@ bool MSRObject::writeMSR () {
 
 		mask=(PROCESSORMASK)1<<pId;
 
-		if (this->cpuMask & mask) {
+		if (cCpuMask & mask) {
 			if (!WrmsrPx (this->reg, this->eax_ptr[count], this->edx_ptr[count], mask)) return false;
+			cCpuMask^=mask; //Inverts the bit of current cpu in the mask.
+			if (cCpuMask==0) return true; //No more cpu's in the mask, stops the loop
 			count++;
 		}
 
