@@ -657,29 +657,7 @@ void Processor::setPsiThreshold(DWORD threshold) {
 }
 
 //Hypertransport Section
-DWORD Processor::getHTLinkSpeed() {
-	return -1;
-}
-DWORD Processor::getHTLinkSpeedByNode(DWORD, DWORD, DWORD) {
-	return -1;
-}
-DWORD Processor::getHTLinkWidthByNode(DWORD, DWORD, DWORD, DWORD*, DWORD *,
-		bool *, bool *) {
-	return -1;
-}
-DWORD Processor::getHTLinkDistributionTargetByNode(DWORD, DWORD, DWORD *,
-		DWORD *) {
-	return -1;
-}
-
-void Processor::setHTLinkSpeed(DWORD) {
-	return;
-}
-void Processor::setHTLinkSpeedByNode(DWORD, DWORD, DWORD) {
-	return;
-}
-
-void Processor::checkMode() {
+void Processor::setHTLinkSpeed(DWORD, DWORD) {
 	return;
 }
 
@@ -725,6 +703,10 @@ void Processor::forcePVIMode(bool toggle) {
 }
 void Processor::forceSVIMode(bool toggle) {
 	printf("Unsupported processor feature\n");
+	return;
+}
+
+void Processor::checkMode() {
 	return;
 }
 

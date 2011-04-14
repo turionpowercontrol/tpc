@@ -48,9 +48,11 @@
 #define IDLE_COUNTER_EDX 0x0
 
 //PCI Registers defines for northbridge
+#define PCI_FUNC_LINK_CONTROL 0x4
 #define PCI_FUNC_MISC_CONTROL_3 0x3
 #define PCI_FUNC_DRAM_CONTROLLER 0x2
-#define PCI_FUNC_MISC_CONTROL_0 0x0
+#define PCI_FUNC_ADDRESS_MAP 0x1
+#define PCI_FUNC_HT_CONFIG 0x0
 #define PCI_DEV_NORTHBRIDGE 0x18
 
 //Processor Identifier defines
@@ -309,17 +311,8 @@ public:
 	virtual void setPsiThreshold(DWORD);
 
 	//Hypertransport Section
-	//TODO: must be cleaned up (eg. removing ByNode methods...)
 
-	virtual DWORD getHTLinkSpeed();
-	virtual DWORD getHTLinkSpeedByNode(DWORD, DWORD, DWORD);
-	virtual DWORD getHTLinkWidthByNode(DWORD, DWORD, DWORD, DWORD*, DWORD *,
-			bool *, bool *);
-	virtual DWORD getHTLinkDistributionTargetByNode(DWORD, DWORD, DWORD *,
-			DWORD *);
-
-	virtual void setHTLinkSpeed(DWORD);
-	virtual void setHTLinkSpeedByNode(DWORD, DWORD, DWORD);
+	virtual void setHTLinkSpeed(DWORD, DWORD);
 
 	virtual void checkMode();
 

@@ -69,8 +69,8 @@ K10Processor::K10Processor () {
 	pciReg60=new PCIRegObject ();
 	pciReg160=new PCIRegObject ();
 
-	pciReg60Success=pciReg60->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_0, 0x60, getNodeMask(0));
-	pciReg160Success=pciReg160->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_0, 0x160, getNodeMask (0));
+	pciReg60Success=pciReg60->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_HT_CONFIG, 0x60, getNodeMask(0));
+	pciReg160Success=pciReg160->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_HT_CONFIG, 0x160, getNodeMask (0));
 
 	if (pciReg60Success && pciReg160Success) {
 
@@ -2116,172 +2116,175 @@ void K10Processor::setAltVid(DWORD altVid) {
 
 // Hypertransport Link
 
-//TODO: All hypertransport Link section requires reworking to use PCIRegObject and MSRObject classes
+//TODO: All hypertransport Link section must be tested and validated!!
 
-DWORD K10Processor::getHTLinkSpeed (void) {
-	return K10Processor::getHTLinkSpeedByNode( 0, 0, 0 );
-}
+DWORD K10Processor::getHTLinkWidth(DWORD link, DWORD Sublink, DWORD *WidthIn,
+		DWORD *WidthOut, bool *pfCoherent, bool *pfUnganged) {
+	DWORD FUNC_TARGET;
 
-DWORD K10Processor::getHTLinkWidthByNode (
-	DWORD node,
-	DWORD link,
-	DWORD Sublink,
-	DWORD *WidthIn,
-	DWORD *WidthOut,
-	bool *pfCoherent,
-	bool *pfUnganged
-	)
-{
-	DWORD Target;
-	DWORD LinkControlRegister = 0x84;
-	DWORD LinkExtendedControlRegister = 0x170;
-	DWORD LinkTypeRegister = 0x98;
-	DWORD miscReg;
+	PCIRegObject *linkTypeRegObject;
+	PCIRegObject *linkControlRegObject;
+	PCIRegObject *linkExtControlRegObject;
 
 	*WidthIn = 0;
 	*WidthOut = 0;
 	*pfCoherent = FALSE;
 
-	if(Sublink == 1)
-	{
-		Target = ((0x18+node) << 3) + 4;
-	} else {
-		Target = ((0x18+node) << 3) + 0;
+	if (Sublink == 1)
+		FUNC_TARGET = PCI_FUNC_LINK_CONTROL; //function 4
+	else
+		FUNC_TARGET = PCI_FUNC_HT_CONFIG; //function 0
+
+	linkTypeRegObject = new PCIRegObject();
+	//Link Type Register is located at 0x98 + 0x20 * link
+	if (!linkTypeRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, FUNC_TARGET,
+			0x98 + (0x20 * link), getNodeMask())) {
+		printf(
+				"K10Processor::getHTLinkWidth - unable to read linkType PCI Register\n");
+		free(linkTypeRegObject);
+		return false;
 	}
 
-	LinkTypeRegister += (0x20 *link);
+	linkControlRegObject = new PCIRegObject();
+	//Link Control Register is located at 0x84 + 0x20 * link
+	if (!linkControlRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, FUNC_TARGET,
+			0x84 + (0x20 * link), getNodeMask())) {
+		printf(
+				"K10Processor::getHTLinkWidth - unable to read linkControl PCI Register\n");
+		free(linkTypeRegObject);
+		free(linkControlRegObject);
+		return false;
+	}
+
+	linkExtControlRegObject = new PCIRegObject();
+	//Link Control Extended Register is located at 0x170 + 0x04 * link
+	if (!linkExtControlRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, FUNC_TARGET,
+			0x170 + (0x04 * link), getNodeMask())) {
+		printf(
+				"K10Processor::getHTLinkWidth - unable to read linkExtendedControl PCI Register\n");
+		free(linkTypeRegObject);
+		free(linkControlRegObject);
+		free(linkExtControlRegObject);
+		return false;
+	}
 
 	//
 	// determine if the link is connected.
 	// TODO check LinkConPend == 0 first.
 	//
 
-	if(ReadPciConfigDwordEx (Target,LinkTypeRegister,&miscReg))
-	{
-		if( ((miscReg >> 2) & 0x1) == 0)
-		{
-			*pfCoherent = TRUE;
-		} else {
-			*pfCoherent = FALSE;
-		}
+	//Bit 2 says if link is coherent
+	if (linkTypeRegObject->getBits(0, 2, 1) == 0)
+		*pfCoherent = TRUE;
+	else
+		*pfCoherent = FALSE;
 
+	//Bit 0 says if link is connected
+	if (linkTypeRegObject->getBits(0, 0, 1) == 0) {
+		free(linkTypeRegObject);
+		free(linkControlRegObject);
+		free(linkExtControlRegObject);
 
-		if((miscReg & 1) == 0)
-		{
-			return 0;
-		}
+		return 0;
 	}
 
+	//Bits 28-30 from link Control Register represent output link width
+	int Out = linkControlRegObject->getBits(0, 28, 3);
+	//Bits 24-26 from link Control Register represent input link width
+	int In = linkControlRegObject->getBits(0, 24, 3);
 
-	LinkControlRegister += (0x20 * link);
+	switch (Out) {
+	case 0:
+		*WidthOut = 8;
+		break;
 
-	if(ReadPciConfigDwordEx (Target,LinkControlRegister,&miscReg))
-	{
-		int Out = (miscReg >> 28) & 0x7;
-		int In = (miscReg >> 24) & 0x7;
+	case 1:
+		*WidthOut = 16;
+		break;
 
-		switch (Out)
-		{
-			case 0:
-			{
-				*WidthOut = 8;
-				break;
-			}
+	case 7:
+		*WidthOut = 0;
+		break;
 
-			case 1:
-			{
-				*WidthOut = 16;
-				break;
-			}
-
-			case 7:
-			{
-				*WidthOut = 0;
-				break;
-			}
-
-			default:
-			{
-				*WidthOut = 0;
-				break;
-			}
-		}
-
-		switch (In)
-		{
-			case 0:
-			{
-				*WidthIn = 8;
-				break;
-			}
-
-			case 1:
-			{
-				*WidthIn = 16;
-				break;
-			}
-
-			case 7:
-			{
-				*WidthIn = 0;
-				break;
-			}
-
-			default:
-			{
-				*WidthIn = 0;
-				break;
-			}
-		}
+	default:
+		*WidthOut = 0;
+		break;
 	}
 
-	if( Sublink == 0 )
-	{
-		LinkExtendedControlRegister += (0x04 * link);
+	switch (In) {
+	case 0:
+		*WidthIn = 8;
+		break;
 
-		if(ReadPciConfigDwordEx (Target,LinkExtendedControlRegister,&miscReg))
-		{
-			if((miscReg & 1) == 0)
-			{
-				*pfUnganged = TRUE;
-			} else {
-				*pfUnganged = FALSE;
-			}
-		}
+	case 1:
+		*WidthIn = 16;
+		break;
+
+	case 7:
+		*WidthIn = 0;
+		break;
+
+	default:
+		*WidthIn = 0;
+		break;
 	}
+
+	if (Sublink == 0) {
+		//Bit 1 from link Extended Control Register represent if Sublink is ganged or unganged
+		if ((linkExtControlRegObject->getBits(0, 0, 1)) == 0)
+			*pfUnganged = TRUE;
+		else
+			*pfUnganged = FALSE;
+	}
+
+	free(linkTypeRegObject);
+	free(linkControlRegObject);
+	free(linkExtControlRegObject);
 
 	return 0;
 }
 
-DWORD K10Processor::getHTLinkSpeedByNode (DWORD node, DWORD link, DWORD Sublink) {
+DWORD K10Processor::getHTLinkSpeed (DWORD link, DWORD Sublink) {
 
-	DWORD miscReg;
-	DWORD miscRegExtended;
+	DWORD FUNC_TARGET;
 
-	DWORD Target;
+	PCIRegObject *linkRegisterRegObject = new PCIRegObject();
+	PCIRegObject *linkExtRegisterRegObject = new PCIRegObject();
 
-	DWORD LinkFrequencyRegister = 0x88;
-	DWORD LinkFrequencyExtensionRegister = 0x9c;
+	DWORD linkFrequencyRegister = 0x88;
+	DWORD linkFrequencyExtensionRegister = 0x9c;
 
 	DWORD dwReturn;
 
 	if( Sublink == 1 )
-	{
-		Target = ((0x18+node) << 3) + 4;	// function 4.
-	} else {
-		Target = ((0x18+node) << 3) + 0;
+		FUNC_TARGET=PCI_FUNC_LINK_CONTROL; //function 4
+	else
+		FUNC_TARGET=PCI_FUNC_HT_CONFIG; //function 0
+
+	linkFrequencyRegister += (0x20 * link);
+	linkFrequencyExtensionRegister += (0x20 * link);
+
+	if (!linkRegisterRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE,FUNC_TARGET,linkFrequencyRegister,getNodeMask())) {
+		printf ("K10Processor::getHTLinkSpeed - unable to read linkRegister PCI Register\n");
+		free (linkRegisterRegObject);
+		free (linkExtRegisterRegObject);
+		return false;
 	}
 
-	LinkFrequencyRegister += (0x20 * link);
-	LinkFrequencyExtensionRegister += (0x20 * link);
+	if (!linkExtRegisterRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, FUNC_TARGET,
+			linkFrequencyExtensionRegister, getNodeMask())) {
+		printf(
+				"K10Processor::getHTLinkSpeed - unable to read linkExtensionRegister PCI Register\n");
+		free(linkRegisterRegObject);
+		free(linkExtRegisterRegObject);
+		return false;
+	}
 
+	dwReturn = linkRegisterRegObject->getBits(0,8,4); //dwReturn = (miscReg >> 8) & 0xF;
 
-	ReadPciConfigDwordEx (Target,LinkFrequencyRegister,&miscReg);
-
-	dwReturn = (miscReg >> 8) & 0xF;
-
-	ReadPciConfigDwordEx (Target,LinkFrequencyExtensionRegister,&miscRegExtended);
-	if(miscRegExtended & 1)
+	//ReadPciConfigDwordEx (Target,LinkFrequencyExtensionRegister,&miscRegExtended);
+	//if(miscRegExtended & 1)
+	if (linkExtRegisterRegObject->getBits(0,0,1))
 	{
 		dwReturn |= 0x10;
 	}
@@ -2292,69 +2295,44 @@ DWORD K10Processor::getHTLinkSpeedByNode (DWORD node, DWORD link, DWORD Sublink)
 	// e8, fc
 	//
 
-#if 0
-	ReadPciConfigDwordEx (MISC_CONTROL_0,0x88,&miscReg);
-
-	dwReturn = (miscReg >> 8) & 0xF;
-
-	ReadPciConfigDwordEx (MISC_CONTROL_0,0x9c,&miscRegExtended);
-	if(miscRegExtended & 1)
-	{
-		dwReturn |= 0x10;
-	}
-#endif
-
 	return dwReturn;
 }
 
-void
-PrintRoute(
-	DWORD route
-	)
-{
+void K10Processor::printRoute(DWORD route) {
 
-	if( route & 0x1 )
-	{
+	if (route & 0x1) {
 		printf("this ");
 	}
 
-	if( route & 0x2 )
-	{
+	if (route & 0x2) {
 		printf("l0 s0 ");
 	}
 
-	if( route & 0x4 )
-	{
+	if (route & 0x4) {
 		printf("l1 s0 ");
 	}
 
-	if( route & 0x8 )
-	{
+	if (route & 0x8) {
 		printf("l2 s0 ");
 	}
 
-	if( route & 0x10 )
-	{
+	if (route & 0x10) {
 		printf("l3 s0 ");
 	}
 
-	if(route & 0x20 )
-	{
+	if (route & 0x20) {
 		printf("l0 s1 ");
 	}
 
-	if(route & 0x40 )
-	{
+	if (route & 0x40) {
 		printf("l1 s1 ");
 	}
 
-	if( route & 0x80 )
-	{
+	if (route & 0x80) {
 		printf("l2 s1 ");
 	}
 
-	if( route & 0x100 )
-	{
+	if (route & 0x100) {
 		printf("l3 s1 ");
 	}
 
@@ -2362,64 +2340,84 @@ PrintRoute(
 }
 
 
-DWORD K10Processor::getHTLinkDistributionTargetByNode (
-		DWORD node,
-		DWORD link,
-		DWORD *DstLnk,
-		DWORD *DstNode
-		)
-{
-	
-	DWORD miscReg;
+DWORD K10Processor::getHTLinkDistributionTarget(DWORD link, DWORD *DstLnk,
+		DWORD *DstNode) {
 
-	DWORD Target;
+	//Coherent Link Traffic Distribution Register:
+	PCIRegObject *cltdRegObject;
 
-	DWORD RoutingTableRegister = 0x40;
-	DWORD CoherentLinkTrafficDistributionRegister = 0x164;
+	//Routing Table register:
+	PCIRegObject *routingTableRegObject;
+	DWORD routingTableRegister = 0x40;
 
 	int i;
 
-	Target = ((0x18+node) << 3) + 0;
+	cltdRegObject = new PCIRegObject();
 
-	if(ReadPciConfigDwordEx (Target,CoherentLinkTrafficDistributionRegister,&miscReg))
-	{
-		*DstLnk = (miscReg >> 16) & 0x7F;
-		*DstNode = (miscReg >> 8) & 0x7;
-	} else {
-		printf("Error reading LinkTrafficDistributionRegister!\n");
+	if (!cltdRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_HT_CONFIG,
+			0x164, getNodeMask())) {
+		printf(
+				"K10Processor::getHTLinkDistributionTarget - unable to read Coherent Link Traffic Distribution PCI Register\n");
+		free(cltdRegObject);
+		return 0;
 	}
 
-	for(i=0;i<8;i++)
-	{
+	//Destination link is set in bits 16-23
+	//*DstLnk = (miscReg >> 16) & 0x7F;
+	*DstLnk = cltdRegObject->getBits(0, 16, 7);
+
+	//Destination node is set in bits 8-11
+	//*DstNode = (miscReg >> 8) & 0x7;
+	*DstNode = cltdRegObject->getBits(0, 8, 3);
+
+	for (i = 0; i < 8; i++) {
 		DWORD BcRoute;
 		DWORD RpRoute;
 		DWORD RqRoute;
 
-		ReadPciConfigDwordEx (Target, RoutingTableRegister,&miscReg);
+		routingTableRegObject = new PCIRegObject();
+		if (!routingTableRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE,
+				PCI_FUNC_HT_CONFIG, routingTableRegister, getNodeMask())) {
+			printf(
+					"K10Processor::getHTLinkDistributionTarget - unable to read Routing Table PCI Register\n");
+			free(cltdRegObject);
+			free(routingTableRegObject);
+			return 0;
+		}
 
-		BcRoute = (miscReg >> 18) & 0x1ff;
-		RpRoute = (miscReg >> 9) & 0x1ff;
-		RqRoute = miscReg & 0x1ff;
+		//Broadcast Route is set in bits 18-26
+		//BcRoute = (miscReg >> 18) & 0x1ff;
+		BcRoute = routingTableRegObject->getBits(0, 18, 9);
 
-		printf("route node=%u\n",
-			i
-			);
+		//Response Route is set in bits 9-17
+		//RpRoute = (miscReg >> 9) & 0x1ff;
+		RpRoute = routingTableRegObject->getBits(0, 9, 9);
+
+		//Request Route is set in bits 0-8
+		//RqRoute = miscReg & 0x1ff;
+		RqRoute = routingTableRegObject->getBits(0, 0, 9);
+
+		printf("route node=%u\n", i);
 
 		printf("BroadcastRoute = ");
-		PrintRoute(BcRoute);
+		printRoute(BcRoute);
 		printf("ResponseRoute  = ");
-		PrintRoute(RpRoute);
+		printRoute(RpRoute);
 		printf("RequestRoute   = ");
-		PrintRoute(RqRoute);
+		printRoute(RqRoute);
 
-		RoutingTableRegister += 0x4;
+		routingTableRegister += 0x4;
+
+		free(routingTableRegObject);
 	}
+
+	free(cltdRegObject);
 
 	return 0;
 }
 
 
-void K10Processor::setHTLinkSpeed (DWORD reg) {
+void K10Processor::setHTLinkSpeed (DWORD linkRegister, DWORD reg) {
 
 	PCIRegObject *pciRegObject;
 
@@ -2428,40 +2426,24 @@ void K10Processor::setHTLinkSpeed (DWORD reg) {
 		return;
 	}
 
-#if 0
-	ReadPciConfigDwordEx (MISC_CONTROL_0,0x9c,&miscRegExtended);
-
-	if( reg >= 0x10 )
-	{
-		//if( (miscRegExtended & 1) == 0 )
-		//{
-			miscRegExtended |= 1;
-			WritePciConfigDwordEx (MISC_CONTROL_0,0x9c,miscRegExtended);
-		//}
-	} else {
-		//if(miscRegExtended & 1)
-		//{
-			miscRegExtended &= !1;
-			WritePciConfigDwordEx (MISC_CONTROL_0,0x9c,miscRegExtended);
-		//}
-	}
-#endif
-
-	pciRegObject=new PCIRegObject ();
-
-	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_0, 0x88, getNodeMask())) {
-		printf ("K10Processor.cpp::setHTLinkSpeed - unable to read PCI register\n");
-		free (pciRegObject);
-		return;
-	}
-
 	/*
 	 * Hypertransport Link Speed Register is stored in PCI register with
 	 * device PCI_DEV_NORTHBRIDGE
 	 * function PC_FUNC_MISC_CONTROL_0
-	 * register 0x88
+	 * register 0x88 + 0x20 * linkId
 	 * bits from 8 to 11
+	 *
 	 */
+
+	linkRegister=0x88 + 0x20 * linkRegister;
+
+	pciRegObject=new PCIRegObject ();
+
+	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_HT_CONFIG, linkRegister, getNodeMask())) {
+		printf ("K10Processor.cpp::setHTLinkSpeed - unable to read PCI register\n");
+		free (pciRegObject);
+		return;
+	}
 
 	pciRegObject->setBits(8, 4, reg);
 
@@ -2476,49 +2458,13 @@ void K10Processor::setHTLinkSpeed (DWORD reg) {
 	return;
 }
 
-//TODO: to be fixed and merged with PCIRegObject and MSRObject
-void K10Processor::setHTLinkSpeedByNode (
-	DWORD node,
-	DWORD link,
-	DWORD reg
-	)
-{
-
-	DWORD Target;
-	DWORD LinkFrequencyRegister = 0x88;
-
-	DWORD miscReg;
-
-	if ((reg==0x1) || (reg==0x3) || (reg==0xF) || (reg==0x10) || (reg<=0) || (reg>=0x14)) {
-		printf ("setHTLinkSpeed: invalid HT Link register value\n");
-		return;
-	}
-
-	Target = ((0x18+node) << 3) + 0;
-	LinkFrequencyRegister += (0x20 * link);
-
-	if(ReadPciConfigDwordEx (Target, LinkFrequencyRegister, &miscReg))
-	{
-
-		miscReg=miscReg & 0xFFFFF0FF;
-//	miscReg=miscReg + (reg<<8);
-		miscReg |= ( (reg & 0xf) << 8 );
-
-		WritePciConfigDwordEx (Target, LinkFrequencyRegister, miscReg);
-	}
-
-	printf("ERROR1\n");
-
-	return;
-}
-
 // CPU Usage module
 
 //private funciton to set a Performance Counter with Idle Counter event
 void K10Processor::setPCtoIdleCounter (int core, int perfCounter) {
 
 	if (perfCounter<0 || perfCounter>3) {
-		printf ("Performance counter out of range (0-3)\n");
+		printf ("sPerformance counter out of range (0-3)\n");
 		return;
 	}
 
@@ -2800,7 +2746,7 @@ void K10Processor::setC1EStatus (bool toggle) {
 	
 }
 
-// Performance Counters
+// Performance Counters - TODO: to be revised
 
 void K10Processor::getCurrentStatus (struct procStatus *pStatus, DWORD core) {
 
@@ -3247,8 +3193,79 @@ void K10Processor::getDramTimingLow(
 
 void K10Processor::showHTLink() {
 
-	printf ("\nHypertransport Status:\n");
-	printf ("Hypertransport Speed Register: %d (%dMhz)\n",getHTLinkSpeed(),HTLinkToFreq(getHTLinkSpeed()));
+	int nodes = getProcessorNodes();
+	int i;
+
+	printf("\nHypertransport Status:\n");
+
+	for (i = 0; i < nodes; i++) {
+
+		setNode(i);
+		//DWORD DstLnk, DstNode;
+		int linknumber;
+
+		for (linknumber = 0; linknumber < 4; linknumber++) {
+
+			int HTLinkSpeed;
+			DWORD WidthIn;
+			DWORD WidthOut;
+			bool fCoherent;
+			bool fUnganged;
+			DWORD Sublink = 0;
+
+			getHTLinkWidth(linknumber, Sublink, &WidthIn, &WidthOut,
+					&fCoherent, &fUnganged);
+
+			if (WidthIn == 0 || WidthOut == 0) {
+				printf("Node %u Link %u Sublink %u not connected\n", i,
+						linknumber, Sublink);
+
+				continue;
+			}
+
+			HTLinkSpeed = getHTLinkSpeed(linknumber, Sublink);
+
+			printf(
+					"Node %u Link %u Sublink %u Bits=%u Coh=%u SpeedReg=%d (%dMhz)\n",
+					i, linknumber, Sublink, WidthIn, fCoherent,
+					//DstLnk,
+					//DstNode,
+					HTLinkSpeed, HTLinkToFreq(HTLinkSpeed));
+
+			//
+			// no sublinks.
+			//
+
+			if (!fUnganged) {
+				continue;
+			}
+
+			Sublink = 1;
+
+			getHTLinkWidth(linknumber, Sublink, &WidthIn, &WidthOut,
+					&fCoherent, &fUnganged);
+
+			if (WidthIn == 0 || WidthOut == 0) {
+				printf("Node %u Link %u Sublink %u not connected\n", i,
+						linknumber, Sublink);
+
+				continue;
+			}
+
+			HTLinkSpeed = getHTLinkSpeed(linknumber, Sublink);
+			printf(
+					"Node %u Link %u Sublink %u Bits=%u Coh=%u SpeedReg=%d (%dMhz)\n",
+					i, linknumber, Sublink, WidthIn, fCoherent,
+					//DstLnk,
+					//DstNode,
+					HTLinkSpeed, HTLinkToFreq(HTLinkSpeed));
+
+		}
+
+		// p->getHTLinkDistributionTargetByNode(i, 0, &DstLnk, &DstNode);
+
+		printf("\n");
+	}
 
 }
 
@@ -3308,52 +3325,41 @@ void K10Processor::showDramTimings() {
 
 	int nodes = getProcessorNodes();
 	int node_index;
+	int dct_index;
 	DWORD Tcl, Trcd, Trp, Trtp, Tras, Trc, Twr, Trrd, Tcwl, T_mode;
 	DWORD Tfaw, TrwtWB, TrwtTO, Twtr, Twrrd, Twrwr, Trdrd, Tref, Trfc0;
 	DWORD Trfc1, Trfc2, Trfc3, MaxRdLatency;
 
+	printf ("\nDRAM Configuration Status\n\n");
+
 	for (node_index = 0; node_index < nodes; node_index++) {
 
 		setNode (node_index);
+		printf ("Node %u ---\n", node_index);
 
-		getDramTimingLow(0, &Tcl, &Trcd, &Trp, &Trtp, &Tras,
-				&Trc, &Twr, &Trrd, &Tcwl, &T_mode, &Tfaw);
+		for (dct_index = 0; dct_index < 2; dct_index++) {
 
-		getDramTimingHigh(0, &TrwtWB, &TrwtTO, &Twtr, &Twrrd,
-				&Twrwr, &Trdrd, &Tref, &Trfc0, &Trfc1, &Trfc2, &Trfc3,
-				&MaxRdLatency);
+			getDramTimingLow(dct_index, &Tcl, &Trcd, &Trp, &Trtp, &Tras, &Trc,
+					&Twr, &Trrd, &Tcwl, &T_mode, &Tfaw);
 
-		//Low DRAM Register - DCT 0
-		printf(
-				"Node %u DCT0: Tcl=%u Trcd=%u Trp=%u Tras=%u Access Mode:%uT Trtp=%u Trc=%u Twr=%u Trrd=%u Tcwl=%u Tfaw=%u\n",
-				node_index, Tcl, Trcd, Trp, Tras, T_mode, Trtp, Trc, Twr, Trrd,
-				Tcwl, Tfaw);
+			getDramTimingHigh(dct_index, &TrwtWB, &TrwtTO, &Twtr, &Twrrd,
+					&Twrwr, &Trdrd, &Tref, &Trfc0, &Trfc1, &Trfc2, &Trfc3,
+					&MaxRdLatency);
 
-		//High DRAM Register - DCT 0
-		printf(
-				"Node %u DCT0: TrwtWB=%u TrwtTO=%u Twtr=%u Twrrd=%u Twrwr=%u Trdrd=%u Tref=%u Trfc0=%u Trfc1=%u Trfc2=%u Trfc3=%u MaxRdLatency=%u\n",
-				node_index, TrwtWB, TrwtTO, Twtr, Twrrd, Twrwr, Trdrd, Tref,
-				Trfc0, Trfc1, Trfc2, Trfc3, MaxRdLatency);
+			printf("DCT%d:\n", dct_index);
+			//Low DRAM Register
+			printf(
+					"Tcl=%u Trcd=%u Trp=%u Tras=%u Access Mode:%uT Trtp=%u Trc=%u Twr=%u Trrd=%u Tcwl=%u Tfaw=%u\n",
+					Tcl, Trcd, Trp, Tras, T_mode, Trtp, Trc, Twr, Trrd, Tcwl,
+					Tfaw);
 
+			//High DRAM Register
+			printf(
+					"TrwtWB=%u TrwtTO=%u Twtr=%u Twrrd=%u Twrwr=%u Trdrd=%u Tref=%u Trfc0=%u Trfc1=%u Trfc2=%u Trfc3=%u MaxRdLatency=%u\n",
+					TrwtWB, TrwtTO, Twtr, Twrrd, Twrwr, Trdrd, Tref, Trfc0,
+					Trfc1, Trfc2, Trfc3, MaxRdLatency);
 
-		getDramTimingLow(1, &Tcl, &Trcd, &Trp, &Trtp, &Tras,
-				&Trc, &Twr, &Trrd, &Tcwl, &T_mode, &Tfaw);
-
-		getDramTimingHigh(1, &TrwtWB, &TrwtTO, &Twtr, &Twrrd,
-				&Twrwr, &Trdrd, &Tref, &Trfc0, &Trfc1, &Trfc2, &Trfc3,
-				&MaxRdLatency);
-
-		//Low DRAM Register - DCT 1
-		printf(
-				"Node %u DCT1: Tcl=%u Trcd=%u Trp=%u Tras=%u Access Mode:%uT Trtp=%u Trc=%u Twr=%u Trrd=%u Tcwl=%u Tfaw=%u\n",
-				node_index, Tcl, Trcd, Trp, Tras, T_mode, Trtp, Trc, Twr, Trrd,
-				Tcwl, Tfaw);
-
-		//High DRAM Register - DCT 1
-		printf(
-				"Node %u DCT1: TrwtWB=%u TrwtTO=%u Twtr=%u Twrrd=%u Twrwr=%u Trdrd=%u Tref=%u Trfc0=%u Trfc1=%u Trfc2=%u Trfc3=%u MaxRdLatency=%u\n",
-				node_index, TrwtWB, TrwtTO, Twtr, Twrrd, Twrwr, Trdrd, Tref,
-				Trfc0, Trfc1, Trfc2, Trfc3, MaxRdLatency);
+		}
 
 		printf("\n");
 

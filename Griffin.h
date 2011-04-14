@@ -1,5 +1,15 @@
 class Griffin: protected Processor {
 private:
+
+	//Private methods for HT Link support
+	DWORD getHTLinkSpeed(DWORD link, DWORD Sublink);
+	DWORD getHTLinkWidth(DWORD link, DWORD Sublink, DWORD *WidthIn,
+			DWORD *WidthOut, bool *pfCoherent, bool *pfUnganged);
+	DWORD getHTLinkDistributionTarget(DWORD link, DWORD *DstLnk,
+			DWORD *DstNode);
+
+	void printRoute(DWORD);
+
 	void getDramTimingLow(
 			DWORD device, // 0 or 1   DCT0 or DCT1
 			DWORD *Tcl, DWORD *Trcd, DWORD *Trp, DWORD *Trtp, DWORD *Tras,
@@ -106,8 +116,7 @@ public:
 	void setPsiThreshold (DWORD);
 
 	//HyperTransport Section
-	DWORD getHTLinkSpeed (void);
-	void setHTLinkSpeed (DWORD);
+	void setHTLinkSpeed (DWORD, DWORD);
 	
 	//Various settings
 	bool getC1EStatus ();

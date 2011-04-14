@@ -1754,38 +1754,305 @@ void Griffin::setAltVid (DWORD altVid) {
 }
 	
 // Hypertransport Link
+DWORD Griffin::getHTLinkWidth(DWORD link, DWORD Sublink, DWORD *WidthIn,
+		DWORD *WidthOut, bool *pfCoherent, bool *pfUnganged) {
+	DWORD FUNC_TARGET;
 
-DWORD Griffin::getHTLinkSpeed (void) {
-	
-	PCIRegObject *pciRegObject;
-	DWORD htLinkSpeed;
+	PCIRegObject *linkTypeRegObject;
+	PCIRegObject *linkControlRegObject;
+	PCIRegObject *linkExtControlRegObject;
 
-	pciRegObject = new PCIRegObject();
+	*WidthIn = 0;
+	*WidthOut = 0;
+	*pfCoherent = FALSE;
 
-	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_0,
-			0x88, getNodeMask())) {
-		printf("Griffin.cpp::getHTLinkSpeed - unable to read PCI register\n");
-		free(pciRegObject);
+	if (Sublink == 1)
+		FUNC_TARGET = PCI_FUNC_LINK_CONTROL; //function 4
+	else
+		FUNC_TARGET = PCI_FUNC_HT_CONFIG; //function 0
+
+	linkTypeRegObject = new PCIRegObject();
+	//Link Type Register is located at 0x98 + 0x20 * link
+	if (!linkTypeRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, FUNC_TARGET,
+			0x98 + (0x20 * link), getNodeMask())) {
+		printf(
+				"Griffin::getHTLinkWidth - unable to read linkType PCI Register\n");
+		free(linkTypeRegObject);
 		return false;
 	}
 
-	/*
-	 * HT Link Speed is stored in PCI register with
-	 * device PCI_DEV_NORTHBRIDGE
-	 * function PC_FUNC_MISC_CONTROL_0
-	 * register 0x88
-	 * bits from 8 to 11
-	 */
+	linkControlRegObject = new PCIRegObject();
+	//Link Control Register is located at 0x84 + 0x20 * link
+	if (!linkControlRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, FUNC_TARGET,
+			0x84 + (0x20 * link), getNodeMask())) {
+		printf(
+				"Griffin::getHTLinkWidth - unable to read linkControl PCI Register\n");
+		free(linkTypeRegObject);
+		free(linkControlRegObject);
+		return false;
+	}
 
-	htLinkSpeed=pciRegObject->getBits(0, 8, 4);
+	linkExtControlRegObject = new PCIRegObject();
+	//Link Control Extended Register is located at 0x170 + 0x04 * link
+	if (!linkExtControlRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, FUNC_TARGET,
+			0x170 + (0x04 * link), getNodeMask())) {
+		printf(
+				"Griffin::getHTLinkWidth - unable to read linkExtendedControl PCI Register\n");
+		free(linkTypeRegObject);
+		free(linkControlRegObject);
+		free(linkExtControlRegObject);
+		return false;
+	}
 
-	free(pciRegObject);
+	//
+	// determine if the link is connected.
+	// TODO check LinkConPend == 0 first.
+	//
 
-	return htLinkSpeed;
+	//Bit 2 says if link is coherent
+	if (linkTypeRegObject->getBits(0, 2, 1) == 0)
+		*pfCoherent = TRUE;
+	else
+		*pfCoherent = FALSE;
 
+	//Bit 0 says if link is connected
+	if (linkTypeRegObject->getBits(0, 0, 1) == 0) {
+		free(linkTypeRegObject);
+		free(linkControlRegObject);
+		free(linkExtControlRegObject);
+
+		return 0;
+	}
+
+	//Bits 28-30 from link Control Register represent output link width
+	int Out = linkControlRegObject->getBits(0, 28, 3);
+	//Bits 24-26 from link Control Register represent input link width
+	int In = linkControlRegObject->getBits(0, 24, 3);
+
+	switch (Out) {
+	case 0:
+		*WidthOut = 8;
+		break;
+
+	case 1:
+		*WidthOut = 16;
+		break;
+
+	case 7:
+		*WidthOut = 0;
+		break;
+
+	default:
+		*WidthOut = 0;
+		break;
+	}
+
+	switch (In) {
+	case 0:
+		*WidthIn = 8;
+		break;
+
+	case 1:
+		*WidthIn = 16;
+		break;
+
+	case 7:
+		*WidthIn = 0;
+		break;
+
+	default:
+		*WidthIn = 0;
+		break;
+	}
+
+	if (Sublink == 0) {
+		//Bit 1 from link Extended Control Register represent if Sublink is ganged or unganged
+		if ((linkExtControlRegObject->getBits(0, 0, 1)) == 0)
+			*pfUnganged = TRUE;
+		else
+			*pfUnganged = FALSE;
+	}
+
+	free(linkTypeRegObject);
+	free(linkControlRegObject);
+	free(linkExtControlRegObject);
+
+	return 0;
 }
 
-void Griffin::setHTLinkSpeed(DWORD reg) {
+DWORD Griffin::getHTLinkSpeed (DWORD link, DWORD Sublink) {
+
+	DWORD FUNC_TARGET;
+
+	PCIRegObject *linkRegisterRegObject = new PCIRegObject();
+	PCIRegObject *linkExtRegisterRegObject = new PCIRegObject();
+
+	DWORD linkFrequencyRegister = 0x88;
+	DWORD linkFrequencyExtensionRegister = 0x9c;
+
+	DWORD dwReturn;
+
+	if( Sublink == 1 )
+		FUNC_TARGET=PCI_FUNC_LINK_CONTROL; //function 4
+	else
+		FUNC_TARGET=PCI_FUNC_HT_CONFIG; //function 0
+
+	linkFrequencyRegister += (0x20 * link);
+	linkFrequencyExtensionRegister += (0x20 * link);
+
+	if (!linkRegisterRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE,FUNC_TARGET,linkFrequencyRegister,getNodeMask())) {
+		printf ("Griffin::getHTLinkSpeed - unable to read linkRegister PCI Register\n");
+		free (linkRegisterRegObject);
+		free (linkExtRegisterRegObject);
+		return false;
+	}
+
+	if (!linkExtRegisterRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, FUNC_TARGET,
+			linkFrequencyExtensionRegister, getNodeMask())) {
+		printf(
+				"Griffin::getHTLinkSpeed - unable to read linkExtensionRegister PCI Register\n");
+		free(linkRegisterRegObject);
+		free(linkExtRegisterRegObject);
+		return false;
+	}
+
+	dwReturn = linkRegisterRegObject->getBits(0,8,4); //dwReturn = (miscReg >> 8) & 0xF;
+
+	//ReadPciConfigDwordEx (Target,LinkFrequencyExtensionRegister,&miscRegExtended);
+	//if(miscRegExtended & 1)
+	if (linkExtRegisterRegObject->getBits(0,0,1))
+	{
+		dwReturn |= 0x10;
+	}
+
+	// 88, 9c
+	// a8, bc
+	// c8, dc
+	// e8, fc
+	//
+
+	return dwReturn;
+}
+
+void Griffin::printRoute(DWORD route) {
+
+	if (route & 0x1) {
+		printf("this ");
+	}
+
+	if (route & 0x2) {
+		printf("l0 s0 ");
+	}
+
+	if (route & 0x4) {
+		printf("l1 s0 ");
+	}
+
+	if (route & 0x8) {
+		printf("l2 s0 ");
+	}
+
+	if (route & 0x10) {
+		printf("l3 s0 ");
+	}
+
+	if (route & 0x20) {
+		printf("l0 s1 ");
+	}
+
+	if (route & 0x40) {
+		printf("l1 s1 ");
+	}
+
+	if (route & 0x80) {
+		printf("l2 s1 ");
+	}
+
+	if (route & 0x100) {
+		printf("l3 s1 ");
+	}
+
+	printf("\n");
+}
+
+
+DWORD Griffin::getHTLinkDistributionTarget(DWORD link, DWORD *DstLnk,
+		DWORD *DstNode) {
+
+	//Coherent Link Traffic Distribution Register:
+	PCIRegObject *cltdRegObject;
+
+	//Routing Table register:
+	PCIRegObject *routingTableRegObject;
+	DWORD routingTableRegister = 0x40;
+
+	int i;
+
+	cltdRegObject = new PCIRegObject();
+
+	if (!cltdRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_HT_CONFIG,
+			0x164, getNodeMask())) {
+		printf(
+				"Griffin::getHTLinkDistributionTarget - unable to read Coherent Link Traffic Distribution PCI Register\n");
+		free(cltdRegObject);
+		return 0;
+	}
+
+	//Destination link is set in bits 16-23
+	//*DstLnk = (miscReg >> 16) & 0x7F;
+	*DstLnk = cltdRegObject->getBits(0, 16, 7);
+
+	//Destination node is set in bits 8-11
+	//*DstNode = (miscReg >> 8) & 0x7;
+	*DstNode = cltdRegObject->getBits(0, 8, 3);
+
+	for (i = 0; i < 8; i++) {
+		DWORD BcRoute;
+		DWORD RpRoute;
+		DWORD RqRoute;
+
+		routingTableRegObject = new PCIRegObject();
+		if (!routingTableRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE,
+				PCI_FUNC_HT_CONFIG, routingTableRegister, getNodeMask())) {
+			printf(
+					"Griffin::getHTLinkDistributionTarget - unable to read Routing Table PCI Register\n");
+			free(cltdRegObject);
+			free(routingTableRegObject);
+			return 0;
+		}
+
+		//Broadcast Route is set in bits 18-26
+		//BcRoute = (miscReg >> 18) & 0x1ff;
+		BcRoute = routingTableRegObject->getBits(0, 18, 9);
+
+		//Response Route is set in bits 9-17
+		//RpRoute = (miscReg >> 9) & 0x1ff;
+		RpRoute = routingTableRegObject->getBits(0, 9, 9);
+
+		//Request Route is set in bits 0-8
+		//RqRoute = miscReg & 0x1ff;
+		RqRoute = routingTableRegObject->getBits(0, 0, 9);
+
+		printf("route node=%u\n", i);
+
+		printf("BroadcastRoute = ");
+		printRoute(BcRoute);
+		printf("ResponseRoute  = ");
+		printRoute(RpRoute);
+		printf("RequestRoute   = ");
+		printRoute(RqRoute);
+
+		routingTableRegister += 0x4;
+
+		free(routingTableRegObject);
+	}
+
+	free(cltdRegObject);
+
+	return 0;
+}
+
+void Griffin::setHTLinkSpeed(DWORD linkRegister, DWORD reg) {
 
 	PCIRegObject *pciRegObject;
 
@@ -1794,15 +2061,6 @@ void Griffin::setHTLinkSpeed(DWORD reg) {
 		return;
 	}
 
-	pciRegObject = new PCIRegObject();
-
-	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_0,
-			0x88, getNodeMask())) {
-		printf("Griffin.cpp::setHTLinkSpeed - unable to read PCI register\n");
-		free(pciRegObject);
-		return;
-	}
-
 	/*
 	 * HT Link Speed is stored in PCI register with
 	 * device PCI_DEV_NORTHBRIDGE
@@ -1810,6 +2068,17 @@ void Griffin::setHTLinkSpeed(DWORD reg) {
 	 * register 0x88
 	 * bits from 8 to 11
 	 */
+
+	linkRegister=0x88 + 0x20 * linkRegister;
+
+	pciRegObject = new PCIRegObject();
+
+	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_HT_CONFIG,
+			linkRegister, getNodeMask())) {
+		printf("Griffin.cpp::setHTLinkSpeed - unable to read PCI register\n");
+		free(pciRegObject);
+		return;
+	}
 
 	pciRegObject->setBits(8, 4, reg);
 
@@ -2113,7 +2382,7 @@ void Griffin::setC1EStatus (bool toggle) {
 	
 }
 
-// Performance Counters
+// Performance Counters - TODO: must be revised
 
 void Griffin::getCurrentStatus (struct procStatus *pStatus, DWORD core) {
 
@@ -2351,7 +2620,7 @@ void Griffin::getDramTimingHigh(DWORD device, DWORD *TrwtWB,
 		return;
 	}
 
-	//TrwtWB differers on K10 and K8L even for DDR2<1066
+	//TrwtWB differers between K10 and K8L even for DDR2<1066
 	*TrwtWB = dramTimingHighRegister->getBits(0, 0, 4); //(miscReg >> 0) & 0x0f;
 	*TrwtWB += 0;
 
@@ -2474,8 +2743,79 @@ void Griffin::getDramTimingLow(
 
 void Griffin::showHTLink() {
 
-	printf ("\nHypertransport Status:\n");
-	printf ("Hypertransport Speed Register: %d (%dMhz)\n",getHTLinkSpeed(),HTLinkToFreq(getHTLinkSpeed()));
+	int nodes = getProcessorNodes();
+	int i;
+
+	printf("\nHypertransport Status:\n");
+
+	for (i = 0; i < nodes; i++) {
+
+		setNode(i);
+		//DWORD DstLnk, DstNode;
+		int linknumber;
+
+		for (linknumber = 0; linknumber < 4; linknumber++) {
+
+			int HTLinkSpeed;
+			DWORD WidthIn;
+			DWORD WidthOut;
+			bool fCoherent;
+			bool fUnganged;
+			DWORD Sublink = 0;
+
+			getHTLinkWidth(linknumber, Sublink, &WidthIn, &WidthOut,
+					&fCoherent, &fUnganged);
+
+			if (WidthIn == 0 || WidthOut == 0) {
+				printf("Node %u Link %u Sublink %u not connected\n", i,
+						linknumber, Sublink);
+
+				continue;
+			}
+
+			HTLinkSpeed = getHTLinkSpeed(linknumber, Sublink);
+
+			printf(
+					"Node %u Link %u Sublink %u Bits=%u Coh=%u SpeedReg=%d (%dMhz)\n",
+					i, linknumber, Sublink, WidthIn, fCoherent,
+					//DstLnk,
+					//DstNode,
+					HTLinkSpeed, HTLinkToFreq(HTLinkSpeed));
+
+			//
+			// no sublinks.
+			//
+
+			if (!fUnganged) {
+				continue;
+			}
+
+			Sublink = 1;
+
+			getHTLinkWidth(linknumber, Sublink, &WidthIn, &WidthOut,
+					&fCoherent, &fUnganged);
+
+			if (WidthIn == 0 || WidthOut == 0) {
+				printf("Node %u Link %u Sublink %u not connected\n", i,
+						linknumber, Sublink);
+
+				continue;
+			}
+
+			HTLinkSpeed = getHTLinkSpeed(linknumber, Sublink);
+			printf(
+					"Node %u Link %u Sublink %u Bits=%u Coh=%u SpeedReg=%d (%dMhz)\n",
+					i, linknumber, Sublink, WidthIn, fCoherent,
+					//DstLnk,
+					//DstNode,
+					HTLinkSpeed, HTLinkToFreq(HTLinkSpeed));
+
+		}
+
+		// p->getHTLinkDistributionTargetByNode(i, 0, &DstLnk, &DstNode);
+
+		printf("\n");
+	}
 
 }
 
@@ -2534,6 +2874,7 @@ void Griffin::showDramTimings() {
 
 	int nodes = getProcessorNodes();
 	int node_index;
+	int dct_index;
 	DWORD Tcl, Trcd, Trp, Trtp, Tras, Trc, Twr, Trrd, T_mode;
 	DWORD Tfaw, TrwtWB, TrwtTO, Twtr, Twrrd, Twrwr, Trdrd, Tref, Trfc0;
 	DWORD Trfc1;
@@ -2544,42 +2885,29 @@ void Griffin::showDramTimings() {
 
 		setNode (node_index);
 
-		getDramTimingLow(0, &Tcl, &Trcd, &Trp, &Trtp, &Tras,
-				&Trc, &Twr, &Trrd, &T_mode, &Tfaw);
+		printf ("Node %u ---\n", node_index);
 
-		getDramTimingHigh(0, &TrwtWB, &TrwtTO, &Twtr, &Twrrd,
-				&Twrwr, &Trdrd, &Tref, &Trfc0, &Trfc1);
+		for (dct_index = 0; dct_index < 2; dct_index++) {
 
-		//Low DRAM Register - DCT 0
-		printf(
-				"Node %u DCT0: Tcl=%u Trcd=%u Trp=%u Tras=%u Access Mode:%uT Trtp=%u Trc=%u Twr=%u Trrd=%u Tfaw=%u\n",
-				node_index, Tcl, Trcd, Trp, Tras, T_mode, Trtp, Trc, Twr, Trrd,
-				Tfaw);
+			getDramTimingLow(dct_index, &Tcl, &Trcd, &Trp, &Trtp, &Tras, &Trc,
+					&Twr, &Trrd, &T_mode, &Tfaw);
 
-		//High DRAM Register - DCT 0
-		printf(
-				"Node %u DCT0: TrwtWB=%u TrwtTO=%u Twtr=%u Twrrd=%u Twrwr=%u Trdrd=%u Tref=%u Trfc0=%u Trfc1=%u\n",
-				node_index, TrwtWB, TrwtTO, Twtr, Twrrd, Twrwr, Trdrd, Tref,
-				Trfc0, Trfc1);
+			getDramTimingHigh(dct_index, &TrwtWB, &TrwtTO, &Twtr, &Twrrd,
+					&Twrwr, &Trdrd, &Tref, &Trfc0, &Trfc1);
 
+			printf("DCT%d:\n", dct_index);
+			//Low DRAM Register
+			printf(
+					"Tcl=%u Trcd=%u Trp=%u Tras=%u Access Mode:%uT Trtp=%u Trc=%u Twr=%u Trrd=%u Tfaw=%u\n",
+					Tcl, Trcd, Trp, Tras, T_mode, Trtp, Trc, Twr, Trrd, Tfaw);
 
-		getDramTimingLow(1, &Tcl, &Trcd, &Trp, &Trtp, &Tras,
-				&Trc, &Twr, &Trrd, &T_mode, &Tfaw);
+			//High DRAM Register
+			printf(
+					"TrwtWB=%u TrwtTO=%u Twtr=%u Twrrd=%u Twrwr=%u Trdrd=%u Tref=%u Trfc0=%u Trfc1=%u\n",
+					TrwtWB, TrwtTO, Twtr, Twrrd, Twrwr, Trdrd, Tref, Trfc0,
+					Trfc1);
 
-		getDramTimingHigh(1, &TrwtWB, &TrwtTO, &Twtr, &Twrrd,
-				&Twrwr, &Trdrd, &Tref, &Trfc0, &Trfc1);
-
-		//Low DRAM Register - DCT 1
-		printf(
-				"Node %u DCT1: Tcl=%u Trcd=%u Trp=%u Tras=%u Access Mode:%uT Trtp=%u Trc=%u Twr=%u Trrd=%u Tfaw=%u\n",
-				node_index, Tcl, Trcd, Trp, Tras, T_mode, Trtp, Trc, Twr, Trrd,
-				Tfaw);
-
-		//High DRAM Register - DCT 1
-		printf(
-				"Node %u DCT1: TrwtWB=%u TrwtTO=%u Twtr=%u Twrrd=%u Twrwr=%u Trdrd=%u Tref=%u Trfc0=%u Trfc1=%u\n",
-				node_index, TrwtWB, TrwtTO, Twtr, Twrrd, Twrwr, Trdrd, Tref,
-				Trfc0, Trfc1);
+		}
 
 		printf("\n");
 

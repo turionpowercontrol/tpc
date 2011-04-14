@@ -372,7 +372,7 @@ void printUsage () {
 
 	printf ("\t ----- Hypertransport Link -----\n\n");
 	printf (" -htstatus\n\tShows Hypertransport status\n\n");
-	printf (" -htset\n\tSet the hypertransport link frequency register\n\n");
+	printf (" -htset (link) (speedReg)\n\tSet the hypertransport link frequency register\n\n");
 	
 	printf ("\t ----- Various and others -----\n\n");
 	printf (" -c1eenable\n\tSets C1E on Cmp Halt bit enabled for current nodes and current cores\n\n");
@@ -468,7 +468,7 @@ void print_stat (Processor *p, PState ps, const char *what, float value) {
 		return;
 }
 
-//TODO: revise the following code
+//TODO: revise the following code with approximation notice
 //This procedure parse the -set switch
 int parseSetCommand (Processor *p, int argc, const char **argv, int argcOffset) {
 
@@ -896,7 +896,7 @@ int main (int argc,const char **argv) {
 			processor->setFID (ps,arg2i(argv,argvStep+5));
 			
 			argvStep=argvStep+5;
-		}*/
+		}
 
 		//Set VID, DID and FID for a specific power state for all cores
 		if (strcmp((const char *)argv[argvStep],"-pallc")==0) {
@@ -914,7 +914,7 @@ int main (int argc,const char **argv) {
 			processor->setFID (ps,arg2i(argv,argvStep+4));
 			
 			argvStep=argvStep+4;
-		}
+		}*/
 
 		if (strcmp((const char *)argv[argvStep],"-nbvid")==0) {
 			
@@ -1140,13 +1140,13 @@ int main (int argc,const char **argv) {
 		//Set Hypertransport Link frequency for current nodes
 		if (strcmp((const char *)argv[argvStep],"-htset")==0) {
 			
-			if ((argv[argvStep+1]==NULL)) {
+			if ((argv[argvStep+1]==NULL) || (argv[argvStep+2]==NULL)) {
 				printf ("Wrong -htset option\n");
 				return 1;
 			}
 			
-			processor->setHTLinkSpeed(arg2i(argv,argvStep+1));
-			argvStep++;
+			processor->setHTLinkSpeed(arg2i(argv,argvStep+1),arg2i(argv,argvStep+2));
+			argvStep+=2;
 		}
 		
 		//Enables PSI_L bit for current nodes
@@ -1259,7 +1259,7 @@ int main (int argc,const char **argv) {
 
 			argvStep=parseSetCommand (processor,argc,argv,argvStep+1)-1;
 
-			printf ("*** -set parsing terminated\n");
+			printf ("*** -set parsing completed\n");
 
 		}
 

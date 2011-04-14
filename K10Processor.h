@@ -1,6 +1,16 @@
 class K10Processor: protected Processor {
 private:
 
+	//Private methods for HT Link support
+	DWORD getHTLinkSpeed(DWORD link, DWORD Sublink);
+	DWORD getHTLinkWidth(DWORD link, DWORD Sublink, DWORD *WidthIn,
+			DWORD *WidthOut, bool *pfCoherent, bool *pfUnganged);
+	DWORD getHTLinkDistributionTarget(DWORD link, DWORD *DstLnk,
+			DWORD *DstNode);
+
+	void printRoute(DWORD);
+
+
 	//DRAM timing register Low
 	void getDramTimingLow(
 			DWORD device, // 0 or 1
@@ -68,10 +78,8 @@ public:
 
 	DWORD getNBDid (PState);
 	DWORD getNBFid ();
-	DWORD getNBFidByNode (DWORD);
 	void setNBFid (DWORD);
 	DWORD getMaxNBFrequency ();
-	DWORD getMaxNBFrequencyByCore (DWORD core);
 
 	DWORD minVID ();
 	DWORD maxVID ();
@@ -130,21 +138,7 @@ public:
 	void setPsiThreshold (DWORD);
 
 	//HyperTransport Section
-	DWORD getHTLinkSpeed (void);
-	DWORD getHTLinkSpeedByNode (DWORD node, DWORD link, DWORD Sublink);
-	DWORD getHTLinkWidthByNode (DWORD node, DWORD link, DWORD Sublink, DWORD *WidthIn, DWORD *WidthOut,
-                                bool *pfCoherent, bool *pfUnganged
-                                );
-	DWORD getHTLinkDistributionTargetByNode (
-		DWORD node,
-		DWORD link,
-		DWORD *DstLnk,
-		DWORD *DstNode
-		);
-
-	void setHTLinkSpeed (DWORD);
-	void setHTLinkSpeedByNode (	DWORD node, DWORD link, DWORD reg );
-
+	void setHTLinkSpeed (DWORD, DWORD);
 
 	//Various settings
 	bool getC1EStatus ();
