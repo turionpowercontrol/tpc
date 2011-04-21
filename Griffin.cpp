@@ -283,7 +283,7 @@ DWORD Griffin::convertFDtoFreq (DWORD curFid, DWORD curDid) {
 
 void Griffin::convertFreqtoFD (DWORD freq, int *oFid, int *oDid) {
 	/*Needs to calculate the approximate frequency using FID and DID right
-	combinations. Take in account that base frequency is always 200 Mhz
+	combinations. Take in account that base frequency is always 200 MHz
 	(that is Hypertransport 1x link speed).
 
 	For family 11h processor the right formula is:
@@ -2776,7 +2776,7 @@ void Griffin::showHTLink() {
 			HTLinkSpeed = getHTLinkSpeed(linknumber, Sublink);
 
 			printf(
-					"Node %u Link %u Sublink %u Bits=%u Coh=%u SpeedReg=%d (%dMhz)\n",
+					"Node %u Link %u Sublink %u Bits=%u Coh=%u SpeedReg=%d (%dMHz)\n",
 					i, linknumber, Sublink, WidthIn, fCoherent,
 					//DstLnk,
 					//DstNode,
@@ -2804,7 +2804,7 @@ void Griffin::showHTLink() {
 
 			HTLinkSpeed = getHTLinkSpeed(linknumber, Sublink);
 			printf(
-					"Node %u Link %u Sublink %u Bits=%u Coh=%u SpeedReg=%d (%dMhz)\n",
+					"Node %u Link %u Sublink %u Bits=%u Coh=%u SpeedReg=%d (%dMHz)\n",
 					i, linknumber, Sublink, WidthIn, fCoherent,
 					//DstLnk,
 					//DstNode,

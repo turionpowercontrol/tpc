@@ -311,7 +311,7 @@ DWORD K10Processor::convertFDtoFreq (DWORD curFid, DWORD curDid) {
 
 void K10Processor::convertFreqtoFD(DWORD freq, int *oFid, int *oDid) {
 	/*Needs to calculate the approximate frequency using FID and DID right
-	 combinations. Take in account that base frequency is always 200 Mhz
+	 combinations. Take in account that base frequency is always 200 MHz
 	 (that is Hypertransport 1x link speed).
 
 	 For family 10h processor the right formula is:
@@ -989,8 +989,8 @@ void K10Processor::setNBFid(DWORD fid) {
 
 	PCIRegObject *pciRegObject;
 
-	if (fid < 0 || fid > 0x1b) {
-		printf("setNBFid: fid value must be between 0-27\n");
+	if (fid > 0x1b) {
+		printf("setNBFid: fid value must be between 0 and 27\n");
 		return;
 	}
 
@@ -2249,10 +2249,7 @@ DWORD K10Processor::getHTLinkSpeed (DWORD link, DWORD Sublink) {
 	DWORD FUNC_TARGET;
 
 	PCIRegObject *linkRegisterRegObject = new PCIRegObject();
-	PCIRegObject *linkExtRegisterRegObject = new PCIRegObject();
-
 	DWORD linkFrequencyRegister = 0x88;
-	DWORD linkFrequencyExtensionRegister = 0x9c;
 
 	DWORD dwReturn;
 
@@ -2262,31 +2259,36 @@ DWORD K10Processor::getHTLinkSpeed (DWORD link, DWORD Sublink) {
 		FUNC_TARGET=PCI_FUNC_HT_CONFIG; //function 0
 
 	linkFrequencyRegister += (0x20 * link);
-	linkFrequencyExtensionRegister += (0x20 * link);
 
 	if (!linkRegisterRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE,FUNC_TARGET,linkFrequencyRegister,getNodeMask())) {
 		printf ("K10Processor::getHTLinkSpeed - unable to read linkRegister PCI Register\n");
 		free (linkRegisterRegObject);
-		free (linkExtRegisterRegObject);
-		return false;
-	}
-
-	if (!linkExtRegisterRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, FUNC_TARGET,
-			linkFrequencyExtensionRegister, getNodeMask())) {
-		printf(
-				"K10Processor::getHTLinkSpeed - unable to read linkExtensionRegister PCI Register\n");
-		free(linkRegisterRegObject);
-		free(linkExtRegisterRegObject);
 		return false;
 	}
 
 	dwReturn = linkRegisterRegObject->getBits(0,8,4); //dwReturn = (miscReg >> 8) & 0xF;
 
-	//ReadPciConfigDwordEx (Target,LinkFrequencyExtensionRegister,&miscRegExtended);
-	//if(miscRegExtended & 1)
-	if (linkExtRegisterRegObject->getBits(0,0,1))
-	{
-		dwReturn |= 0x10;
+	if (getSpecModelExtended() >= 8) { /* revision D or later */
+		DWORD linkFrequencyExtensionRegister = 0x9c;
+		PCIRegObject *linkExtRegisterRegObject = new PCIRegObject();
+
+		linkFrequencyExtensionRegister += (0x20 * link);
+
+		if (!linkExtRegisterRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, FUNC_TARGET,
+				linkFrequencyExtensionRegister, getNodeMask())) {
+			printf ("K10Processor::getHTLinkSpeed - unable to read linkExtensionRegister PCI Register\n");
+			free(linkRegisterRegObject);
+			free(linkExtRegisterRegObject);
+			return false;
+		}
+
+		//ReadPciConfigDwordEx (Target,LinkFrequencyExtensionRegister,&miscRegExtended);
+		//if(miscRegExtended & 1)
+		if (linkExtRegisterRegObject->getBits(0,0,1))
+		{
+			dwReturn |= 0x10;
+		}
+		free(linkExtRegisterRegObject);
 	}
 
 	// 88, 9c
@@ -3226,7 +3228,7 @@ void K10Processor::showHTLink() {
 			HTLinkSpeed = getHTLinkSpeed(linknumber, Sublink);
 
 			printf(
-					"Node %u Link %u Sublink %u Bits=%u Coh=%u SpeedReg=%d (%dMhz)\n",
+					"Node %u Link %u Sublink %u Bits=%u Coh=%u SpeedReg=%d (%dMHz)\n",
 					i, linknumber, Sublink, WidthIn, fCoherent,
 					//DstLnk,
 					//DstNode,
@@ -3254,7 +3256,7 @@ void K10Processor::showHTLink() {
 
 			HTLinkSpeed = getHTLinkSpeed(linknumber, Sublink);
 			printf(
-					"Node %u Link %u Sublink %u Bits=%u Coh=%u SpeedReg=%d (%dMhz)\n",
+					"Node %u Link %u Sublink %u Bits=%u Coh=%u SpeedReg=%d (%dMHz)\n",
 					i, linknumber, Sublink, WidthIn, fCoherent,
 					//DstLnk,
 					//DstNode,

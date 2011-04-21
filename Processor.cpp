@@ -252,32 +252,38 @@ void Processor::setProcessorNodes (DWORD nodes) {
 DWORD Processor::HTLinkToFreq (DWORD reg) {
 
 	switch (reg) {
-	case 0:
+	case 0x00:
 		return 200;
-	case 2:
+	case 0x02:
 		return 400;
-	case 4:
+	case 0x04:
 		return 600;
-	case 5:
+	case 0x05:
 		return 800;
-	case 6:
+	case 0x06:
 		return 1000;
-	case 7:
+	case 0x07:
 		return 1200;
-	case 8:
+	case 0x08:
 		return 1400;
-	case 9:
+	case 0x09:
 		return 1600;
-	case 10:
+	case 0x0A:
 		return 1800;
-	case 11:
+	case 0x0B:
 		return 2000;
-	case 12:
+	case 0x0C:
 		return 2200;
-	case 13:
+	case 0x0D:
 		return 2400;
-	case 14:
+	case 0x0E:
 		return 2600;
+	case 0x11:
+		return 2800;
+	case 0x12:
+		return 3000;
+	case 0x13:
+		return 3200;
 	default:
 		return 0;
 	}
@@ -498,7 +504,7 @@ DWORD Processor::getNBDid(PState ps) {
 }
 
 /* setNBFid */
-void Processor::setNBFid() {
+void Processor::setNBFid(DWORD fid) {
 	printf("Unsupported processor feature\n");
 	return;
 }

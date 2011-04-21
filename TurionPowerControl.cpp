@@ -350,6 +350,7 @@ void printUsage () {
 	printf (" -nbvid (pstateId) (vidId)\n\tSet Northbridge VID to pstateId for all cores and current nodes\n\n");
 	printf (" -nbdid (pstateId) (didId)\n\tSet divisor didID to northbridge for all cores and current nodes.\n\t");
 	printf ("Usually causes the processor to lock to slowest pstate. Accepted\n\tvalues are 0 and 1)\n\n");
+	printf (" -nbfid (fidId)\n\tSet northbridge frequency ID to fidId\n\n");
 
 	printf ("\t ----- Processor Temperature monitoring -----\n\n");
 	printf (" -temp \n\tShow temperature registers data\n\n");
@@ -951,6 +952,17 @@ int main (int argc,const char **argv) {
 			processor->setNBDid (arg2i(argv,argvStep+1),arg2i(argv,argvStep+2));
 			argvStep=argvStep+2;
 			
+		}
+
+
+		if (strcmp((const char *)argv[argvStep], "-nbfid") == 0) {
+			if (argv[argvStep + 1] == NULL) {
+				printf ("ERROR: -nbfid requires a parameter (fidId).\n");
+				return 1;
+			}
+
+			processor->setNBFid(arg2i(argv,argvStep+1));
+			argvStep += 1;
 		}
 
 

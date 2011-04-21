@@ -248,7 +248,7 @@ public:
 	virtual DWORD getNBDid(PState);
 	virtual void setNBDid(PState, DWORD);
 	virtual DWORD getNBFid();
-	virtual void setNBFid();
+	virtual void setNBFid(DWORD);
 
 	virtual DWORD getMaxNBFrequency();
 
