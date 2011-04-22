@@ -20,11 +20,13 @@ private:
 	DWORD reg;
 	DWORD *eax_ptr;
 	DWORD *edx_ptr;
+	unsigned int *absIndex;
 
 public:
 	MSRObject();
 	bool readMSR (DWORD, PROCESSORMASK);
 	bool writeMSR ();
+	unsigned int indexToAbsolute (unsigned int);
 	uint64_t getBits (unsigned int, unsigned int, unsigned int);
 	DWORD getBitsLow (unsigned int, unsigned int, unsigned int);
 	DWORD getBitsHigh (unsigned int, unsigned int, unsigned int);

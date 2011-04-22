@@ -1,0 +1,1 @@
+scaler.o: scaler.cpp scaler.h Processor.h cpuPrimitives.h

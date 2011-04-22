@@ -18,6 +18,7 @@ DWORD PCIRegObject::getPath(DWORD device, DWORD function) {
 //Constructor
 PCIRegObject::PCIRegObject() {
 	this->reg_ptr=NULL;
+	this->absIndex=NULL;
 	this->nodeMask=0x0;
 	this->reg=0x0;
 	this->function=0x0;
@@ -51,10 +52,11 @@ void PCIRegObject::newPCIReg(DWORD device, DWORD function, DWORD reg,
 
 	this->nodeCount = count;
 
-	if (this->reg_ptr)
-		free(this->reg_ptr);
+	if (this->reg_ptr) free(this->reg_ptr);
+	if (this->absIndex) free(this->absIndex);
 
 	this->reg_ptr = (DWORD *) calloc(this->nodeCount, sizeof(DWORD));
+	this->absIndex = (unsigned int *) calloc (this->nodeCount, sizeof(unsigned int));
 
 	return;
 
@@ -94,10 +96,11 @@ bool PCIRegObject::readPCIReg(DWORD device, DWORD function, DWORD reg, DWORD nod
 
 	this->nodeCount = count;
 
-	if (this->reg_ptr)
-		free(this->reg_ptr);
+	if (this->reg_ptr) free(this->reg_ptr);
+	if (this->absIndex) free (this->absIndex);
 
 	this->reg_ptr = (DWORD *) calloc(this->nodeCount, sizeof(DWORD));
+	this->absIndex = (unsigned int *) calloc (this->nodeCount, sizeof(unsigned int));
 
 	count = 0;
 	nid = 0;
@@ -109,9 +112,11 @@ bool PCIRegObject::readPCIReg(DWORD device, DWORD function, DWORD reg, DWORD nod
 			if (!ReadPciConfigDwordEx(getPath(this->device+nid, this->function), this->reg,
 					&this->reg_ptr[count])) {
 				free(this->reg_ptr);
+				free(this->absIndex);
 				this->nodeCount = 0;
 				return false;
 			}
+			absIndex[count]=nid;
 			count++;
 		}
 
@@ -153,6 +158,12 @@ bool PCIRegObject::writePCIReg () {
 	}
 
 	return true;
+
+}
+
+unsigned int PCIRegObject::indexToAbsolute (unsigned int index) {
+
+	return this->absIndex[index];
 
 }
 
@@ -207,5 +218,6 @@ bool PCIRegObject::setBits (unsigned int base, unsigned int length, DWORD value)
 PCIRegObject::~PCIRegObject() {
 
 	if (this->reg_ptr) free (this->reg_ptr);
+	if (this->absIndex) free (this->absIndex);
 
 }

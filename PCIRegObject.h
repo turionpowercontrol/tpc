@@ -16,6 +16,7 @@
 class PCIRegObject {
 private:
 	DWORD *reg_ptr;
+	unsigned int *absIndex;
 	DWORD reg;
 	DWORD function;
 	DWORD device;
@@ -32,6 +33,8 @@ public:
 
 	bool readPCIReg (DWORD, DWORD, DWORD, DWORD);
 	bool writePCIReg ();
+
+	unsigned int indexToAbsolute (unsigned int);
 
 	bool setBits (unsigned int, unsigned int, DWORD);
 	DWORD getBits (unsigned int, unsigned int, unsigned int);

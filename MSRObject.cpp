@@ -11,6 +11,7 @@
 MSRObject::MSRObject() {
 	this->eax_ptr=NULL;
 	this->edx_ptr=NULL;
+	this->absIndex=NULL;
 	this->cpuMask=0x0;
 	this->reg=0x0;
 	this->cpuCount=0x0;
@@ -40,9 +41,11 @@ bool MSRObject::readMSR (DWORD reg, PROCESSORMASK cpuMask) {
 
 	if (this->eax_ptr) free (this->eax_ptr);
 	if (this->edx_ptr) free (this->edx_ptr);
+	if (this->absIndex) free (this->absIndex);
 
 	this->eax_ptr=(DWORD *)calloc (this->cpuCount, sizeof(DWORD));
 	this->edx_ptr=(DWORD *)calloc (this->cpuCount, sizeof(DWORD));
+	this->absIndex=(unsigned int *)calloc (this->cpuCount, sizeof(unsigned int));
 
 	count=0;
 	pId=0;
@@ -54,9 +57,11 @@ bool MSRObject::readMSR (DWORD reg, PROCESSORMASK cpuMask) {
 			if (!RdmsrPx (this->reg,&eax_ptr[count], &edx_ptr[count], mask)) {
 				free(this->eax_ptr);
 				free(this->edx_ptr);
+				free(this->absIndex);
 				this->cpuCount=0;
 				return false;
 			}
+			this->absIndex[count]=pId;
 			count++;
 		}
 
@@ -106,11 +111,21 @@ bool MSRObject::writeMSR () {
 }
 
 /*
+ * Uses the absIndex private array to return the absolute CPU/core associated to an index.
+ * getbits method uses indexes, indexToAbsolute method is useful to discover the absolute
+ * cpu/core.
+ */
+unsigned int MSRObject::indexToAbsolute (unsigned int index) {
+
+	return this->absIndex[index];
+
+}
+
+/*
  * getBits return a 64-bit integer containing the part of the MSR with offset defined in base parameter
  * and with length bits. cpuNumber parameter defines the specific cpu. cpuNumber=0 means that you are going
  * to read bits from first cpu in cpuMask, cpuNumber=1 means reading from second cpu in cpuMask and so on.
  */
-
 uint64_t MSRObject::getBits (unsigned int cpuNumber, unsigned int base, unsigned int length) {
 
 	uint64_t xReg;
@@ -279,4 +294,5 @@ MSRObject::~MSRObject() {
 	// TODO Auto-generated destructor stub
 	if (this->eax_ptr) free (this->eax_ptr);
 	if (this->edx_ptr) free (this->edx_ptr);
+	if (this->absIndex) free (this->absIndex);
 }
