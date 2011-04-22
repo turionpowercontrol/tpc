@@ -55,9 +55,10 @@ bool MSRObject::readMSR (DWORD reg, PROCESSORMASK cpuMask) {
 		mask=(PROCESSORMASK)1<<pId;
 		if (cpuMask & mask) {
 			if (!RdmsrPx (this->reg,&eax_ptr[count], &edx_ptr[count], mask)) {
+				/* This is not needed, memory will be free by destructor
 				free(this->eax_ptr);
 				free(this->edx_ptr);
-				free(this->absIndex);
+				free(this->absIndex);*/
 				this->cpuCount=0;
 				return false;
 			}
@@ -119,6 +120,13 @@ unsigned int MSRObject::indexToAbsolute (unsigned int index) {
 
 	return this->absIndex[index];
 
+}
+
+/*
+ * Returns the count of the cpus currently taken in memory by this object
+ */
+DWORD MSRObject::getCount () {
+	return this->cpuCount;
 }
 
 /*
@@ -291,8 +299,7 @@ bool MSRObject::setBitsHigh (unsigned int base, unsigned int length, DWORD value
 
 //Releases dynamic memory and destroys the object
 MSRObject::~MSRObject() {
-	// TODO Auto-generated destructor stub
-	if (this->eax_ptr) free (this->eax_ptr);
+		if (this->eax_ptr) free (this->eax_ptr);
 	if (this->edx_ptr) free (this->edx_ptr);
 	if (this->absIndex) free (this->absIndex);
 }

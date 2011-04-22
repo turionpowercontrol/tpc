@@ -111,8 +111,9 @@ bool PCIRegObject::readPCIReg(DWORD device, DWORD function, DWORD reg, DWORD nod
 		if (nodeMask & mask) {
 			if (!ReadPciConfigDwordEx(getPath(this->device+nid, this->function), this->reg,
 					&this->reg_ptr[count])) {
+				/*This is not needed since memory will be freed by destructor
 				free(this->reg_ptr);
-				free(this->absIndex);
+				free(this->absIndex);*/
 				this->nodeCount = 0;
 				return false;
 			}
@@ -165,6 +166,11 @@ unsigned int PCIRegObject::indexToAbsolute (unsigned int index) {
 
 	return this->absIndex[index];
 
+}
+
+/* Returns the number of nodes currently in memory of an object */
+DWORD PCIRegObject::getCount () {
+	return this->nodeCount;
 }
 
 /*

@@ -35,6 +35,7 @@ public:
 	bool writePCIReg ();
 
 	unsigned int indexToAbsolute (unsigned int);
+	DWORD getCount ();
 
 	bool setBits (unsigned int, unsigned int, DWORD);
 	DWORD getBits (unsigned int, unsigned int, unsigned int);

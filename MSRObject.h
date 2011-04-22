@@ -27,6 +27,7 @@ public:
 	bool readMSR (DWORD, PROCESSORMASK);
 	bool writeMSR ();
 	unsigned int indexToAbsolute (unsigned int);
+	DWORD getCount ();
 	uint64_t getBits (unsigned int, unsigned int, unsigned int);
 	DWORD getBitsLow (unsigned int, unsigned int, unsigned int);
 	DWORD getBitsHigh (unsigned int, unsigned int, unsigned int);
