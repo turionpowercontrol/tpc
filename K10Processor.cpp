@@ -182,7 +182,7 @@ void K10Processor::showFamilySpecs() {
 	printf("Northbridge Power States table:\n");
 
 	for (j = 0; j < processorNodes; j++) {
-		printf("------ Node %d of %d\n ", j, processorNodes);
+		printf("------ Node %d of %d\n", j, processorNodes);
 		setNode(j);
 		setCore(0);
 		for (i = 0; i < getPowerStates(); i++) {
