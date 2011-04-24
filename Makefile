@@ -58,7 +58,7 @@ clean:
 	
 distclean: clean
 	$(RM) *.o core core.[0-9]
-	$(RM) *~ DEADJOE *.orig *.rej *.i *.r[0-9]*
+	$(RM) *~ DEADJOE *.orig *.rej *.i *.r[0-9]* *.mine
 	$(RM) .depend
 	$(RM) TurionPowerControl TurionPowerControl.i386
 
