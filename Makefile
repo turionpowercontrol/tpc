@@ -21,19 +21,6 @@ SOURCES=TurionPowerControl.cpp \
 	Processor.cpp \
 	scaler.cpp
 
-HEADERS=config.h \
-	cpuPrimitives.h \
-	Griffin.h \
-	K10Processor.h \
-	MSRObject.h \
-	MSVC_Round.h \
-	OlsApi.h \
-	OlsDef.h \
-	PCIRegObject.h \
-	Processor.h \
-	scaler.h \
-	TurionPowerControl.h
-
 OBJECTS=$(SOURCES:%.cpp=$(OBJDIR)/%.o)
 DEPS=$(SOURCES:%.cpp=$(OBJDIR)/.%.d)
 
