@@ -21,8 +21,6 @@ private:
 
 protected:
 
-	void setPCtoIdleCounter (int, int);
-
 public:
 
 	Griffin ();
@@ -121,23 +119,18 @@ public:
 	//Various settings
 	bool getC1EStatus ();
 	void setC1EStatus (bool);
-
-	//Performance counters Section
+	
+	//Performance counters
 	void perfCounterGetInfo ();
-	void perfCounterGetValue (int, int);
-	void perfCounterMonitor (int, int);
+	void perfCounterGetValue (unsigned int);
 	void perfMonitorCPUUsage ();
 
-	//CPU Usage section
-	bool initUsageCounter (DWORD *);
-	DWORD getUsageCounter (DWORD *,DWORD); 
-	DWORD getUsageCounter (DWORD *,DWORD, int); 
-	
+
 	// Autocheck mode
 	void checkMode ();
 
 	//Scaler helper methods
-	void getCurrentStatus (struct procStatus *pStatus, DWORD core);
+	void getCurrentStatus (struct procStatus *pStatus);
 
 };
 

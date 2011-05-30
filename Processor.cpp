@@ -91,12 +91,12 @@ PROCESSORMASK Processor::getMask (DWORD core, DWORD node) {
 		return (PROCESSORMASK)1<<((node*processorCores)+core);
 
 
-	//If core is set to ALL_CORES and node is free we se the mask
+	//If core is set to ALL_CORES and node is free we set the mask
 	//to specify all the cores of one specific node
 	if ((core==ALL_CORES) && (node!=ALL_NODES)) {
 		mask=-1;
 		mask=mask<<(MAX_CORES-((node+1)*processorCores));
-		mask=mask>>(MAX_CORES-((node)*processorCores));
+		mask=mask>>(MAX_CORES-processorCores);
 		mask=mask<<(node*processorCores);
 		return mask;
 	}
@@ -681,13 +681,16 @@ void Processor::setC1EStatus(bool toggle) {
 void Processor::perfCounterGetInfo() {
 	return;
 }
-void Processor::perfCounterGetValue(int core, int perfCounter) {
+
+void Processor::perfCounterGetValue(unsigned int perfCounter) {
 	return;
 }
-void Processor::perfCounterMonitor(int core, int perfCounter) {
-	return;
-}
+
 void Processor::perfMonitorCPUUsage() {
+	return;
+}
+/*
+void Processor::perfCounterMonitor(int core, int perfCounter) {
 	return;
 }
 
@@ -700,7 +703,7 @@ DWORD Processor::getUsageCounter(DWORD *, DWORD) {
 }
 DWORD Processor::getUsageCounter(DWORD *, DWORD , int) {
 	return 0;
-}
+}*/
 
 //Misc
 void Processor::forcePVIMode(bool toggle) {

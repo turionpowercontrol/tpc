@@ -18,6 +18,7 @@ SOURCES=TurionPowerControl.cpp \
 	MSRObject.cpp \
 	MSVC_Round.cpp \
 	PCIRegObject.cpp \
+	PerformanceCounter.cpp \
 	Processor.cpp \
 	scaler.cpp
 

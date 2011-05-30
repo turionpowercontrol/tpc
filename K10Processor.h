@@ -25,7 +25,6 @@ private:
 
 protected:
 
-	void setPCtoIdleCounter (int, int);
 	bool forcePVI;
 	bool forceSVI;
 
@@ -144,19 +143,13 @@ public:
 	bool getC1EStatus ();
 	void setC1EStatus (bool);
 
-	//Performance counters Section
-	void perfCounterGetInfo ();
-	void perfCounterGetValue (int, int);
-	void perfCounterMonitor (int, int);
-	void perfMonitorCPUUsage ();
-
-	//CPU Usage section
-	bool initUsageCounter (DWORD *);
-	DWORD getUsageCounter (DWORD *,DWORD); 
-	DWORD getUsageCounter (DWORD *,DWORD, int); 
-	
 	// Autocheck mode
 	void checkMode ();
+
+	//Performance counters
+	void perfCounterGetInfo ();
+	void perfCounterGetValue (unsigned int);
+	void perfMonitorCPUUsage ();
 
 	//Scaler helper methods
 	void getCurrentStatus (struct procStatus *pStatus, DWORD core);

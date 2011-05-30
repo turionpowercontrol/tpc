@@ -15,6 +15,7 @@
 #include "K10Processor.h"
 #include "PCIRegObject.h"
 #include "MSRObject.h"
+#include "PerformanceCounter.h"
 
 //K10Processor class constructor
 K10Processor::K10Processor () {
@@ -2470,103 +2471,6 @@ void K10Processor::setHTLinkSpeed (DWORD linkRegister, DWORD reg) {
 
 // CPU Usage module
 
-//private funciton to set a Performance Counter with Idle Counter event
-void K10Processor::setPCtoIdleCounter (int core, int perfCounter) {
-
-	if (perfCounter<0 || perfCounter>3) {
-		printf ("sPerformance counter out of range (0-3)\n");
-		return;
-	}
-
-	if (core<0 || core>processorCores-1) {
-		printf ("Core Id is out of range (0-%d)\n", processorCores-1);
-		return;
-	}
-
-	WrmsrPx (BASE_PESR_REG+perfCounter,IDLE_COUNTER_EAX,IDLE_COUNTER_EDX,(PROCESSORMASK)1<<core);
-
-}
-
-//Initializes CPU Usage counter - see the scalers
-//Acceptes a pointer to an array of DWORDs, the array is as long as the number of cores the processor has
-//Returns true if there are no slots to put the performance counter, while returns false on success.
-bool K10Processor::initUsageCounter (DWORD *perfReg) {
-
-	DWORD coreId, perf_reg;
-	DWORD enabled, event, usrmode, osmode;
-	DWORD eaxMsr, edxMsr;
-
-	//Finds an empty Performance Counter slot and puts the correct event in the slot.
-	for (coreId=0; coreId<processorCores; coreId++) {
-
-		perfReg[coreId]=-1;
-
-		for (perf_reg=0x0;perf_reg<0x4;perf_reg++) {
-
-			RdmsrPx (BASE_PESR_REG+perf_reg,&eaxMsr,&edxMsr,(PROCESSORMASK)1<<coreId);
-			event=eaxMsr & 0xff;
-			enabled=(eaxMsr >> 22) & 0x1;
-			usrmode=(eaxMsr >> 16) & 0x1;
-			osmode=(eaxMsr >>17) & 0x1;
-
-			//Found an already activated performance slot with right event parameters
-			if (event==0x76 && enabled==1 && usrmode==1 && osmode==1) {
-				perfReg[coreId]=perf_reg;
-				printf ("Core %d is using already set Performace Counter %d\n",coreId,perf_reg);
-				break;
-			}
-
-			//Found an empty slot ready to be populated
-			if (enabled==0) {
-				setPCtoIdleCounter (coreId, perf_reg);
-				perfReg[coreId]=perf_reg;
-				printf ("Core %d is using newly set Performace Counter %d\n",coreId,perf_reg);
-				break;
-			}
-		}
-
-		//If we're unable to set a performance counter for a core, then it is impossible to continue
-		//Else do a call to getUsageCounter to initialize its static variables
-		if (perfReg[coreId]==-1)
-			return true;
-		else
-			getUsageCounter (perfReg,coreId);
-	}
-
-	return false;
-}
-
-//Gives CPU Usage in 1/baseTop of the total for specified core
-//CPU Usage is equally stretched over any period of time between two calls
-//to the function. If baseTop is set to 100, then cpu usage is reported as
-//percentage of the total
-DWORD K10Processor::getUsageCounter (DWORD *perfReg, DWORD core, int baseTop) {
-
-	static uint64_t tsc[MAX_CORES],pTsc[MAX_CORES],counter[MAX_CORES],pcounter[MAX_CORES];
-	DWORD eaxMsr,edxMsr;
-	uint64_t diff;
-
-	RdmsrPx (TIME_STAMP_COUNTER_REG,&eaxMsr,&edxMsr,(PROCESSORMASK)1<<core);
-	tsc[core]=((uint64_t)edxMsr<<32)+eaxMsr;
-
-	RdmsrPx (BASE_PERC_REG+perfReg[core],&eaxMsr,&edxMsr,(PROCESSORMASK)1<<core);
-	counter[core]=((uint64_t)edxMsr<<32)+eaxMsr;
-
-	diff=((counter[core]-pcounter[core])*baseTop)/(tsc[core]-pTsc[core]);
-
-	pcounter[core]=counter[core];
-	pTsc[core]=tsc[core];
-
-	return (DWORD)diff;
-
-}
-
-//Overloads previous method to return a standard percentage of cpu usage.
-DWORD K10Processor::getUsageCounter (DWORD *perfReg, DWORD core) {
-
-	return getUsageCounter (perfReg, core, 100);
-
-}
 
 bool K10Processor::getPsiEnabled () {
 
@@ -2595,7 +2499,7 @@ bool K10Processor::getPsiEnabled () {
 	free(pciRegObject);
 
 	return (bool) psiEnabled;
-	
+
 }
 
 DWORD K10Processor::getPsiThreshold () {
@@ -2753,10 +2657,273 @@ void K10Processor::setC1EStatus (bool toggle) {
 	free (msrObject);
 
 	return;
-	
+
 }
 
-// Performance Counters - TODO: to be revised
+// Performance Counters
+
+/*
+ * Will show some informations about performance counter slots
+ */
+void K10Processor::perfCounterGetInfo () {
+
+	PerformanceCounter *performanceCounter;
+	DWORD node, core, slot;
+
+	printf ("Caption:\n");
+	printf ("Evt:\tperformance counter event\n");
+	printf ("En:\tperformance counter is enabled\n");
+	printf ("U:\tperformance counter will count usermode instructions\n");
+	printf ("OS:\tperformance counter will counter Os/kernel instructions\n");
+	printf ("cMsk:\tperformance counter mask (see processor manual reference)\n");
+	printf ("ED:\tcounting on edge detect, else counting on level detect\n");
+	printf ("APIC:\tif set, an APIC interrupt will be issued on counter overflow\n");
+	printf ("icMsk:\tif set, mask is inversed (see processor manual reference)\n");
+	printf ("uMsk:\tunit mask (see processor manual reference)\n\n");
+
+	for (node=0;node<this->getProcessorNodes();node++) {
+
+		printf ("--- Node %d\n", node);
+
+		setNode(node);
+		setCore(ALL_CORES);
+
+		for (slot=0;slot<4;slot++) {
+
+			performanceCounter=new PerformanceCounter(getMask(), slot);
+
+			for (core=0;core<this->getProcessorCores();core++) {
+
+				if (!performanceCounter->fetch (core)) {
+					printf ("K10PerformanceCounters::perfCounterGetInfo - unable to read performance counter register\n");
+					free (performanceCounter);
+					return;
+				}
+
+				printf ("Slot %d core %d - evt:0x%x En:%d U:%d OS:%d cMsk:%x ED:%d APIC:%d icMsk:%x uMsk:%x\n",
+						slot,
+						core,
+						performanceCounter->getEventSelect(),
+						performanceCounter->getEnabled(),
+						performanceCounter->getCountUserMode(),
+						performanceCounter->getCountOsMode(),
+						performanceCounter->getCounterMask(),
+						performanceCounter->getEdgeDetect(),
+						performanceCounter->getEnableAPICInterrupt(),
+						performanceCounter->getInvertCntMask(),
+						performanceCounter->getUnitMask()
+						);
+			}
+
+			free (performanceCounter);
+
+		}
+
+	}
+
+}
+
+/*
+ * perfCounterGetValue will retrieve and show the performance counter value for all the selected nodes/processors
+ *
+ */
+void K10Processor::perfCounterGetValue (unsigned int perfCounter) {
+
+	PerformanceCounter *performanceCounter;
+
+	performanceCounter=new PerformanceCounter(getMask(), perfCounter);
+
+	if (!performanceCounter->takeSnapshot()) {
+		printf ("K10PerformanceCounters::perfCounterGetValue - unable to read performance counter");
+		free (performanceCounter);
+		return;
+	}
+
+	printf ("Performance counter value: (decimal)%ld (hex)%lx\n", performanceCounter->getCounter(0), performanceCounter->getCounter(0));
+
+}
+
+void K10Processor::perfMonitorCPUUsage () {
+
+	PerformanceCounter *perfCounter;
+	MSRObject *tscCounter; //We need the timestamp counter too to determine the cpu usage in percentage
+
+	DWORD cpuIndex, nodeId, coreId;
+	PROCESSORMASK cpuMask;
+	unsigned int perfCounterSlot;
+
+	uint64_t usage;
+
+	// These two pointers will refer to two arrays containing previous performance counter values
+	// and previous Time Stamp counters. We need these to obtain instantaneous CPU usage information
+	uint64_t *prevPerfCounters;
+	uint64_t *prevTSCCounters;
+
+	setNode (ALL_NODES);
+	setCore (ALL_CORES);
+
+	cpuMask=getMask (); /* We do this to do some "caching" of the mask, instead of calculating each time
+							we need to retrieve the time stamp counter */
+
+	// Allocating space for previous values of counters.
+	prevPerfCounters=(uint64_t *)calloc (processorCores*processorNodes, sizeof (uint64_t));
+	prevTSCCounters=(uint64_t *)calloc (processorCores*processorNodes, sizeof (uint64_t));
+
+	// MSR Object to retrieve the time stamp counter for all the nodes and all the processors
+	tscCounter=new MSRObject();
+
+	//Creates a new performance counter, for now we set slot 0, but we will
+	//use the findAvailable slot method to find an available method to be used
+	perfCounter=new PerformanceCounter(cpuMask, 0);
+
+	//Event 0x76 is Idle Counter
+	perfCounter->setEventSelect(0x76);
+	perfCounter->setCountOsMode(true);
+	perfCounter->setCountUserMode(true);
+	perfCounter->setCounterMask(0);
+	perfCounter->setEdgeDetect(false);
+	perfCounter->setEnableAPICInterrupt(false);
+	perfCounter->setInvertCntMask(false);
+	perfCounter->setUnitMask(0);
+
+	//Finds an available slot for our purpose
+	perfCounterSlot=perfCounter->findAvailableSlot();
+
+	//findAvailableSlot() returns -2 in case of error
+	if (perfCounterSlot==0xfffffffe) {
+		printf ("K10Processor.cpp::perfMonitorCPUUsage - unable to access performance counter slots\n");
+		free (perfCounter);
+		free (tscCounter);
+		free (prevPerfCounters);
+		free (prevTSCCounters);
+		return;
+	}
+
+	//findAvailableSlot() returns -1 in case there aren't available slots
+	if (perfCounterSlot == 0xffffffff) {
+		printf(
+				"K10Processor.cpp::perfMonitorCPUUsage - unable to find an available performance counter slot\n");
+		free(perfCounter);
+		free(tscCounter);
+		free(prevPerfCounters);
+		free(prevTSCCounters);
+		return;
+	}
+
+	printf ("Performance counter will use slot #%d\n", perfCounterSlot);
+
+	//In case there are no errors, we program the object with the slot itself has found
+	perfCounter->setSlot(perfCounterSlot);
+
+	// Program the counter slot
+	if (!perfCounter->program()) {
+		printf ("K10PerformanceCounters::perfMonitorCPUUsage - unable to program performance counter parameters\n");
+		free (perfCounter);
+		free (tscCounter);
+		free (prevPerfCounters);
+		free (prevTSCCounters);
+		return;
+	}
+
+	// Enabled the counter slot
+	if (!perfCounter->enable()) {
+		printf ("K10PerformanceCounters::perfMonitorCPUUsage - unable to enable performance counters\n");
+		free (perfCounter);
+		free (tscCounter);
+		free (prevPerfCounters);
+		free (prevTSCCounters);
+		return;
+	}
+
+	/* Here we take a snapshot of the performance counter and a snapshot of the time
+	 * stamp counter to initialize the arrays to let them not show erratic huge numbers
+	 * on first step
+	 */
+
+	if (!perfCounter->takeSnapshot()) {
+		printf ("K10PerformanceCounters::perfMonitorCPUUsage - unable to retrieve performance counter data\n");
+		free (perfCounter);
+		free (tscCounter);
+		free (prevPerfCounters);
+		free (prevTSCCounters);
+		return;
+	}
+
+	if (!tscCounter->readMSR(TIME_STAMP_COUNTER_REG, cpuMask)) {
+		printf(
+				"K10PerformanceCounters::perfMonitorCPUUsage - unable to retrieve time stamp counter\n");
+		free(perfCounter);
+		free(tscCounter);
+		free(prevPerfCounters);
+		free(prevTSCCounters);
+		return;
+	}
+
+	cpuIndex=0;
+	for (nodeId=0;nodeId<processorNodes;nodeId++) {
+		for (coreId=0x0;coreId<processorCores;coreId++) {
+			prevPerfCounters[cpuIndex]=perfCounter->getCounter(cpuIndex);
+			prevTSCCounters[cpuIndex]=tscCounter->getBits(cpuIndex,0,64);
+			cpuIndex++;
+		}
+	}
+
+
+	while (1) {
+
+		if (!perfCounter->takeSnapshot()) {
+			printf ("K10PerformanceCounters::perfMonitorCPUUsage - unable to retrieve performance counter data\n");
+			free (perfCounter);
+			free (tscCounter);
+			free (prevPerfCounters);
+			free (prevTSCCounters);
+			return;
+		}
+
+		if (!tscCounter->readMSR(TIME_STAMP_COUNTER_REG, cpuMask)) {
+			printf ("K10PerformanceCounters::perfMonitorCPUUsage - unable to retrieve time stamp counter\n");
+			free (perfCounter);
+			free (tscCounter);
+			free (prevPerfCounters);
+			free (prevTSCCounters);
+			return;
+		}
+
+		cpuIndex=0;
+
+		for (nodeId=0;nodeId<processorNodes;nodeId++) {
+
+			printf ("Node %d -", nodeId);
+
+			for (coreId=0x0;coreId<processorCores;coreId++) {
+
+				usage=((perfCounter->getCounter(cpuIndex))-prevPerfCounters[cpuIndex])*100;
+				usage/=tscCounter->getBits(cpuIndex,0,64)-prevTSCCounters[cpuIndex];
+
+				printf (" c%d:%d%%",coreId, (unsigned int)usage);
+
+				prevPerfCounters[cpuIndex]=perfCounter->getCounter(cpuIndex);
+				prevTSCCounters[cpuIndex]=tscCounter->getBits(cpuIndex,0,64);
+
+				cpuIndex++;
+
+			}
+
+			printf ("\n");
+
+		}
+
+		Sleep (1000);
+
+	}
+
+	//Never executed, since the always true loop before...
+	free (perfCounter);
+	free (tscCounter);
+	free (prevPerfCounters);
+	free (prevTSCCounters);
+
+}
 
 void K10Processor::getCurrentStatus (struct procStatus *pStatus, DWORD core) {
 
@@ -2772,125 +2939,6 @@ return;
 
 }
 
-void K10Processor::perfCounterGetInfo () {
-	
-	DWORD perf_reg;
-	DWORD coreId;
-	DWORD eaxMsr,edxMsr;
-	int event, enabled, usrmode, osmode;
-
-	for (coreId=0; coreId<processorCores; coreId++) {
-
-		for (perf_reg=0;perf_reg<0x4;perf_reg++) {
-
-			RdmsrPx (BASE_PESR_REG+perf_reg,&eaxMsr,&edxMsr,(PROCESSORMASK)1<<coreId);
-
-			event=eaxMsr & 0xff;
-			enabled=(eaxMsr >> 22) & 0x1;
-			usrmode=(eaxMsr >> 16) & 0x1;
-			osmode=(eaxMsr >>17) & 0x1;
-
-			printf ("Core %d - Perf Counter %d: EAX:%x EDX:%x - Evt: 0x%x En: %d U: %d OS: %d\n",coreId,perf_reg,eaxMsr,edxMsr,event,enabled,usrmode,osmode);
-		}
-
-	}
-
-}
-
-void K10Processor::perfCounterGetValue (int core, int perfCounter) {
-
-	DWORD eaxMsr,edxMsr;
-	uint64_t counter;
-
-	if (perfCounter<0 || perfCounter>3) {
-		printf ("Performance counter out of range (0-3)\n");
-		return;
-	}
-
-	if (core<0 || core>processorCores-1) {
-		printf ("Core Id is out of range (0-%d)\n",processorCores-1);
-		return;
-	}
-
-	RdmsrPx (BASE_PERC_REG+perfCounter,&eaxMsr,&edxMsr,(PROCESSORMASK)1<<core);
-	counter=((uint64_t)edxMsr<<32)+eaxMsr;
-
-	printf ("\rEAX:%x EDX:%x - Counter: %llu\n",eaxMsr,edxMsr, counter);
-
-}
-
-void K10Processor::perfMonitorCPUUsage () {
-
-	DWORD coreId;
-	DWORD *perfReg;
-
-	DWORD cpu_usage;
-
-	perfReg=(DWORD*)calloc (processorCores, sizeof (DWORD));
-
-	if (initUsageCounter (perfReg)) {
-		printf ("No available performance counter slots. Unable to run CPU Usage Monitoring\n");
-		return;
-	}
-
-	while (1) {
-
-		printf ("\rCPU Usage:");
-
-		for (coreId=0x0;coreId<processorCores;coreId++) {
-
-			cpu_usage=getUsageCounter (perfReg,coreId);
-
-			printf (" core %d: %d",coreId, cpu_usage);
-		}
-
-		Sleep (1000);
-
-		printf ("\n");
-
-	}
-
-	//Never executed, since the always true loop before...
-	free (perfReg);
-}
-
-void K10Processor::perfCounterMonitor (int core, int perfCounter) {
-
-	DWORD eaxMsr,edxMsr;
-	uint64_t pcounter=0, counter=0, diff=0;
-	uint64_t pTsc=0, tsc=1;
-
-	if (perfCounter<0 || perfCounter>3) {
-		printf ("Performance counter out of range (0-3)\n");
-		return;
-	}
-
-	if (core<0 || core>processorCores-1) {
-		printf ("Core Id is out of range (0-%d)\n",processorCores-1);
-		return;
-	}
-
-	printf ("\n");
-
-	while (1) {
-
-		RdmsrPx (TIME_STAMP_COUNTER_REG,&eaxMsr,&edxMsr,(PROCESSORMASK)1<<core);
-		tsc=((uint64_t)edxMsr<<32)+eaxMsr;
-	
-		RdmsrPx (BASE_PERC_REG+perfCounter,&eaxMsr,&edxMsr,(PROCESSORMASK)1<<core);
-		counter=((uint64_t)edxMsr<<32)+eaxMsr;
-
-		diff=((counter-pcounter)*100)/(tsc-pTsc);
-
-		printf ("\rEAX:%x EDX:%x - Counter: %llu - Ratio with TSC: %llu\n",eaxMsr,edxMsr, counter, diff);
-
-		pcounter=counter;
-		pTsc=tsc;
-
-		Sleep (1000);
-	}
-
-}
 
 void K10Processor::forceSVIMode (bool force) {
 
@@ -3281,53 +3329,57 @@ void K10Processor::showHTLink() {
 
 void K10Processor::showHTC() {
 
-	printf("\nHardware Thermal Control Status:\n");
+	int i;
+	int nodes = getProcessorNodes();
+
+	printf("\nHardware Thermal Control Status:\n\n");
 
 	if (HTCisCapable() != true) {
 		printf("Processor is not HTC Capable\n");
 		return;
 	}
 
-	printf("HTC features enabled flag: ");
-	if (HTCisEnabled() == true)
-		printf("true. Hardware Thermal Control is enabled.\n");
-	else
-		printf("false. Hardware Thermal Control is disabled.\n");
+	for (i = 0; i < nodes; i++) {
+		printf (" --- Node %u:\n", i);
+		setNode(i);
+		printf("HTC features enabled flag: ");
+		if (HTCisEnabled() == true)
+			printf("true. Hardware Thermal Control is enabled.\n");
+		else
+			printf("false. Hardware Thermal Control is disabled.\n");
 
-	printf("HTC features currently active (means overheating): ");
-	if (HTCisActive() == true)
-		printf("true\n");
-	else
-		printf("false\n");
+		printf("HTC features currently active (means overheating): ");
+		if (HTCisActive() == true)
+			printf("true\n");
+		else
+			printf("false\n");
 
-	printf("HTC features has been active (means overheated in past): ");
-	if (HTChasBeenActive() == true)
-		printf("true\n");
-	else
-		printf("false\n");
+		printf("HTC features has been active (means overheated in past): ");
+		if (HTChasBeenActive() == true)
+			printf("true\n");
+		else
+			printf("false\n");
 
-	printf("HTC parameters are locked: ");
-	if (HTCLocked() == true)
-		printf("true\n");
-	else
-		printf("false\n");
+		printf("HTC parameters are locked: ");
+		if (HTCLocked() == true)
+			printf("true\n");
+		else
+			printf("false\n");
 
-	printf("HTC Slew control: ");
-	if (HTCSlewControl() == true)
-		printf("by Tctl Slew register\n");
-	else
-		printf("by Tctl without Slew register\n");
+		printf("HTC Slew control: ");
+		if (HTCSlewControl() == true)
+			printf("by Tctl Slew register\n");
+		else
+			printf("by Tctl without Slew register\n");
 
-	printf("HTC Limit temperature (equal or above means overheating): %d\n",
+		printf("HTC Limit temperature (equal or above means overheating): %d\n",
 			HTCTempLimit());
-	printf(
+		printf(
 			"HTC Hysteresis temperature (equal or below means no more overheating) : %d\n",
 			HTCTempLimit() - HTCHystTemp());
-	printf("HTC PState Limit: %d\n", HTCPStateLimit());
-	printf("Processor AltVID: %d (%.3fv)\n", getAltVID(),
-			convertVIDtoVcore(getAltVID()));
-
-	return;
+		printf("HTC PState Limit: %d\n", HTCPStateLimit());
+		printf("\n");
+	}
 }
 
 //TODO: needs to be expanded to deal also with DDR2 memory

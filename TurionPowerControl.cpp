@@ -300,8 +300,8 @@ void processorTempStatus(Processor *p) {
 
 }
 
-void printUsage () {
-	printf ("Usage: TurionPowerControl.exe [options]\n");
+void printUsage (const char *name) {
+	printf ("Usage: %s [options]\n", name);
 	printf ("Options:\n\n");
 	printf ("\t ----- Various information about processor states\n\n");
 	printf (" -l\n\tLists power states\n\n");
@@ -383,7 +383,7 @@ void printUsage () {
 	printf ("\t ----- Performance Counters -----\n\n");
 	printf (" -pcgetinfo\n\tShows various informations about Performance Counters\n\n");
 	printf (" -pcgetvalue (core) (counter)\n\tShows the raw value of a specific performance counter\n\tslot of a specific core\n\n");
-	printf (" -pcmonitor (core) (counter)\n\tCostantly monitors the counter of a performance counter\n\tslot of a specific core\n\n");
+	//printf (" -pcmonitor (core) (counter)\n\tCostantly monitors the counter of a performance counter\n\tslot of a specific core\n\n");
 	printf (" -cpuusage\n\tCostantly monitors CPU Usage using performance counters\n\n");
 
 	printf ("\t ----- Daemon Mode -----\n\n");
@@ -717,7 +717,7 @@ int main (int argc,const char **argv) {
 	printf ("Turion Power States Optimization and Control - by blackshard - v0.xx.x\n");
 
 	if (argc<2) {
-		printUsage();
+		printUsage(argv[0]);
 
 		return 0;
 	}
@@ -1242,13 +1242,13 @@ int main (int argc,const char **argv) {
 		//Get Performance counter value about a specific performance counter
 		if (strcmp((const char*)argv[argvStep],"-pcgetvalue")==0) {
 
-			if ((argv[argvStep+1]==NULL) || (argv[argvStep+2]==NULL)) {
+			if (argv[argvStep+1]==NULL) {
 				printf ("Wrong -pcgetvalue option\n");
 				return 1;
 			}
 
-			processor->perfCounterGetValue (atoi(argv[argvStep+1]), atoi (argv[argvStep+2]));
-			argvStep+=2;
+			processor->perfCounterGetValue (atoi(argv[argvStep+1]));
+			argvStep++;
 
 		}
 
@@ -1260,7 +1260,7 @@ int main (int argc,const char **argv) {
 				return 1;
 			}
 
-			processor->perfCounterMonitor (atoi(argv[argvStep+1]), atoi (argv[argvStep+2]));
+			//processor->perfCounterMonitor (atoi(argv[argvStep+1]), atoi (argv[argvStep+2]));
 			argvStep+=2;
 
 		}

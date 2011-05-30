@@ -55,7 +55,7 @@ bool MSRObject::readMSR (DWORD reg, PROCESSORMASK cpuMask) {
 		mask=(PROCESSORMASK)1<<pId;
 		if (cpuMask & mask) {
 			if (!RdmsrPx (this->reg,&eax_ptr[count], &edx_ptr[count], mask)) {
-				/* This is not needed, memory will be free by destructor
+				/* This is not needed, memory will be freed by destructor
 				free(this->eax_ptr);
 				free(this->edx_ptr);
 				free(this->absIndex);*/

@@ -323,15 +323,12 @@ public:
 
 	//performance counters section
 
-	virtual void perfCounterGetInfo();
-	virtual void perfCounterGetValue(int, int);
-	virtual void perfCounterMonitor(int, int);
-	virtual void perfMonitorCPUUsage();
 
-	//Cpu Usage section
-	virtual bool initUsageCounter(DWORD *);
-	virtual DWORD getUsageCounter(DWORD *, DWORD);
-	virtual DWORD getUsageCounter(DWORD *, DWORD , int);
+	virtual void perfCounterGetInfo();
+	virtual void perfCounterGetValue(unsigned int);
+	virtual void perfMonitorCPUUsage();
+	/*virtual void perfCounterMonitor(int, int);
+	*/
 
 	//Misc
 	virtual void forcePVIMode(bool);

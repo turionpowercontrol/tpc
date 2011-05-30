@@ -99,7 +99,7 @@ void Scaler::beginScaling () {
 	
 	performanceRegisters=(DWORD *)calloc (processor->getProcessorCores(),sizeof (DWORD));
 
-	processor->initUsageCounter (performanceRegisters);
+	//processor->initUsageCounter (performanceRegisters);
 	processor->setNode(processor->ALL_NODES);
 
 	while (true) {
@@ -108,7 +108,7 @@ void Scaler::beginScaling () {
 
 			processor->setCore(core);
 
-			cpuUsage=processor->getUsageCounter (performanceRegisters, core);
+			//cpuUsage=processor->getUsageCounter (performanceRegisters, core);
 			processor->getCurrentStatus (&pStatus, core);
 			cpuUsage=(fullFrequency*cpuUsage)/processor->convertFDtoFreq (pStatus.fid, pStatus.did);
 			if ((cpuUsage>upperThreshold) && (pStatus.pstate!=fastestPState)) {
