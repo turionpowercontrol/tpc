@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <signal.h>
+#include "Signal.h"
 
 #ifdef _WIN32
 	#include <windows.h>
@@ -2513,7 +2513,9 @@ void Griffin::perfMonitorCPUUsage () {
 		}
 	}
 
-	while (true) {
+	Signal::activateSignalHandler(SIGINT);
+
+	while (!Signal::getSignalStatus()) {
 
 		if (!perfCounter->takeSnapshot()) {
 			printf ("K10PerformanceCounters::perfMonitorCPUUsage - unable to retrieve performance counter data\n");
@@ -2561,15 +2563,18 @@ void Griffin::perfMonitorCPUUsage () {
 
 	}
 
-	printf ("CTRL-C executed. Clean exit...");
+	printf ("CTRL-C executed. Cleaning on exit... ");
 
-	//Never executed, since the always true loop before...
+	//Disabled the performance counter
+	perfCounter->disable();
+
+	//Cleans used memory
 	free (perfCounter);
 	free (tscCounter);
 	free (prevPerfCounters);
 	free (prevTSCCounters);
 
-	printf (" done.");
+	printf (" Done!");
 
 }
 

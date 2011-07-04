@@ -20,7 +20,8 @@ SOURCES=TurionPowerControl.cpp \
 	PCIRegObject.cpp \
 	PerformanceCounter.cpp \
 	Processor.cpp \
-	scaler.cpp
+	scaler.cpp \
+	Signal.cpp
 
 OBJECTS=$(SOURCES:%.cpp=$(OBJDIR)/%.o)
 DEPS=$(SOURCES:%.cpp=$(OBJDIR)/.%.d)

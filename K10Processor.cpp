@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include "Signal.h"
 
 #ifdef _WIN32
 	#include <windows.h>
@@ -2868,8 +2869,9 @@ void K10Processor::perfMonitorCPUUsage () {
 		}
 	}
 
+	Signal::activateSignalHandler(SIGINT);
 
-	while (1) {
+	while (!Signal::getSignalStatus()) {
 
 		if (!perfCounter->takeSnapshot()) {
 			printf ("K10PerformanceCounters::perfMonitorCPUUsage - unable to retrieve performance counter data\n");
@@ -2917,11 +2919,17 @@ void K10Processor::perfMonitorCPUUsage () {
 
 	}
 
-	//Never executed, since the always true loop before...
+	printf ("CTRL-C executed. Cleaning on exit... ");
+	//Disables the performance counter
+	perfCounter->disable();
+
+	//Cleans the exit
 	free (perfCounter);
 	free (tscCounter);
 	free (prevPerfCounters);
 	free (prevTSCCounters);
+
+	printf ("Done!\n");
 
 }
 
