@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <signal.h>
 
 #ifdef _WIN32
 	#include <windows.h>
@@ -99,9 +100,7 @@ Griffin::Griffin () {
 		setProcessorStrId ("Sempron SI Processor");
 	}
 
-
 }
-
 
 /*
  * Static methods to allow external Main to detect current configuration status
@@ -2514,8 +2513,7 @@ void Griffin::perfMonitorCPUUsage () {
 		}
 	}
 
-
-	while (1) {
+	while (true) {
 
 		if (!perfCounter->takeSnapshot()) {
 			printf ("K10PerformanceCounters::perfMonitorCPUUsage - unable to retrieve performance counter data\n");
@@ -2563,11 +2561,15 @@ void Griffin::perfMonitorCPUUsage () {
 
 	}
 
+	printf ("CTRL-C executed. Clean exit...");
+
 	//Never executed, since the always true loop before...
 	free (perfCounter);
 	free (tscCounter);
 	free (prevPerfCounters);
 	free (prevTSCCounters);
+
+	printf (" done.");
 
 }
 
@@ -2649,6 +2651,66 @@ void Griffin::checkMode () {
 }
 
 /***************** PRIVATE METHODS *******************/
+
+/*
+ * dram bank is valid
+ */
+bool Griffin::getDramValid (DWORD device) {
+
+	PCIRegObject *dramConfigurationHighRegister = new PCIRegObject();
+
+	bool reg1;
+
+	dramConfigurationHighRegister=new PCIRegObject ();
+
+	if (device==0) {
+		reg1=dramConfigurationHighRegister->readPCIReg(PCI_DEV_NORTHBRIDGE,
+			PCI_FUNC_DRAM_CONTROLLER, 0x94, getNodeMask());
+	} else {
+		reg1=dramConfigurationHighRegister->readPCIReg(PCI_DEV_NORTHBRIDGE,
+			PCI_FUNC_DRAM_CONTROLLER, 0x194, getNodeMask());
+	}
+
+	if (!reg1) {
+		printf("Griffin::getDramValid - unable to read PCI registers\n");
+		free(dramConfigurationHighRegister);
+		return false;
+	}
+
+	return dramConfigurationHighRegister->getBits(0,3,1);
+
+}
+
+int Griffin::getDramFrequency (DWORD device) {
+
+	PCIRegObject *dramConfigurationHighRegister = new PCIRegObject();
+
+	bool reg1;
+
+	DWORD regValue;
+
+	dramConfigurationHighRegister=new PCIRegObject ();
+
+	if (device==0) {
+		reg1=dramConfigurationHighRegister->readPCIReg(PCI_DEV_NORTHBRIDGE,
+			PCI_FUNC_DRAM_CONTROLLER, 0x94, getNodeMask());
+	} else {
+		reg1=dramConfigurationHighRegister->readPCIReg(PCI_DEV_NORTHBRIDGE,
+			PCI_FUNC_DRAM_CONTROLLER, 0x194, getNodeMask());
+	}
+
+	if (!reg1) {
+		printf("Griffin::getDRAMFrequency - unable to read PCI registers\n");
+		free(dramConfigurationHighRegister);
+		return 0;
+	}
+
+	regValue=dramConfigurationHighRegister->getBits(0,0,3);
+
+	return 200+regValue*(float)66.7;
+
+}
+
 
 void Griffin::getDramTimingHigh(DWORD device, DWORD *TrwtWB,
 		DWORD *TrwtTO, DWORD *Twtr, DWORD *Twrrd, DWORD *Twrwr, DWORD *Trdrd,
@@ -2935,6 +2997,7 @@ void Griffin::showDramTimings() {
 	DWORD Tcl, Trcd, Trp, Trtp, Tras, Trc, Twr, Trrd, T_mode;
 	DWORD Tfaw, TrwtWB, TrwtTO, Twtr, Twrrd, Twrwr, Trdrd, Tref, Trfc0;
 	DWORD Trfc1;
+	DWORD ddrFrequency;
 
 	printf ("\nDRAM Configuration Status\n\n");
 
@@ -2946,23 +3009,32 @@ void Griffin::showDramTimings() {
 
 		for (dct_index = 0; dct_index < 2; dct_index++) {
 
-			getDramTimingLow(dct_index, &Tcl, &Trcd, &Trp, &Trtp, &Tras, &Trc,
-					&Twr, &Trrd, &T_mode, &Tfaw);
+			if (getDramValid(dct_index)) {
 
-			getDramTimingHigh(dct_index, &TrwtWB, &TrwtTO, &Twtr, &Twrrd,
-					&Twrwr, &Trdrd, &Tref, &Trfc0, &Trfc1);
+				ddrFrequency=getDramFrequency(dct_index)*2;
 
-			printf("DCT%d:\n", dct_index);
-			//Low DRAM Register
-			printf(
-					"Tcl=%u Trcd=%u Trp=%u Tras=%u Access Mode:%uT Trtp=%u Trc=%u Twr=%u Trrd=%u Tfaw=%u\n",
-					Tcl, Trcd, Trp, Tras, T_mode, Trtp, Trc, Twr, Trrd, Tfaw);
+				getDramTimingLow(dct_index, &Tcl, &Trcd, &Trp, &Trtp, &Tras, &Trc,
+						&Twr, &Trrd, &T_mode, &Tfaw);
 
-			//High DRAM Register
-			printf(
-					"TrwtWB=%u TrwtTO=%u Twtr=%u Twrrd=%u Twrwr=%u Trdrd=%u Tref=%u Trfc0=%u Trfc1=%u\n",
-					TrwtWB, TrwtTO, Twtr, Twrrd, Twrwr, Trdrd, Tref, Trfc0,
-					Trfc1);
+				getDramTimingHigh(dct_index, &TrwtWB, &TrwtTO, &Twtr, &Twrrd,
+						&Twrwr, &Trdrd, &Tref, &Trfc0, &Trfc1);
+
+				printf("DCT%d: ", dct_index);
+				printf ("memory type: DDR2");
+				printf (" frequency: %d MHz\n",ddrFrequency);
+
+				//Low DRAM Register
+				printf(
+						"Tcl=%u Trcd=%u Trp=%u Tras=%u Access Mode:%uT Trtp=%u Trc=%u Twr=%u Trrd=%u Tfaw=%u\n",
+						Tcl, Trcd, Trp, Tras, T_mode, Trtp, Trc, Twr, Trrd, Tfaw);
+
+				//High DRAM Register
+				printf(
+						"TrwtWB=%u TrwtTO=%u Twtr=%u Twrrd=%u Twrwr=%u Trdrd=%u Tref=%u Trfc0=%u Trfc1=%u\n",
+						TrwtWB, TrwtTO, Twtr, Twrrd, Twrwr, Trdrd, Tref, Trfc0,
+						Trfc1);
+
+			}
 
 		}
 

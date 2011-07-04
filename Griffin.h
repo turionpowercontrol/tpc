@@ -10,6 +10,9 @@ private:
 
 	void printRoute(DWORD);
 
+	int getDramFrequency (DWORD device);
+	bool getDramValid (DWORD device);
+
 	void getDramTimingLow(
 			DWORD device, // 0 or 1   DCT0 or DCT1
 			DWORD *Tcl, DWORD *Trcd, DWORD *Trp, DWORD *Trtp, DWORD *Tras,

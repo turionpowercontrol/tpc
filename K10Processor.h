@@ -10,6 +10,10 @@ private:
 
 	void printRoute(DWORD);
 
+	int getDramFrequency (DWORD device);
+	bool getDDR3Mode (DWORD device);
+	bool getDramValid (DWORD device);
+
 
 	//DRAM timing register Low
 	void getDramTimingLow(

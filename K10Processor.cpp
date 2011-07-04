@@ -3046,28 +3046,114 @@ void K10Processor::checkMode () {
 /***************** PRIVATE METHODS ********************/
 
 
+/*
+ * dram bank is valid
+ */
+bool K10Processor::getDramValid (DWORD device) {
+
+	PCIRegObject *dramConfigurationHighRegister = new PCIRegObject();
+
+	bool reg1;
+
+	dramConfigurationHighRegister=new PCIRegObject ();
+
+	if (device==0) {
+		reg1=dramConfigurationHighRegister->readPCIReg(PCI_DEV_NORTHBRIDGE,
+			PCI_FUNC_DRAM_CONTROLLER, 0x94, getNodeMask());
+	} else {
+		reg1=dramConfigurationHighRegister->readPCIReg(PCI_DEV_NORTHBRIDGE,
+			PCI_FUNC_DRAM_CONTROLLER, 0x194, getNodeMask());
+	}
+
+	if (!reg1) {
+		printf("K10Processor::getDramValid - unable to read PCI registers\n");
+		free(dramConfigurationHighRegister);
+		return false;
+	}
+
+	return dramConfigurationHighRegister->getBits(0,3,1);
+
+}
+
+/*
+ * Determines if DCT is in DDR3 mode. True means DDR3, false means DDR2
+ */
+bool K10Processor::getDDR3Mode (DWORD device) {
+
+	PCIRegObject *dramConfigurationHighRegister = new PCIRegObject();
+
+	bool reg1;
+
+	dramConfigurationHighRegister=new PCIRegObject ();
+
+	if (device==0) {
+		reg1=dramConfigurationHighRegister->readPCIReg(PCI_DEV_NORTHBRIDGE,
+			PCI_FUNC_DRAM_CONTROLLER, 0x94, getNodeMask());
+	} else {
+		reg1=dramConfigurationHighRegister->readPCIReg(PCI_DEV_NORTHBRIDGE,
+			PCI_FUNC_DRAM_CONTROLLER, 0x194, getNodeMask());
+	}
+
+	if (!reg1) {
+		printf("K10Processor::getDDR3Mode - unable to read PCI registers\n");
+		free(dramConfigurationHighRegister);
+		return false;
+	}
+
+	return dramConfigurationHighRegister->getBits(0,8,1);
+
+}
+
+int K10Processor::getDramFrequency (DWORD device) {
+
+	PCIRegObject *dramConfigurationHighRegister = new PCIRegObject();
+
+	bool reg1;
+
+	DWORD regValue;
+
+	dramConfigurationHighRegister=new PCIRegObject ();
+
+	if (device==0) {
+		reg1=dramConfigurationHighRegister->readPCIReg(PCI_DEV_NORTHBRIDGE,
+			PCI_FUNC_DRAM_CONTROLLER, 0x94, getNodeMask());
+	} else {
+		reg1=dramConfigurationHighRegister->readPCIReg(PCI_DEV_NORTHBRIDGE,
+			PCI_FUNC_DRAM_CONTROLLER, 0x194, getNodeMask());
+	}
+
+	if (!reg1) {
+		printf("K10Processor::getDRAMFrequency - unable to read PCI registers\n");
+		free(dramConfigurationHighRegister);
+		return false;
+	}
+
+	regValue=dramConfigurationHighRegister->getBits(0,0,3);
+
+	switch (getDDR3Mode(device)) {
+		case true:
+			return (int)(400 + (regValue-3)*(float)133.4);
+		case false:
+			if (regValue==0x4) regValue++; //in case of regvalue==100b (4), increments regvalue by one to match 533 Mhz
+			return (int)(200 + (regValue)*(float)66.7);
+		default:
+			return 0;
+	}
+
+	return 0;
+
+}
+
 void K10Processor::getDramTimingHigh(DWORD device, DWORD *TrwtWB,
 		DWORD *TrwtTO, DWORD *Twtr, DWORD *Twrrd, DWORD *Twrwr, DWORD *Trdrd,
 		DWORD *Tref, DWORD *Trfc0, DWORD *Trfc1, DWORD *Trfc2, DWORD *Trfc3,
 		DWORD *MaxRdLatency) {
-
-	/*DWORD miscReg;
-	 DWORD Target = ((0x18+node) << 3) + 2;
-
-	 DWORD DRAMTimingHighRegister;*/
 
 	PCIRegObject *dramTimingHighRegister = new PCIRegObject();
 	PCIRegObject *dramControlRegister = new PCIRegObject();
 
 	bool reg1;
 	bool reg2;
-
-	/*if( device == 1 )
-	 {
-	 DRAMTimingHighRegister = 0x18c;
-	 } else {
-	 DRAMTimingHighRegister = 0x8c;
-	 }*/
 
 	if (device == 1) {
 		reg1 = dramTimingHighRegister->readPCIReg(PCI_DEV_NORTHBRIDGE,
@@ -3094,30 +3180,55 @@ void K10Processor::getDramTimingHigh(DWORD device, DWORD *TrwtWB,
 	//ReadPciConfigDwordEx (Target,DRAMTimingHighRegister,&miscReg);
 
 	*TrwtWB = dramTimingHighRegister->getBits(0, 0, 4); //(miscReg >> 0) & 0x0f;
-	*TrwtWB += 3;
-
 	*TrwtTO = dramTimingHighRegister->getBits(0, 4, 4); //(miscReg >> 4) & 0x0f;
-	*TrwtTO += 2;
-
 	*Twtr = dramTimingHighRegister->getBits(0, 8, 2); //(miscReg >> 8) & 0x03;
-	*Twtr += 4;
-
 	*Twrrd = dramTimingHighRegister->getBits(0, 10, 2); //(miscReg >> 10) & 0x03;
-	//	*Twrrd += 0;
-
 	*Twrwr = dramTimingHighRegister->getBits(0, 12, 2); //(miscReg >> 12) & 0x03;
-	*Twrwr += 0;
-
-	//TODO: check for bug in specifications, Trdrd should be +2 not +3
 	*Trdrd = dramTimingHighRegister->getBits(0, 14, 2); //(miscReg >> 14) & 0x03;
-	*Trdrd += 3;
-
 	*Tref = dramTimingHighRegister->getBits(0, 16, 2); //(miscReg >> 16) & 0x03;
-
 	*Trfc0 = dramTimingHighRegister->getBits(0, 20, 3); //(miscReg >> 20) & 0x07;
 	*Trfc1 = dramTimingHighRegister->getBits(0, 23, 3); //(miscReg >> 23) & 0x07;
 	*Trfc2 = dramTimingHighRegister->getBits(0, 26, 3); //(miscReg >> 26) & 0x07;
 	*Trfc3 = dramTimingHighRegister->getBits(0, 29, 3); //(miscReg >> 29) & 0x07;
+
+	if (getDDR3Mode(device) || (!getDDR3Mode(device) && getDramFrequency(device)==533)) {
+
+		//Adjusting timings for DDR3/DDR2-1066 memories.
+
+		*TrwtWB += 3;
+		*TrwtTO += 2;
+		*Twtr += 4;
+
+		if (!getDDR3Mode(device) && getDramFrequency(device)==533) {
+			*Twrrd += 1;
+		} else {
+			*Twrrd += dramControlRegister->getBits(0,8,2) + 0;
+		}
+
+		if (!getDDR3Mode(device) && getDramFrequency(device)==533) {
+			*Twrwr += 1;
+		} else {
+			*Twrwr += dramControlRegister->getBits(0,10,2) + 1;
+		}
+
+		if (!getDDR3Mode(device) && getDramFrequency(device)==533) {
+			*Trdrd += 2;
+		} else {
+			*Twrrd += dramControlRegister->getBits(0,12,2) + 2;
+		}
+
+	} else {
+
+		//Adjusting timings for DDR2 memories
+
+		*TrwtWB += 0;
+		*TrwtTO += 2;
+		*Twtr += 0;
+		*Twrrd += 1;
+		*Twrwr += 1;
+		*Trdrd += 2;
+
+	}
 
 	free(dramTimingHighRegister);
 	free(dramControlRegister);
@@ -3132,31 +3243,13 @@ void K10Processor::getDramTimingLow(
 		DWORD *Trc, DWORD *Twr, DWORD *Trrd, DWORD *Tcwl, DWORD *T_mode,
 		DWORD *Tfaw) {
 
-	/*DWORD miscReg;
-	 DWORD Target = ((0x18+node) << 3) + 2;	// F2x[1,0]88 DRAM Timing Low Register*/
-
 	bool reg1;
 	bool reg2;
 	bool reg3;
 
-	/*DWORD DRAMTimingLowRegister;
-	 DWORD DRAMConfigurationHighRegister;
-	 DWORD DRAMMRSRegister;*/
-
 	PCIRegObject *dramTimingLowRegister = new PCIRegObject();
 	PCIRegObject *dramConfigurationHighRegister = new PCIRegObject();
 	PCIRegObject *dramMsrRegister = new PCIRegObject();
-
-	/*if( device == 1 )
-	 {
-	 DRAMMRSRegister = 0x184;
-	 DRAMTimingLowRegister = 0x188;
-	 DRAMConfigurationHighRegister = 0x194;
-	 } else {
-	 DRAMMRSRegister = 0x84;
-	 DRAMTimingLowRegister = 0x88;
-	 DRAMConfigurationHighRegister = 0x94;
-	 }*/
 
 	if (device == 1) {
 
@@ -3198,7 +3291,10 @@ void K10Processor::getDramTimingLow(
 	// 1b= 16 memclk .... 1001b= 32 memclk
 	*Tfaw = dramConfigurationHighRegister->getBits(0, 28, 4) << 1; //((miscReg >> 28) << 1);
 	if (*Tfaw != 0) {
-		*Tfaw += 14;
+		if (getDDR3Mode(device) || (!getDDR3Mode(device) && (getDramFrequency(device)==533)))
+			*Tfaw += 14;
+		else
+			*Tfaw += 7;
 	}
 
 	if (dramConfigurationHighRegister->getBits(0, 14, 1)) {
@@ -3206,37 +3302,69 @@ void K10Processor::getDramTimingLow(
 		return;
 	}
 
-	//ReadPciConfigDwordEx (Target,DRAMTimingLowRegister,&miscReg);
-
 	*Tcl = dramTimingLowRegister->getBits(0, 0, 4); //(miscReg) & 0x0F;
-	*Tcl += 4;
-
 	*Trcd = dramTimingLowRegister->getBits(0, 4, 3); //(miscReg >> 4) & 0x07;
-	*Trcd += 5;
-
 	*Trp = dramTimingLowRegister->getBits(0, 7, 3); //(miscReg >> 7) & 0x07;
-	*Trp += 5;
-
 	*Trtp = dramTimingLowRegister->getBits(0, 10, 2); //(miscReg >> 10) & 0x03;
-	*Trtp += 4;
-
 	*Tras = dramTimingLowRegister->getBits(0, 12, 4); //(miscReg >> 12) & 0x0F;
-	*Tras += 15;
-
 	*Trc = dramTimingLowRegister->getBits(0, 16, 5); //(miscReg >> 16) & 0x1F;	// ddr3 size
-	*Trc += 11;
-
-	//	*Twr = (miscReg >> 20) // bugbug get from reg 0x84
 	*Trrd = dramTimingLowRegister->getBits(0, 22, 2); //(miscReg >> 22) & 0x03;
-	*Trrd += 4;
-
-	//ReadPciConfigDwordEx (Target,DRAMMRSRegister,&miscReg);
-
 	*Twr = dramMsrRegister->getBits(0, 4, 3); //(miscReg >> 4) & 0x07; // assumes ddr3
-	*Twr += 4;
-
 	*Tcwl = dramMsrRegister->getBits(0, 20, 3); //(miscReg >> 20) & 0x07;
-	*Tcwl += 5;
+
+	if (getDDR3Mode(device) || (!getDDR3Mode(device) && (getDramFrequency(device)==533))) {
+
+		//Assumes DDR3/DDR2-1066 memory type
+
+		if (!getDDR3Mode(device) && (getDramFrequency(device)==533))
+			*Tcl += 1;
+		else
+			*Tcl += 4;
+
+		*Trcd += 5;
+		*Trp += 5;
+
+		if (!getDDR3Mode(device) && (getDramFrequency(device)==533)) {
+			*Trtp = dramTimingLowRegister->getBits(0, 11, 1);
+			*Trtp += 2;
+		} else
+			*Trtp += 4;
+
+		*Tras += 15;
+		*Trc += 11;
+		*Twr += 4;
+		*Trrd += 4;
+		*Tcwl += 5;
+
+	} else {
+
+		*Tcl += 1;
+
+		//For Trcd, in case of DDR2 first MSB looks like must be discarded
+		*Trcd = dramTimingLowRegister->getBits(0, 4, 2);
+		*Trcd += 3;
+
+		//For Trp, in case of DDR2 first LSB looks like must be discarded
+		*Trp = dramTimingLowRegister->getBits(0, 6, 2);
+		*Trp += 3;
+
+		//For Trtp, in case of DDR2 first LSB looks like must be discarded
+		*Trtp = dramTimingLowRegister->getBits(0, 11, 1); //(miscReg >> 10) & 0x03;
+		*Trtp += 2;
+
+		*Tras += 3;
+
+		*Trc = dramTimingLowRegister->getBits(0, 16, 3); //(miscReg >> 16) & 0x1F;	// ddr2 < 1066 size
+		*Trc += 11;
+
+		*Trrd = dramTimingLowRegister->getBits(0, 22, 2); //(miscReg >> 22) & 0x03;
+		*Trrd += 2;
+
+		*Twr = dramTimingLowRegister->getBits(0, 20, 2); // assumes ddr2
+		*Twr += 3;
+
+
+	}
 
 	free(dramMsrRegister);
 	free(dramTimingLowRegister);
@@ -3391,6 +3519,8 @@ void K10Processor::showDramTimings() {
 	DWORD Tcl, Trcd, Trp, Trtp, Tras, Trc, Twr, Trrd, Tcwl, T_mode;
 	DWORD Tfaw, TrwtWB, TrwtTO, Twtr, Twrrd, Twrwr, Trdrd, Tref, Trfc0;
 	DWORD Trfc1, Trfc2, Trfc3, MaxRdLatency;
+	bool ddrTypeDDR3;
+	DWORD ddrFrequency;
 
 	printf ("\nDRAM Configuration Status\n\n");
 
@@ -3401,25 +3531,39 @@ void K10Processor::showDramTimings() {
 
 		for (dct_index = 0; dct_index < 2; dct_index++) {
 
-			getDramTimingLow(dct_index, &Tcl, &Trcd, &Trp, &Trtp, &Tras, &Trc,
-					&Twr, &Trrd, &Tcwl, &T_mode, &Tfaw);
+			if (getDramValid(dct_index)) {
 
-			getDramTimingHigh(dct_index, &TrwtWB, &TrwtTO, &Twtr, &Twrrd,
-					&Twrwr, &Trdrd, &Tref, &Trfc0, &Trfc1, &Trfc2, &Trfc3,
-					&MaxRdLatency);
+				ddrTypeDDR3=getDDR3Mode (dct_index);
+				ddrFrequency=getDramFrequency(dct_index)*2;
 
-			printf("DCT%d:\n", dct_index);
-			//Low DRAM Register
-			printf(
-					"Tcl=%u Trcd=%u Trp=%u Tras=%u Access Mode:%uT Trtp=%u Trc=%u Twr=%u Trrd=%u Tcwl=%u Tfaw=%u\n",
-					Tcl, Trcd, Trp, Tras, T_mode, Trtp, Trc, Twr, Trrd, Tcwl,
-					Tfaw);
+				getDramTimingLow(dct_index, &Tcl, &Trcd, &Trp, &Trtp, &Tras, &Trc,
+						&Twr, &Trrd, &Tcwl, &T_mode, &Tfaw);
 
-			//High DRAM Register
-			printf(
-					"TrwtWB=%u TrwtTO=%u Twtr=%u Twrrd=%u Twrwr=%u Trdrd=%u Tref=%u Trfc0=%u Trfc1=%u Trfc2=%u Trfc3=%u MaxRdLatency=%u\n",
-					TrwtWB, TrwtTO, Twtr, Twrrd, Twrwr, Trdrd, Tref, Trfc0,
-					Trfc1, Trfc2, Trfc3, MaxRdLatency);
+				getDramTimingHigh(dct_index, &TrwtWB, &TrwtTO, &Twtr, &Twrrd,
+						&Twrwr, &Trdrd, &Tref, &Trfc0, &Trfc1, &Trfc2, &Trfc3,
+						&MaxRdLatency);
+
+				printf("DCT%d: ", dct_index);
+				printf ("memory type: ");
+				if (ddrTypeDDR3==true) printf ("DDR3"); else printf ("DDR2");
+				printf (" frequency: %d MHz\n",ddrFrequency);
+
+				//Low DRAM Register
+				printf(
+						"Tcl=%u Trcd=%u Trp=%u Tras=%u Access Mode:%uT Trtp=%u Trc=%u Twr=%u Trrd=%u Tcwl=%u Tfaw=%u\n",
+						Tcl, Trcd, Trp, Tras, T_mode, Trtp, Trc, Twr, Trrd, Tcwl,
+						Tfaw);
+
+				//High DRAM Register
+				printf(
+						"TrwtWB=%u TrwtTO=%u Twtr=%u Twrrd=%u Twrwr=%u Trdrd=%u Tref=%u Trfc0=%u Trfc1=%u Trfc2=%u Trfc3=%u MaxRdLatency=%u\n",
+						TrwtWB, TrwtTO, Twtr, Twrrd, Twrwr, Trdrd, Tref, Trfc0,
+						Trfc1, Trfc2, Trfc3, MaxRdLatency);
+
+			} else {
+
+				printf ("- controller unactive -\n");
+			}
 
 		}
 
