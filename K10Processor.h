@@ -27,12 +27,6 @@ private:
 			DWORD *Trdrd, DWORD *Tref, DWORD *Trfc0, DWORD *Trfc1,
 			DWORD *Trfc2, DWORD *Trfc3, DWORD *MaxRdLatency);
 
-protected:
-
-	bool forcePVI;
-	bool forceSVI;
-
-
 public:
 
 	K10Processor ();
@@ -157,10 +151,6 @@ public:
 
 	//Scaler helper methods
 	void getCurrentStatus (struct procStatus *pStatus, DWORD core);
-
-	//Miscellaneous
-	void forceSVIMode (bool);
-	void forcePVIMode (bool);
 
 };
 

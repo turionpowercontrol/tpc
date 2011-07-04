@@ -323,16 +323,10 @@ public:
 
 	//performance counters section
 
-
 	virtual void perfCounterGetInfo();
 	virtual void perfCounterGetValue(unsigned int);
 	virtual void perfMonitorCPUUsage();
-	/*virtual void perfCounterMonitor(int, int);
-	*/
 
-	//Misc
-	virtual void forcePVIMode(bool);
-	virtual void forceSVIMode(bool);
 
 	//Scaler helper methods
     virtual void getCurrentStatus (struct procStatus *, DWORD);

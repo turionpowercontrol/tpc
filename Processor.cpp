@@ -689,31 +689,6 @@ void Processor::perfCounterGetValue(unsigned int perfCounter) {
 void Processor::perfMonitorCPUUsage() {
 	return;
 }
-/*
-void Processor::perfCounterMonitor(int core, int perfCounter) {
-	return;
-}
-
-//Cpu Usage section
-bool Processor::initUsageCounter(DWORD *) {
-	return true;
-}
-DWORD Processor::getUsageCounter(DWORD *, DWORD) {
-	return 0;
-}
-DWORD Processor::getUsageCounter(DWORD *, DWORD , int) {
-	return 0;
-}*/
-
-//Misc
-void Processor::forcePVIMode(bool toggle) {
-	printf("Unsupported processor feature\n");
-	return;
-}
-void Processor::forceSVIMode(bool toggle) {
-	printf("Unsupported processor feature\n");
-	return;
-}
 
 void Processor::checkMode() {
 	return;

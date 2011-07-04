@@ -3,7 +3,7 @@ PREFIX=/usr
 
 ARCH=$(shell uname -p)
 
-PROJECT=TurionPowerControl.$(ARCH)
+PROJECT=TurionPowerControl
 PROJ_CXXFLAGS=-O2 $(CXXFLAGS)
 PROJ_LDFLAGS=$(LDFLAGS)
 

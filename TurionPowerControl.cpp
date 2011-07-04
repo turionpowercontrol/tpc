@@ -399,15 +399,6 @@ void printUsage (const char *name) {
 	printf (" -cfgfile (file)\n\tImports configuration from a text based configuration file\n\t");
 	printf ("(see the attached example configuration file for details)\n\n");
 
-	printf ("\t ----- Miscellaneous -----\n\n");
-	printf (" -forcenumcores (value)\n\tForces the program to recognize as many cores as the user wants\n\t");
-	printf ("it is particularly useful on Unix multiprocessor machines\n\n");
-	printf (" -forcePVI\n\t(Only on Family 10h processors) Forces the program to use Parallel VID\n\t");
-	printf ("mode instead of autodetection\n\n");
-	printf (" -forceSVI\n\t(Only on Family 10h processors) Forces the program to use Serial VID\n\t");
-	printf ("mode instead of autodetection. It is useful if PVI mode is autodected\n\t");
-	printf ("and voltage values are non coherent or too low\n\n");
-
 }
 
 //Function used by parseSetCommand to obtain a valid integer.
@@ -714,7 +705,7 @@ int main (int argc,const char **argv) {
 	
 	Scaler *scaler;
 	
-	printf ("Turion Power States Optimization and Control - by blackshard - v0.xx.x\n");
+	printf ("Turion Power States Optimization and Control - by blackshard - v0.40a\n");
 
 	if (argc<2) {
 		printUsage(argv[0]);
@@ -818,104 +809,6 @@ int main (int argc,const char **argv) {
 
 			argvStep++;
 		}
-
-
-		//Forces SVI mode, only on family 10h
-		if (strcmp((const char *)argv[argvStep],"-forceSVI")==0) {
-
-			processor->forceSVIMode (true);
-
-		}
-
-		//Forces PVI mode, only on family 10h
-		if (strcmp((const char *)argv[argvStep],"-forcePVI")==0) {
-
-			processor->forcePVIMode (true);
-
-		}
-
-		/* TODO: suggested for removal
-
-		//Set VID for a specific power state
-		if (strcmp((const char *)argv[argvStep],"-pv")==0) {
-			
-			if ((argv[argvStep+1]==NULL) || (argv[argvStep+2]==NULL) || (argv[argvStep+3]==NULL)) {
-				printf ("Wrong -pv option\n");
-				return 1;
-			}
-			
-			ps.setPState (arg2i(argv,argvStep+2));
-			processor->setCore(arg2i(argv,argvStep+1));
-			processor->setVID (ps,arg2i(argv,argvStep+3));
-			
-			argvStep=argvStep+3;
-		}
-
-		//Set DID for a specific power state
-		if (strcmp((const char *)argv[argvStep],"-pd")==0) {
-			
-			if ((argv[argvStep+1]==NULL) || (argv[argvStep+2]==NULL) || (argv[argvStep+3]==NULL)) {
-				printf ("Wrong -pd option\n");
-				return 1;
-			}
-			
-			ps.setPState (arg2i(argv,argvStep+2));
-			processor->setCore(arg2i(argv,argvStep+1));
-			processor->setDID (ps,arg2i(argv,argvStep+3));
-			
-			argvStep=argvStep+3;
-		}
-
-		//Set FID for a specific power state
-		if (strcmp((const char *)argv[argvStep],"-pf")==0) {
-			
-			if ((argv[argvStep+1]==NULL) || (argv[argvStep+2]==NULL) || (argv[argvStep+3]==NULL)) {
-				printf ("Wrong -pf option\n");
-				return 1;
-			}
-			
-			ps.setPState (arg2i(argv,argvStep+2));
-			processor->setCore(arg2i(argv,argvStep+1));
-			processor->setFID (ps,arg2i(argv,argvStep+3));
-			
-			argvStep=argvStep+3;
-		}
-
-		//Set VID, DID and FID for a specific power state for a core
-		if (strcmp((const char *)argv[argvStep],"-pall")==0) {
-			
-			if ((argv[argvStep+1]==NULL) || (argv[argvStep+2]==NULL) || (argv[argvStep+3]==NULL) || 
-					(argv[argvStep+4]==NULL) || (argv[argvStep+5]==NULL)) {
-				printf ("Wrong -pall option\n");
-				return 1;
-			}
-			
-			ps.setPState (arg2i(argv,argvStep+2));
-			processor->setCore(arg2i(argv,argvStep+1));
-			processor->setVID (ps,arg2i(argv,argvStep+3));
-			processor->setDID (ps,arg2i(argv,argvStep+4));
-			processor->setFID (ps,arg2i(argv,argvStep+5));
-			
-			argvStep=argvStep+5;
-		}
-
-		//Set VID, DID and FID for a specific power state for all cores
-		if (strcmp((const char *)argv[argvStep],"-pallc")==0) {
-			
-			if ((argv[argvStep+1]==NULL) || (argv[argvStep+2]==NULL) || (argv[argvStep+3]==NULL) || 
-					(argv[argvStep+4]==NULL)) {
-				printf ("Wrong -pall option\n");
-				return 1;
-			}
-			
-			ps.setPState (arg2i(argv,argvStep+1));
-			processor->setCore(processor->ALL_CORES);
-			processor->setVID (ps,arg2i(argv,argvStep+2));
-			processor->setDID (ps,arg2i(argv,argvStep+3));
-			processor->setFID (ps,arg2i(argv,argvStep+4));
-			
-			argvStep=argvStep+4;
-		}*/
 
 		if (strcmp((const char *)argv[argvStep],"-nbvid")==0) {
 			
@@ -1310,7 +1203,8 @@ int main (int argc,const char **argv) {
 		
 		if (strcmp((const char *)argv[argvStep],"-scaler")==0) {
 
-			scaler->beginScaling ();
+			printf ("Scaler is not active in this version.\n");
+			//scaler->beginScaling ();
 
 		}
 

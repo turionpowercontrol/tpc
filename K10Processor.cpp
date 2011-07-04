@@ -134,9 +134,6 @@ K10Processor::K10Processor () {
 	setProcessorIdentifier(PROCESSOR_10H_FAMILY);
 	setProcessorStrId("Family 10h Processor");
 
-	forcePVI = false;
-	forceSVI = false;
-
 }
 
 
@@ -619,10 +616,6 @@ bool K10Processor::getPVIMode () {
 	bool pviMode;
 
 	pciRegObject=new PCIRegObject();
-
-	if (forcePVI==true) return true;
-
-	if (forceSVI==true) return false;
 
 	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3, 0xa0, getNodeMask())) {
 		printf ("K10Processor.cpp::getPVIMode - Unable to read PCI register\n");
@@ -2947,29 +2940,6 @@ return;
 
 }
 
-
-void K10Processor::forceSVIMode (bool force) {
-
-	printf ("** SVI mode forced\n");
-
-	forceSVI=force;
-
-	if (forcePVI) printf ("** Warning: PVI mode is forced too. May result in undefined behaviour\n");
-
-
-}
-
-void K10Processor::forcePVIMode (bool force) {
-
-	printf ("** PVI mode forced\n");
-
-	forcePVI=force;
-
-	if (forceSVI) printf ("** Warning: SVI mode is forced too. May result in undefined behaviour\n");
-
-}
-
-
 void K10Processor::checkMode () {
 
 	DWORD i,pstate,vid,fid,did;
@@ -3340,7 +3310,7 @@ void K10Processor::getDramTimingLow(
 
 		*Tras += 15;
 		*Trc += 11;
-		*Twr += 4;
+		if (*Twr<=4) *Twr += 4; else *Twr *= 2;
 		*Trrd += 4;
 		*Tcwl += 5;
 
