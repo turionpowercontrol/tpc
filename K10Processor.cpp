@@ -400,10 +400,15 @@ void K10Processor::setVID (PState ps, DWORD vid) {
 
 //-----------------------setFID-----------------------------
 //Overloads abstract Processor method to allow per-core personalization
-void K10Processor::setFID(PState ps, DWORD fid) {
+void K10Processor::setFID(PState ps, float floatFid) {
+
+	unsigned int fid;
+
 	MSRObject *msrObject;
 
-	if ((fid < 0) || (fid > 31)) {
+	fid=(unsigned int)floatFid;
+
+	if (fid > 31) {
 		printf("K10Processor.cpp: FID Allowed range 0-31\n");
 		return;
 	}
@@ -433,10 +438,14 @@ void K10Processor::setFID(PState ps, DWORD fid) {
 
 //-----------------------setDID-----------------------------
 //Overloads abstract Processor method to allow per-core personalization
-void K10Processor::setDID(PState ps, DWORD did) {
+void K10Processor::setDID(PState ps, float floatDid) {
+
+	unsigned int did;
 	MSRObject *msrObject;
 
-	if ((did < 0) || (did > 4)) {
+	did=(unsigned int)floatDid;
+
+	if (did >= 4) {
 		printf("K10Processor.cpp: DID Allowed range 0-3\n");
 		return;
 	}
@@ -491,7 +500,7 @@ DWORD K10Processor::getVID (PState ps) {
 
 //-----------------------getFID-----------------------------
 
-DWORD K10Processor::getFID (PState ps) {
+float K10Processor::getFID (PState ps) {
 
 	MSRObject *msrObject;
 	DWORD fid;
@@ -516,7 +525,7 @@ DWORD K10Processor::getFID (PState ps) {
 
 //-----------------------getDID-----------------------------
 
-DWORD K10Processor::getDID (PState ps) {
+float K10Processor::getDID (PState ps) {
 
 	MSRObject *msrObject;
 	DWORD did;
@@ -535,7 +544,7 @@ DWORD K10Processor::getDID (PState ps) {
 
 	free (msrObject);
 
-	return did;
+	return (float)did;
 }
 
 //-----------------------setFrequency-----------------------------
@@ -3310,7 +3319,7 @@ void K10Processor::getDramTimingLow(
 
 		*Tras += 15;
 		*Trc += 11;
-		if (*Twr<=4) *Twr += 4; else *Twr *= 2;
+		*Twr += 4;
 		*Trrd += 4;
 		*Tcwl += 5;
 

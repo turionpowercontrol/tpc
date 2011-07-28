@@ -24,6 +24,7 @@
 //Include for processor families:
 #include "Griffin.h"
 #include "K10Processor.h"
+#include "Brazos.h"
 
 #include "config.h"
 #include "scaler.h"
@@ -112,6 +113,10 @@ Processor *getSupportedProcessor () {
 		return (class Processor *)new Griffin();
 	}
 
+	if (Brazos::isProcessorSupported()) {
+		return (class Processor *)new Brazos();
+	}
+
 	/*TODO: This code should be moved somewhere else than here:
 	 *
 
@@ -157,14 +162,16 @@ void processorStatus (Processor *p) {
 				ps.setPState(k);
 				p->setCore(i);
 				p->setNode(j);
-				printf(
-						"core %d pstate %d - En:%d VID:%d FID:%d DID:%d Freq:%d VCore: %.4f\n",
-						i, k, p->pStateEnabled(ps.getPState()),
-						p->getVID(ps.getPState()),
-						p->getFID(ps.getPState()),
-						p->getDID(ps.getPState()),
-						p->getFrequency(ps.getPState()),
-						p->getVCore(ps.getPState()));
+
+				printf("core %d ", i);
+				printf("pstate %d - ", k);
+				printf("En:%d ", p->pStateEnabled(ps.getPState()));
+				printf("VID:%d ", p->getVID(ps.getPState()));
+				if (p->getFID(ps.getPState())!=-1) printf("FID:%0.0f ", p->getFID(ps.getPState()));
+				if (p->getDID(ps.getPState())!=-1) printf("DID:%0.2f ", p->getDID(ps.getPState()));
+				printf("Freq:%d ", p->getFrequency(ps.getPState()));
+				printf("VCore:%.4f", p->getVCore(ps.getPState()));
+				printf("\n");
 			}
 
 		}
@@ -426,6 +433,28 @@ bool requireInteger (int argc, const char **argv, int offset, int *output) {
 
 }
 
+//Equal as above, but with unsigned integer values
+bool requireUnsignedInteger (int argc, const char **argv, int offset, unsigned int *output) {
+
+	const char *argument;
+	unsigned int value;
+
+	if (offset>=argc) return true;
+
+	argument=argv[offset];
+
+	value=(unsigned int) atoi (argument);
+
+	if (value==0)
+		if (strcmp(argument,"0")!=0) return true;
+
+	*output=value;
+
+	return false;
+
+}
+
+
 //Function used by parseSetCommand to obtain a valid float.
 //The float is put in output pointer if the function returns false (false
 //means no error)
@@ -456,7 +485,7 @@ void print_stat (Processor *p, PState ps, const char *what, float value) {
 		if (p->getNode()==p->ALL_NODES) printf ("All nodes "); else printf ("Node: %d ",p->getNode());
 		if (p->getCore()==p->ALL_CORES) printf ("all cores "); else printf ("core: %d ",p->getCore());
 		printf ("pstate %d - ", ps.getPState());
-		printf ("set %s to %0.3f\n", what, value);
+		printf ("set %s to %0.3f", what, value);
 		return;
 }
 
@@ -465,17 +494,18 @@ void print_stat (Processor *p, PState ps, const char *what, float value) {
 int parseSetCommand (Processor *p, int argc, const char **argv, int argcOffset) {
 
 	PState ps(0);
-	int core=-1; //if core is set to -1, we will assume that the command is for all
+	unsigned int core=-1; //if core is set to -1, we will assume that the command is for all
 		//the cores.
-	int node=-1; //if node is set to -1, we will assume that the command is for all
+	unsigned int node=-1; //if node is set to -1, we will assume that the command is for all
 		//the nodes in the system
 	const char *currentCommand;
 
-	int frequency;
-	int fid, did, vid;
+	unsigned int frequency;
+	float fid, did;
+	unsigned int vid;
 	float voltage;
 	float nbvoltage;
-	int tempInt;
+	unsigned int tempInt;
 
 	p->setCore(p->ALL_CORES);
 	p->setNode(p->ALL_NODES);
@@ -499,7 +529,7 @@ int parseSetCommand (Processor *p, int argc, const char **argv, int argcOffset) 
 
 			argcOffset++;
 
-			if (!requireInteger(argc,argv,argcOffset,&tempInt)) {
+			if (!requireUnsignedInteger(argc,argv,argcOffset,&tempInt)) {
 				ps.setPState (atoi(argv[argcOffset]));
 				argcOffset++;
 			} else {
@@ -519,7 +549,7 @@ int parseSetCommand (Processor *p, int argc, const char **argv, int argcOffset) 
 			}
 			else
 			{
-				if (!requireInteger(argc,argv,argcOffset,&core)) {
+				if (!requireUnsignedInteger(argc,argv,argcOffset,&core)) {
 					p->setCore (core);
 					argcOffset++;
 				}
@@ -539,7 +569,7 @@ int parseSetCommand (Processor *p, int argc, const char **argv, int argcOffset) 
 				p->setNode(p->ALL_CORES);
 				argcOffset++;
 			} else {
-				if (!requireInteger(argc, argv, argcOffset, &node)) {
+				if (!requireUnsignedInteger(argc, argv, argcOffset, &node)) {
 					p->setNode(node);
 					argcOffset++;
 				} else
@@ -556,11 +586,12 @@ int parseSetCommand (Processor *p, int argc, const char **argv, int argcOffset) 
 
 			argcOffset++;
 
-			if (!requireInteger(argc,argv,argcOffset, &frequency)) {
+			if (!requireUnsignedInteger(argc,argv,argcOffset, &frequency)) {
 
 				argcOffset++;
 				print_stat (p,ps,"frequency",frequency);
 				p->setFrequency(ps, frequency);
+				if (p->getFrequency(ps)!=frequency) printf (" (rounded to %d)",p->getFrequency(ps));
 
 			} else {
 				
@@ -582,6 +613,7 @@ int parseSetCommand (Processor *p, int argc, const char **argv, int argcOffset) 
 				argcOffset++;
 				print_stat (p,ps,"core voltage",voltage);
 				p->setVCore (ps, voltage);
+				if (p->getVCore(ps)!=voltage) printf (" (rounded to %0.4f)",p->getVCore(ps));
 
 			} else {
 	
@@ -611,17 +643,17 @@ int parseSetCommand (Processor *p, int argc, const char **argv, int argcOffset) 
 
 					print_stat (p,ps,"nbvoltage",nbvoltage);
 					p->setNBVid (ps, p->convertVcoretoVID(nbvoltage));
-					//if (p->convertVIDtoVcore(p->getNBVid(ps,0))!=nbvoltage) printf (" (voltage rounded to %0.4f)",p->convertVIDtoVcore(p->getNBVid(ps,0)));
+					if (p->convertVIDtoVcore(p->getNBVid(ps,0))!=nbvoltage) printf (" (rounded to %0.4f)",p->convertVIDtoVcore(p->getNBVid(ps,0)));
 
-				} else {
+				} else if ((p->getProcessorIdentifier()==TURION_ULTRA_ZM_FAMILY) ||
+						(p->getProcessorIdentifier()==TURION_X2_RM_FAMILY) ||
+						(p->getProcessorIdentifier()==ATHLON_X2_QL_FAMILY) ||
+						(p->getProcessorIdentifier()==SEMPRON_SI_FAMILY)) {
 
 					print_stat (p,ps,"nbvoltage",nbvoltage);
 					p->setNBVid (p->convertVcoretoVID(nbvoltage));
-					//if (p->convertVIDtoVcore(p->getNBVid())!=nbvoltage) printf (" (voltage rounded to %0.4f)",p->convertVIDtoVcore(p->getNBVid()));
+					if (p->convertVIDtoVcore(p->getNBVid())!=nbvoltage) printf (" (rounded to %0.4f)",p->convertVIDtoVcore(p->getNBVid()));
 				}
-
-
-				printf ("\n");
 
 			} else {
 	
@@ -633,15 +665,16 @@ int parseSetCommand (Processor *p, int argc, const char **argv, int argcOffset) 
 
 			argcOffset++;
 
-			if (!requireInteger(argc, argv, argcOffset, &fid)) {
+			if (!requireFloat(argc, argv, argcOffset, &fid)) {
 
 				argcOffset++;
 				print_stat(p, ps, "FID", fid);
 				p->setFID(ps, fid);
+				if (p->getFID(ps)!=fid) printf (" (rounded to %0.0f)", p->getFID(ps));
 
 			} else {
 
-				printf("fid: expecting a valid integer\n");
+				printf("fid: expecting a valid float\n");
 
 			}
 
@@ -649,15 +682,16 @@ int parseSetCommand (Processor *p, int argc, const char **argv, int argcOffset) 
 
 			argcOffset++;
 
-			if (!requireInteger(argc, argv, argcOffset, &did)) {
+			if (!requireFloat(argc, argv, argcOffset, &did)) {
 
 				argcOffset++;
 				print_stat(p, ps, "DID", did);
 				p->setDID(ps, did);
+				if (p->getDID(ps)!=did) printf (" (rounded to %0.2f)", p->getDID(ps));
 
 			} else {
 
-				printf("did: expecting a valid integer\n");
+				printf("did: expecting a valid float\n");
 
 			}
 
@@ -665,22 +699,25 @@ int parseSetCommand (Processor *p, int argc, const char **argv, int argcOffset) 
 
 			argcOffset++;
 
-			if (!requireInteger(argc, argv, argcOffset, &vid)) {
+			if (!requireUnsignedInteger(argc, argv, argcOffset, &vid)) {
 
 				argcOffset++;
 				print_stat(p, ps, "VID", vid);
 				p->setVID(ps, vid);
+				if (p->getVID(ps)!=vid) printf (" (rounded to %d)", p->getVID(ps));
 
 			} else {
 
-				printf("vid: expecting a valid integer\n");
+				printf("vid: expecting a valid float\n");
 
 			}
 
 		} else {
-			printf ("Unexpected command: %s\n",currentCommand);
+			printf ("Unexpected command: %s",currentCommand);
 			argcOffset++;
 		}
+
+		printf ("\n");
 
 	} while (true);
 
@@ -741,29 +778,6 @@ int main (int argc,const char **argv) {
 		//List power states action
 		if (strcmp((const char *)argv[argvStep],"-l")==0) {
 			processorStatus (processor);
-		}
-
-		//Overrides number of cores
-		if (strcmp((const char *)argv[argvStep],"-forcenumcores")==0) {
-			
-			if ((argv[argvStep+1]==NULL)) {
-				printf ("Wrong -forcenumcores option\n");
-				return 1;
-			}
-						
-			if (arg2i(argv,argvStep+1)<=0) {
-				printf ("Error: -forcenumcores requires and positive value\n");
-				return 1;
-			}
-
-			if ((unsigned int)arg2i(argv,argvStep+1)>MAX_CORES) {
-				printf ("Error: the value exceed the MAX_CORES constant\n");
-				return 1;
-			}
-
-			processor->setProcessorCores (arg2i(argv,argvStep+1));
-			
-			argvStep++;
 		}
 
 		//Set the current operational node

@@ -1,0 +1,1917 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include "Signal.h"
+
+#ifdef _WIN32
+	#include <windows.h>
+	#include "OlsApi.h"
+#endif
+
+#ifdef __linux
+	#include "cpuPrimitives.h"
+	#include <string.h>
+#endif
+
+#include "Processor.h"
+#include "Brazos.h"
+#include "PCIRegObject.h"
+#include "MSRObject.h"
+#include "PerformanceCounter.h"
+
+//Brazos class constructor
+Brazos::Brazos () {
+
+	DWORD eax,ebx,ecx,edx;
+	DWORD nodes;
+	DWORD cores;
+
+	//Check extended CpuID Information - CPUID Function 0000_0001 reg EAX
+	if (Cpuid(0x1,&eax,&ebx,&ecx,&edx)!=TRUE) {
+		printf ("Brazos::Brazos - Fatal error during querying for Cpuid(0x1) instruction.\n");
+		return;
+	}
+
+	int familyBase = (eax & 0xf00) >> 8;
+	int model = (eax & 0xf0) >> 4;
+	int stepping = eax & 0xf;
+	int familyExtended = ((eax & 0xff00000) >> 20)+familyBase;
+	int modelExtended = ((eax & 0xf0000) >> 12)+model; /* family 14h: modelExtended is valid */
+
+	//Check Brand ID and Package type - CPUID Function 8000_0001 reg EBX
+	if (Cpuid(0x80000001,&eax,&ebx,&ecx,&edx)!=TRUE) {
+		printf ("Brazos::Brazos - Fatal error during querying for Cpuid(0x80000001) instruction.\n");
+		return;
+	}
+
+	int brandId=(ebx & 0xffff);
+	int processorModel=(brandId >> 4) & 0x7f;
+	int string1=(brandId >> 11) & 0xf;
+	int string2=(brandId & 0xf);
+	int pkgType=(ebx >> 28);
+
+	//Sets processor Specs
+	setSpecFamilyBase (familyBase);
+	setSpecModel (model);
+	setSpecStepping (stepping);
+	setSpecFamilyExtended (familyExtended);
+	setSpecModelExtended (modelExtended);
+	setSpecBrandId (brandId);
+	setSpecProcessorModel (processorModel);
+	setSpecString1 (string1);
+	setSpecString2 (string2);
+	setSpecPkgType (pkgType);
+
+	//Brazos platform will always contain one node per system, since it has no Hypertransport Link.
+	//Maybe can change in the future.
+    nodes=1;
+
+	//Check how many physical cores are present - CPUID Function 8000_0008 reg ECX
+	if (Cpuid(0x80000008, &eax, &ebx, &ecx, &edx) != TRUE) {
+		printf(
+				"Brazos::Brazos- Fatal error during querying for Cpuid(0x80000008) instruction.\n");
+		return;
+	}
+
+	cores = (ecx & 0xff) + 1; /* cores per package */
+
+
+	setProcessorNodes(nodes);
+	setProcessorCores(cores);
+	setPowerStates(8);
+	setProcessorIdentifier(PROCESSOR_14H_FAMILY);
+	setProcessorStrId("Family 14h (Zacate/Ontario) Processor");
+
+}
+
+
+/*
+ * Static methods to allow external Main to detect current configuration status
+ * without instantiating an object. This method that detects if the system
+ * has a processor supported by this module
+*/
+bool Brazos::isProcessorSupported () {
+
+	DWORD eax;
+	DWORD ebx;
+	DWORD ecx;
+	DWORD edx;
+
+	//TODO: remove to avoid simulation
+	//return true;
+
+	//Check base CpuID information
+	if (Cpuid(0x0,&eax,&ebx,&ecx,&edx)!=TRUE) return false;
+	
+	//Checks if eax is 0x6. It determines the largest CPUID function available
+	//Family 14h returns eax=0x6
+	if (eax!=0x6) return false;
+
+	//Check "AuthenticAMD" string
+	if ((ebx!=0x68747541) || (ecx!=0x444D4163) || (edx!=0x69746E65)) return false;
+
+	//Check extended CpuID Information - CPUID Function 0000_0001 reg EAX
+	if (Cpuid(0x1,&eax,&ebx,&ecx,&edx)!=TRUE) return false;
+
+	int familyBase = (eax & 0xf00) >> 8;
+	int familyExtended = ((eax & 0xff00000) >> 20)+familyBase;
+
+	if (familyExtended!=0x14) return false;
+	
+	//Detects a Family 14h processor, i.e. Zacate/Ontario/G-series
+	return true;
+}
+
+void Brazos::showFamilySpecs() {
+
+	printf ("Not yet implemented.\n");
+
+
+}
+
+//Miscellaneous function inherited by Processor abstract class and that
+//needs to be reworked for family 10h
+float Brazos::convertVIDtoVcore(DWORD curVid) {
+
+	/*How to calculate VID from Vcore.
+
+	 Serial VID Interface is simple to calculate. Family 14h uses only Serial VID
+	 To obtain vcore from VID you need to do:
+
+	 vcore = 1,55 – (VID * 0.0125)
+
+	 The inverse formula to obtain VID from vcore is:
+
+	 vid = (1.55-vcore)/0.0125
+
+	 */
+
+	float curVcore;
+
+	if (curVid >= 0x7c)
+		curVcore = 0;
+	else
+		curVcore = (float) (1.550 - (0.0125 * curVid));
+
+	return curVcore;
+}
+
+DWORD Brazos::convertVcoretoVID (float vcore) {
+
+	DWORD vid;
+
+	vid=round(((1.55-vcore)/0.0125));
+	
+	return vid;
+
+}
+
+DWORD Brazos::convertFDtoFreq (float did) {
+	return (int)(maxCPUFrequency()/(float)did);
+}
+
+void Brazos::convertFreqtoFD(DWORD freq, float *did) {
+
+	/*Needs to calculate the approximate frequency using DID decimal
+	 value.
+
+	 For family 14h processor the right formula is:
+	 (cfr. BKDG for AMD Family 14h, doc #43710 rev 3.00 - page 364)
+
+	 freq = maxCPUFrequency / DID
+
+	 The inverse formula is trivial:
+
+	 DID = maxCPUFrequency / freq;
+
+	 Then approximate to next higher quarter of point.
+
+	 */
+
+	float quarters;
+
+	*did=maxCPUFrequency()/(float)freq;
+
+	quarters=ceil((float)*did / 0.25f);
+
+	*did=quarters*0.25f;
+
+	//TODO: Remove this debug code:
+	//printf (" setFrequency - did to obtain specified frequency: %0.2f\n", *did);
+	//printf (" setFrequency - frequency obtained: %d\n", convertFDtoFreq (*did));
+
+	return;
+}
+
+
+//-----------------------setVID-----------------------------
+//Overloads abstract class setVID to allow per-core personalization
+void Brazos::setVID (PState ps, DWORD vid) {
+
+	MSRObject *msrObject;
+
+	if ((vid>minVID()) || (vid<maxVID())) {
+		printf ("Brazos.cpp: VID Allowed range %d-%d\n", minVID(), maxVID());
+		return;
+	}
+
+	msrObject=new MSRObject();
+
+	if (!msrObject->readMSR(BASE_14H_PSTATEMSR+ps.getPState(), getMask ())) {
+		printf ("Brazos.cpp: unable to read MSR\n");
+		free (msrObject);
+		return;
+	}
+
+	//To set VID, base offset is 9 bits and value is 7 bit wide.
+
+	msrObject->setBitsLow(9,7,vid);
+
+	//TODO: remove printf and comment to avoid simulation
+	/*printf (" setVID simulation\n");
+	printf (" vid=%d simulation\n", vid);
+	printf (" Low msrRegister is 0x%x\n",msrObject->getBitsLow(0,0,32));*/
+	if (!msrObject->writeMSR()) {
+		printf ("Brazos.cpp: unable to write MSR\n");
+		free (msrObject);
+		return;
+	}
+
+	free (msrObject);
+
+	return;
+
+}
+
+//-----------------------setDID-----------------------------
+//Overloads abstract Processor method to allow per-core personalization
+void Brazos::setDID(PState ps, float did) {
+	MSRObject *msrObject;
+	int didMSD, didLSD;
+
+	if ((did < 1) || (did > 26.5)) {
+		printf("Brazos.cpp: DID Allowed range any value between 1.00 - 26.50 \n");
+		return;
+	}
+
+	msrObject = new MSRObject();
+
+	if (!msrObject->readMSR(BASE_14H_PSTATEMSR + ps.getPState(), getMask())) {
+		printf("Brazos.cpp: unable to read MSR\n");
+		free(msrObject);
+		return;
+	}
+
+	//To set DID, we need to split the integer part and the decimal part
+	didMSD=(int)did;
+	didLSD=ceil((did-(float)didMSD)/0.25f);
+
+	msrObject->setBitsLow(4, 5, didMSD-1);
+	msrObject->setBitsLow(0, 4, didLSD);
+
+	//TODO: remove printf and comment to avoid simulation
+	/*	printf (" setDID simulation\n");
+		printf (" didMSD=%d\n", didMSD);
+		printf (" didLSD=%d\n", didLSD);
+		printf (" Low msrRegister is 0x%x\n",msrObject->getBitsLow(0,0,32));*/
+
+	if (!msrObject->writeMSR()) {
+		printf("Brazos.cpp: unable to write MSR\n");
+		free(msrObject);
+		return;
+	}
+
+	free(msrObject);
+
+	return;
+
+}
+
+//-----------------------getVID-----------------------------
+
+DWORD Brazos::getVID (PState ps) {
+
+	MSRObject *msrObject;
+	DWORD vid;
+
+	msrObject=new MSRObject ();
+
+	if (!msrObject->readMSR(BASE_14H_PSTATEMSR+ps.getPState(), getMask())) {
+		printf ("Brazos.cpp::getVID - unable to read MSR\n");
+		free (msrObject);
+		return false;
+	}
+
+	//Returns data for the first cpu in cpuMask.
+	//VID is stored after 9 bits of offset and is 7 bits wide
+	vid=msrObject->getBitsLow(0, 9, 7);
+
+	free (msrObject);
+
+	return vid;
+
+}
+
+//-----------------------getDID-----------------------------
+
+float Brazos::getDID (PState ps) {
+
+	MSRObject *msrObject;
+	DWORD didMSD, didLSD;
+
+	msrObject=new MSRObject ();
+
+	if (!msrObject->readMSR(BASE_14H_PSTATEMSR+ps.getPState(), getMask())) {
+		printf ("Brazos.cpp::getDID - unable to read MSR\n");
+		free (msrObject);
+		return false;
+	}
+
+	//Returns data for the first cpu in cpuMask (cpu 0)
+	//DID is stored after 6 bits of offset and is 3 bits wide
+	didMSD=msrObject->getBitsLow(0, 4, 5);
+	didLSD=msrObject->getBitsLow(0, 0, 4);
+
+	free (msrObject);
+
+	return didMSD + (didLSD*0.25f) + 1;
+}
+
+//-----------------------setFrequency-----------------------------
+
+void Brazos::setFrequency (PState ps, DWORD freq) {
+
+	float did;
+
+	convertFreqtoFD (freq, &did);
+	
+	setDID (ps, did);
+
+	return;
+}
+
+//-----------------------setVCore-----------------------------
+
+void Brazos::setVCore (PState ps, float vcore) {
+
+	DWORD vid;
+
+	vid=convertVcoretoVID (vcore);
+
+	//Check if VID is below maxVID value set by the processor.
+	//If it is, then there are no chances the processor will accept it and
+	//we reply with an error
+	if (vid<maxVID()) {
+		printf ("Unable to set vcore: %0.3fv exceed maximum allowed vcore (%0.3fv)\n", vcore, convertVIDtoVcore(maxVID()));
+		return;
+	}
+
+	//Again we che if VID is above minVID value set by processor.
+	if (vid>minVID()) {
+		printf ("Unable to set vcore: %0.3fv is below minimum allowed vcore (%0.3fv)\n", vcore, convertVIDtoVcore(minVID()));
+		return;
+	}
+
+	setVID (ps,vid);
+
+	return;
+
+}
+
+//-----------------------getFrequency-----------------------------
+
+DWORD Brazos::getFrequency (PState ps) {
+
+	float curDid;
+	DWORD curFreq;
+
+	curDid=getDID (ps);
+
+	curFreq=convertFDtoFreq(curDid);
+
+	return curFreq;
+
+}
+
+//-----------------------getVCore-----------------------------
+
+float Brazos::getVCore(PState ps) {
+	DWORD curVid;
+	float curVcore;
+
+	curVid = getVID(ps);
+
+	curVcore = convertVIDtoVcore(curVid);
+
+	return curVcore;
+}
+
+//PStates enable/disable/peek
+void Brazos::pStateDisable (PState ps) {
+
+	MSRObject *msrObject;
+
+	msrObject=new MSRObject();
+
+	if (!msrObject->readMSR(BASE_14H_PSTATEMSR+ps.getPState(), getMask ())) {
+		printf ("Brazos.cpp::pStateDisable - unable to read MSR\n");
+		free (msrObject);
+		return;
+	}
+
+	//To disable a pstate, base offset is 63 bits (31th bit of edx) and value is 1 bit wide
+	msrObject->setBitsHigh(31,1,0x0);
+
+	if (!msrObject->writeMSR()) {
+		printf ("Brazos.cpp::pStateDisable - unable to write MSR\n");
+		free (msrObject);
+		return;
+	}
+
+	free (msrObject);
+
+	return;
+
+}
+
+void Brazos::pStateEnable (PState ps) {
+
+	MSRObject *msrObject;
+
+	msrObject=new MSRObject();
+
+	if (!msrObject->readMSR(BASE_14H_PSTATEMSR+ps.getPState(), getMask ())) {
+		printf ("Brazos.cpp::pStateEnable - unable to read MSR\n");
+		free (msrObject);
+		return;
+	}
+
+	//To disable a pstate, base offset is 63 bits (31th bit of edx) and value is 1 bit wide
+	msrObject->setBitsHigh(31,1,0x1);
+
+	if (!msrObject->writeMSR()) {
+		printf ("Brazos.cpp:pStateEnable - unable to write MSR\n");
+		free (msrObject);
+		return;
+	}
+
+	free (msrObject);
+
+	return;
+
+}
+
+bool Brazos::pStateEnabled(PState ps) {
+
+	MSRObject *msrObject;
+	unsigned int status;
+
+	msrObject = new MSRObject();
+
+	if (!msrObject->readMSR(BASE_14H_PSTATEMSR + ps.getPState(), getMask())) {
+		printf("Brazos.cpp::pStateEnabled - unable to read MSR\n");
+		free(msrObject);
+		return false;
+	}
+
+	//To peek a pstate, base offset is 63 bits (31th bit of edx) and value is 1 bit wide
+	//We consider just the first cpu in cpuMask
+	status = msrObject->getBitsHigh(0, 31, 1);
+
+	free(msrObject);
+
+	if (status == 0)
+		return false;
+	else
+		return true;
+
+}
+
+void Brazos::setMaximumPState (PState ps) {
+
+	PCIRegObject *pciRegObject;
+
+	pciRegObject=new PCIRegObject ();
+
+	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3, 0xdc, getNodeMask())) {
+		printf ("Brazos.cpp::setMaximumPState - unable to read PCI register\n");
+		free (pciRegObject);
+		return;
+	}
+
+	/*
+	 * Maximum pstate is stored in PCI register with
+	 * device PCI_DEV_NORTHBRIDGE
+	 * function PC_FUNC_MISC_CONTROL_3
+	 * register 0xdc
+	 * bits from 8 to 10
+	 */
+	pciRegObject->setBits(8,3,ps.getPState());
+
+	if (!pciRegObject->writePCIReg()) {
+		printf ("Brazos.cpp::setMaximumPState - unable to write PCI register\n");
+		free (pciRegObject);
+		return;
+	}
+
+	free (pciRegObject);
+
+	return;
+
+}
+
+PState Brazos::getMaximumPState () {
+
+	PCIRegObject *pciRegObject;
+	PState pState (0);
+
+	pciRegObject = new PCIRegObject();
+
+	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3, 0xdc, getNodeMask())) {
+		printf ("Brazos.cpp::getMaximumPState - unable to read PCI register\n");
+		free (pciRegObject);
+		return NULL;
+	}
+
+	/*
+	 * Maximum pstate is stored in PCI register with
+	 * device PCI_DEV_NORTHBRIDGE
+	 * function PC_FUNC_MISC_CONTROL_3
+	 * register 0xdc
+	 * bits from 8 to 10
+	 */
+	pState.setPState(pciRegObject->getBits(0, 8 ,3));
+
+	free (pciRegObject);
+
+	return pState;
+
+}
+
+void Brazos::forcePState (PState ps) {
+
+	MSRObject *msrObject;
+
+	msrObject=new MSRObject();
+
+	if (!msrObject->readMSR(BASE_PSTATE_CTRL_REG, getMask ())) {
+		printf ("Brazos.cpp::forcePState - unable to read MSR\n");
+		free (msrObject);
+		return;
+	}
+
+	//To force a pstate, we act on setting the first 3 bits of register. All other bits must be zero
+	msrObject->setBitsLow(0,32,0x0);
+	msrObject->setBitsHigh(0,32,0x0);
+	msrObject->setBitsLow(0,3,ps.getPState());
+
+	if (!msrObject->writeMSR()) {
+		printf ("Brazos.cpp::forcePState - unable to write MSR\n");
+		free (msrObject);
+		return;
+	}
+
+	free (msrObject);
+
+	return;
+
+
+}
+
+//minVID is reported per-node, so selected core is always discarded
+DWORD Brazos::minVID () {
+
+	MSRObject *msrObject;
+	DWORD minVid;
+
+	msrObject=new MSRObject;
+
+	if (!msrObject->readMSR(COFVID_STATUS_REG, getMask(0, selectedNode))) {
+		printf ("Brazos::minVID - Unable to read MSR\n");
+		free (msrObject);
+		return false;
+	}
+
+	//minVid is stored in COFVID_STATUS_REG in high half register (edx)
+	//from bit 10 to bit 16
+	minVid=msrObject->getBitsHigh(0,10,7);
+
+	free (msrObject);
+
+	//If minVid==0, then there's no minimum vid.
+	//Since the register is 7-bit wide, then 127 is
+	//the maximum value allowed.
+	if (getPVIMode()) {
+		//Parallel VID mode, allows minimum vcore VID up to 0x5d
+		if (minVid==0) return 0x5d; else return minVid;
+	} else {
+		//Serial VID mode, allows minimum vcore VID up to 0x7b
+		if (minVid==0) 	return 0x7b; else return minVid;
+	}
+}
+
+//maxVID is reported per-node, so selected core is always discarded
+DWORD Brazos::maxVID() {
+	MSRObject *msrObject;
+	DWORD maxVid;
+
+	msrObject = new MSRObject;
+
+	if (!msrObject->readMSR(COFVID_STATUS_REG, getMask(0, selectedNode))) {
+		printf("Brazos::maxVID - Unable to read MSR\n");
+		free(msrObject);
+		return false;
+	}
+
+	//maxVid is stored in COFVID_STATUS_REG in high half register (edx)
+	//from bit 3 to bit 9
+	maxVid = msrObject->getBitsHigh(0, 3, 7);
+
+	free(msrObject);
+
+	//If maxVid==0, then there's no maximum set in hardware
+	if (maxVid == 0)
+		return 0;
+	else
+		return maxVid;
+}
+
+//StartupPState is reported per-node. Selected core is discarded
+DWORD Brazos::startupPState () {
+	MSRObject *msrObject;
+	DWORD pstate;
+
+	msrObject = new MSRObject();
+
+	if (!msrObject->readMSR(COFVID_STATUS_REG, getMask(0, selectedNode))) {
+		printf("Brazos.cpp::startupPState unable to read MSR\n");
+		free(msrObject);
+		return false;
+	}
+
+	//Returns data for the first cpu in cpuMask (cpu 0)
+	//StartupPState has base offset at 0 bits of high register (edx) and is 3 bit wide
+	pstate = msrObject->getBitsHigh(0, 0, 3);
+
+	free(msrObject);
+
+	return pstate;
+
+}
+
+DWORD Brazos::maxCPUFrequency() {
+
+	//return (0+0x10)*100; //Returns 1600 Mhz processor --- simulated stub!!!
+
+	MSRObject *msrObject;
+	DWORD maxCPUFid;
+
+	msrObject = new MSRObject();
+
+	if (!msrObject->readMSR(COFVID_STATUS_REG, getMask(0, selectedNode))) {
+		printf("Brazos.cpp::maxCPUFrequency unable to read MSR\n");
+		free(msrObject);
+		return false;
+	}
+
+	//Returns data for the first cpu in cpuMask (cpu 0)
+	//maxCPUFid has base offset at 17 bits of high register (edx) and is 6 bits wide
+	maxCPUFid = msrObject->getBitsHigh(0, 17, 6);
+
+	free(msrObject);
+
+	return (maxCPUFid+0x10) * 100;
+
+}
+
+//Temperature registers ------------------
+
+DWORD Brazos::getTctlRegister (void) {
+
+	PCIRegObject *pciRegObject;
+		DWORD temp;
+
+		pciRegObject = new PCIRegObject();
+
+		if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3,
+				0xa4, getNodeMask())) {
+			printf("Brazos.cpp::getTctlRegister - unable to read PCI register\n");
+			free(pciRegObject);
+			return NULL;
+		}
+
+		/*
+		 * Tctl data is stored in PCI register with
+		 * device PCI_DEV_NORTHBRIDGE
+		 * function PC_FUNC_MISC_CONTROL_3
+		 * register 0xa4
+		 * bits from 21 to 31
+		 */
+		temp = pciRegObject->getBits(0, 21, 11);
+
+		free(pciRegObject);
+
+		return temp >> 3;
+}
+
+DWORD Brazos::getTctlMaxDiff() {
+
+	PCIRegObject *pciRegObject;
+	DWORD maxDiff;
+
+	pciRegObject = new PCIRegObject();
+
+	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3,
+			0xa4, getNodeMask())) {
+		printf("Brazos.cpp::getTctlMaxDiff unable to read PCI register\n");
+		free(pciRegObject);
+		return NULL;
+	}
+
+	/*
+	 * Tctl Max diff data is stored in PCI register with
+	 * device PCI_DEV_NORTHBRIDGE
+	 * function PC_FUNC_MISC_CONTROL_3
+	 * register 0xa4
+	 * bits from 5 to 6
+	 */
+	maxDiff = pciRegObject->getBits(0, 5, 2);
+
+	free(pciRegObject);
+
+	return maxDiff;
+
+}
+
+//Voltage Slamming time
+DWORD Brazos::getSlamTime (void) {
+	PCIRegObject *pciRegObject;
+	DWORD slamTime;
+
+	pciRegObject = new PCIRegObject();
+
+	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3,
+			0xd4, getNodeMask())) {
+		printf("Brazos.cpp::getSlamTime unable to read PCI register\n");
+		free(pciRegObject);
+		return NULL;
+	}
+
+	/*
+	 * voltage slamtime is stored in PCI register with
+	 * device PCI_DEV_NORTHBRIDGE
+	 * function PC_FUNC_MISC_CONTROL_3
+	 * register 0xd8
+	 * bits from 0 to 2
+	 */
+	slamTime = pciRegObject->getBits(0, 0, 3);
+
+	free(pciRegObject);
+
+	return slamTime;
+}
+
+void Brazos::setSlamTime (DWORD slmTime) {
+
+	PCIRegObject *pciRegObject;
+
+	if (slmTime<0 || slmTime >7) {
+		printf ("Invalid Slam Time: must be between 0 and 7\n");
+		return;
+	}
+
+	pciRegObject = new PCIRegObject();
+
+	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3, 0xd4,
+			getNodeMask())) {
+		printf("Brazos::setSlamTime -  unable to read PCI Register\n");
+		free(pciRegObject);
+		return;
+	}
+
+	/*
+	 * voltage slamtime is stored in PCI register with
+	 * device PCI_DEV_NORTHBRIDGE
+	 * function PC_FUNC_MISC_CONTROL_3
+	 * register 0xd4
+	 * bits from 0 to 2
+	 */
+
+	pciRegObject->setBits(0, 3, slmTime);
+
+	if (!pciRegObject->writePCIReg()) {
+		printf("Brazos.cpp::setSlamTime - unable to write PCI register\n");
+		free(pciRegObject);
+		return;
+	}
+
+	free (pciRegObject);
+
+	return;
+
+}
+
+// AltVID - HTC Thermal features
+
+bool Brazos::HTCisCapable () {
+	PCIRegObject *pciRegObject;
+	DWORD isCapable;
+
+	pciRegObject = new PCIRegObject();
+
+	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3,
+			0xe8, getNodeMask())) {
+		printf("Brazos::HTCisCapable - unable to read PCI register\n");
+		free(pciRegObject);
+		return false;
+	}
+
+	/*
+	 * HTC-capable bit is stored in PCI register with
+	 * device PCI_DEV_NORTHBRIDGE
+	 * function PC_FUNC_MISC_CONTROL_3
+	 * register 0xe8
+	 * bit 10
+	 */
+
+	isCapable = pciRegObject->getBits(0, 10, 1);
+
+	free(pciRegObject);
+
+	return (bool) isCapable;
+}
+
+bool Brazos::HTCisEnabled() {
+	PCIRegObject *pciRegObject;
+	DWORD isEnabled;
+
+	pciRegObject = new PCIRegObject();
+
+	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3,
+			0x64, getNodeMask())) {
+		printf("Brazos::HTCisEnabled - unable to read PCI register\n");
+		free(pciRegObject);
+		return false;
+	}
+
+	/*
+	 * HTC-enabled bit is stored in PCI register with
+	 * device PCI_DEV_NORTHBRIDGE
+	 * function PC_FUNC_MISC_CONTROL_3
+	 * register 0x64
+	 * bit 0
+	 */
+
+	isEnabled = pciRegObject->getBits(0, 0, 1);
+
+	free(pciRegObject);
+
+	return (bool) isEnabled;
+
+}
+
+bool Brazos::HTCisActive() {
+	PCIRegObject *pciRegObject;
+	DWORD isActive;
+
+	pciRegObject = new PCIRegObject();
+
+	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3,
+			0x64, getNodeMask())) {
+		printf("Brazos::HTCisActive - unable to read PCI register\n");
+		free(pciRegObject);
+		return false;
+	}
+
+	/*
+	 * HTC active bit is stored in PCI register with
+	 * device PCI_DEV_NORTHBRIDGE
+	 * function PC_FUNC_MISC_CONTROL_3
+	 * register 0x64
+	 * bit 4
+	 */
+
+	isActive = pciRegObject->getBits(0, 4, 1);
+
+	free(pciRegObject);
+
+	return (bool) isActive;
+
+}
+
+bool Brazos::HTChasBeenActive () {
+	PCIRegObject *pciRegObject;
+	DWORD hasBeenActivated;
+
+	pciRegObject = new PCIRegObject();
+
+	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3,
+			0x64, getNodeMask())) {
+		printf("Brazos::HTChasBeenActive - unable to read PCI register\n");
+		free(pciRegObject);
+		return false;
+	}
+
+	/*
+	 * HTC has been activated bit is stored in PCI register with
+	 * device PCI_DEV_NORTHBRIDGE
+	 * function PC_FUNC_MISC_CONTROL_3
+	 * register 0x64
+	 * bit 5
+	 */
+
+	hasBeenActivated = pciRegObject->getBits(0, 5, 1);
+
+	free(pciRegObject);
+
+	return (bool) hasBeenActivated;
+
+}
+
+DWORD Brazos::HTCTempLimit() {
+	PCIRegObject *pciRegObject;
+	DWORD tempLimit;
+
+	pciRegObject = new PCIRegObject();
+
+	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3,
+			0x64, getNodeMask())) {
+		printf("Brazos::HTCTempLimit - unable to read PCI register\n");
+		free(pciRegObject);
+		return false;
+	}
+
+	/*
+	 * HTC temperature limit is stored in PCI register with
+	 * device PCI_DEV_NORTHBRIDGE
+	 * function PC_FUNC_MISC_CONTROL_3
+	 * register 0x64
+	 * bits from 16 to 22
+	 */
+
+	tempLimit = 52 + (pciRegObject->getBits(0, 16, 7) >> 1);
+
+	free(pciRegObject);
+
+	return tempLimit;
+
+}
+
+bool Brazos::HTCSlewControl() {
+	PCIRegObject *pciRegObject;
+	DWORD slewControl;
+
+	pciRegObject = new PCIRegObject();
+
+	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3,
+			0x64, getNodeMask())) {
+		printf("Brazos::HTCSlewControl - unable to read PCI register\n");
+		free(pciRegObject);
+		return false;
+	}
+
+	/*
+	 * HTC slew Control bit is stored in PCI register with
+	 * device PCI_DEV_NORTHBRIDGE
+	 * function PC_FUNC_MISC_CONTROL_3
+	 * register 0x64
+	 * bit 23
+	 */
+
+	slewControl = pciRegObject->getBits(0, 23, 1);
+
+	free(pciRegObject);
+
+	return (bool) slewControl;
+
+}
+
+DWORD Brazos::HTCHystTemp() {
+	PCIRegObject *pciRegObject;
+	DWORD hystTemp;
+
+	pciRegObject = new PCIRegObject();
+
+	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3,
+			0x64, getNodeMask())) {
+		printf("Brazos::HTCHystTemp - unable to read PCI register\n");
+		free(pciRegObject);
+		return false;
+	}
+
+	/*
+	 * HTC Hysteresis Temperature is stored in PCI register with
+	 * device PCI_DEV_NORTHBRIDGE
+	 * function PC_FUNC_MISC_CONTROL_3
+	 * register 0x64
+	 * bits from 24 to 27
+	 */
+
+	hystTemp = pciRegObject->getBits(0, 24, 4) >> 1;
+
+	free(pciRegObject);
+
+	return hystTemp;
+
+}
+
+DWORD Brazos::HTCPStateLimit () {
+
+	PCIRegObject *pciRegObject;
+	DWORD pStateLimit;
+
+	pciRegObject = new PCIRegObject();
+
+	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3,
+			0x64, getNodeMask())) {
+		printf("Brazos::HTCPStateLimit - unable to read PCI register\n");
+		free(pciRegObject);
+		return false;
+	}
+
+	/*
+	 * HTC PState limit is stored in PCI register with
+	 * device PCI_DEV_NORTHBRIDGE
+	 * function PC_FUNC_MISC_CONTROL_3
+	 * register 0x64
+	 * bits from 28 to 30
+	 */
+
+	pStateLimit = pciRegObject->getBits(0, 28, 3);
+
+	free(pciRegObject);
+
+	return pStateLimit;
+
+}
+
+bool Brazos::HTCLocked() {
+	PCIRegObject *pciRegObject;
+	DWORD htcLocked;
+
+	pciRegObject = new PCIRegObject();
+
+	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3,
+			0x64, getNodeMask())) {
+		printf("Brazos::HTCLocked - unable to read PCI register\n");
+		free(pciRegObject);
+		return false;
+	}
+
+	/*
+	 * HTC locked bit is stored in PCI register with
+	 * device PCI_DEV_NORTHBRIDGE
+	 * function PC_FUNC_MISC_CONTROL_3
+	 * register 0x64
+	 * bit 31
+	 */
+
+	htcLocked = pciRegObject->getBits(0, 31, 1);
+
+	free(pciRegObject);
+
+	return (bool) htcLocked;
+}
+
+void Brazos::HTCEnable() {
+	PCIRegObject *pciRegObject;
+
+	pciRegObject = new PCIRegObject();
+
+	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3,
+			0x64, getNodeMask())) {
+		printf("Brazos::HTCEnable - unable to read PCI register\n");
+		free(pciRegObject);
+		return;
+	}
+
+	/*
+	 * HTC-enabled bit is stored in PCI register with
+	 * device PCI_DEV_NORTHBRIDGE
+	 * function PC_FUNC_MISC_CONTROL_3
+	 * register 0x64
+	 * bit 0
+	 */
+
+	pciRegObject->setBits(0, 1, 1);
+
+	if (!pciRegObject->writePCIReg()) {
+		printf("Brazos::HTCEnable - unable to write PCI register\n");
+		free(pciRegObject);
+		return;
+	}
+
+	free(pciRegObject);
+
+	return;
+}
+
+void Brazos::HTCDisable() {
+	PCIRegObject *pciRegObject;
+
+	pciRegObject = new PCIRegObject();
+
+	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3,
+			0x64, getNodeMask())) {
+		printf("Brazos::HTCDisable - unable to read PCI register\n");
+		free(pciRegObject);
+		return;
+	}
+
+	/*
+	 * HTC-enabled bit is stored in PCI register with
+	 * device PCI_DEV_NORTHBRIDGE
+	 * function PC_FUNC_MISC_CONTROL_3
+	 * register 0x64
+	 * bit 0
+	 */
+
+	pciRegObject->setBits(0, 1, 0);
+
+	if (!pciRegObject->writePCIReg()) {
+		printf("Brazos::HTCDisable - unable to write PCI register\n");
+		free(pciRegObject);
+		return;
+	}
+
+	free(pciRegObject);
+
+	return;
+
+}
+
+void Brazos::HTCsetTempLimit (DWORD tempLimit) {
+
+	PCIRegObject *pciRegObject;
+
+	if (tempLimit < 52 || tempLimit > 115) {
+		printf("HTCsetTempLimit: accepted range between 52 and 115\n");
+		return;
+	}
+
+	pciRegObject = new PCIRegObject();
+
+	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3,
+			0x64, getNodeMask())) {
+		printf("Brazos::HTCsetTempLimit - unable to read PCI register\n");
+		free(pciRegObject);
+		return;
+	}
+
+	/*
+	 * HTC temp limit is stored in PCI register with
+	 * device PCI_DEV_NORTHBRIDGE
+	 * function PC_FUNC_MISC_CONTROL_3
+	 * register 0x64
+	 * bits from 16 to 22
+	 */
+
+	pciRegObject->setBits(16, 7, (tempLimit - 52) << 1);
+
+	if (!pciRegObject->writePCIReg()) {
+		printf("Brazos::HTCsetTempLimit - unable to write PCI register\n");
+		free(pciRegObject);
+		return;
+	}
+
+	free(pciRegObject);
+
+	return;
+
+}
+
+void Brazos::HTCsetHystLimit(DWORD hystLimit) {
+
+	PCIRegObject *pciRegObject;
+
+	if (hystLimit < 0 || hystLimit > 7) {
+		printf("HTCsetHystLimit: accepted range between 0 and 7\n");
+		return;
+	}
+
+	pciRegObject = new PCIRegObject();
+
+	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3,
+			0x64, getNodeMask())) {
+		printf("Brazos::HTCsetHystLimit - unable to read PCI register\n");
+		free(pciRegObject);
+		return;
+	}
+
+	/*
+	 * HTC temp limit is stored in PCI register with
+	 * device PCI_DEV_NORTHBRIDGE
+	 * function PC_FUNC_MISC_CONTROL_3
+	 * register 0x64
+	 * bits from 24 to 27
+	 */
+
+	pciRegObject->setBits(24, 4, hystLimit << 1);
+
+	if (!pciRegObject->writePCIReg()) {
+		printf("Brazos::HTCsetHystLimit - unable to write PCI register\n");
+		free(pciRegObject);
+		return;
+	}
+
+	free(pciRegObject);
+
+	return;
+}
+
+DWORD Brazos::getAltVID() {
+
+	PCIRegObject *pciRegObject;
+	DWORD altVid;
+
+	pciRegObject = new PCIRegObject();
+
+	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3,
+			0xdc, getNodeMask())) {
+		printf("Brazos.cpp::getAltVID - unable to read PCI register\n");
+		free(pciRegObject);
+		return false;
+	}
+
+	/*
+	 * AltVid is stored in PCI register with
+	 * device PCI_DEV_NORTHBRIDGE
+	 * function PC_FUNC_MISC_CONTROL_3
+	 * register 0xDC
+	 * bits from 0 to 6
+	 */
+
+	altVid = pciRegObject->getBits(0, 0, 7);
+
+	free(pciRegObject);
+
+	return altVid;
+}
+
+void Brazos::setAltVid(DWORD altVid) {
+
+	PCIRegObject *pciRegObject;
+
+	if ((altVid < maxVID()) || (altVid > minVID())) {
+		printf("setAltVID: VID Allowed range %d-%d\n", maxVID(), minVID());
+		return;
+	}
+
+	pciRegObject = new PCIRegObject();
+
+	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3,
+			0xdc, getNodeMask())) {
+		printf("Brazos.cpp::setAltVID - unable to read PCI register\n");
+		free(pciRegObject);
+		return;
+	}
+
+	/*
+	 * AltVid is stored in PCI register with
+	 * device PCI_DEV_NORTHBRIDGE
+	 * function PC_FUNC_MISC_CONTROL_3
+	 * register 0xDC
+	 * bits from 0 to 6
+	 */
+
+	pciRegObject->setBits(0, 7, altVid);
+
+	if (!pciRegObject->writePCIReg()) {
+		printf("Brazos.cpp::setAltVID - unable to write to PCI register\n");
+		free(pciRegObject);
+		return;
+	}
+
+	free(pciRegObject);
+
+	return;
+}
+
+// CPU Usage module
+
+bool Brazos::getPsiEnabled () {
+
+	PCIRegObject *pciRegObject;
+	DWORD psiEnabled;
+
+	pciRegObject = new PCIRegObject();
+
+	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3,
+			0xa0, getNodeMask())) {
+		printf("Brazos.cpp::getPsiEnabled - unable to read PCI register\n");
+		free(pciRegObject);
+		return false;
+	}
+
+	/*
+	 * Psi bit is stored in PCI register with
+	 * device PCI_DEV_NORTHBRIDGE
+	 * function PC_FUNC_MISC_CONTROL_3
+	 * register 0xa0
+	 * bit 7
+	 */
+
+	psiEnabled=pciRegObject->getBits(0, 7, 1);
+
+	free(pciRegObject);
+
+	return (bool) psiEnabled;
+
+}
+
+DWORD Brazos::getPsiThreshold () {
+
+	PCIRegObject *pciRegObject;
+	DWORD psiThreshold;
+
+	pciRegObject = new PCIRegObject();
+
+	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3,
+			0xa0, getNodeMask())) {
+		printf("Brazos.cpp::getPsiThreshold - unable to read PCI register\n");
+		free(pciRegObject);
+		return false;
+	}
+
+	/*
+	 * Psi threshold is stored in PCI register with
+	 * device PCI_DEV_NORTHBRIDGE
+	 * function PC_FUNC_MISC_CONTROL_3
+	 * register 0xa0
+	 * bits from 0 to 6
+	 */
+
+	psiThreshold=pciRegObject->getBits(0, 0, 7);
+
+	free(pciRegObject);
+
+	return psiThreshold;
+
+}
+
+void Brazos::setPsiEnabled (bool toggle) {
+
+	PCIRegObject *pciRegObject;
+
+	pciRegObject = new PCIRegObject();
+
+	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3,
+			0xa0, getNodeMask())) {
+		printf("Brazos.cpp::setPsiEnabled - unable to read PCI register\n");
+		free(pciRegObject);
+		return;
+	}
+
+	/*
+	 * Psi bit is stored in PCI register with
+	 * device PCI_DEV_NORTHBRIDGE
+	 * function PC_FUNC_MISC_CONTROL_3
+	 * register 0xa0
+	 * bit 7
+	 */
+
+	pciRegObject->setBits(7, 1, toggle);
+
+	if (!pciRegObject->writePCIReg()) {
+		printf ("Brazos.cpp::setPsiEnabled - unable to write PCI register\n");
+		free (pciRegObject);
+		return;
+	}
+
+	free(pciRegObject);
+
+	return;
+	
+}
+
+void Brazos::setPsiThreshold (DWORD threshold) {
+
+	PCIRegObject *pciRegObject;
+
+	if (threshold>minVID() || threshold<maxVID()) {
+			printf ("setPsiThreshold: value must be between %d and %d\n",minVID(), maxVID());
+			return;
+		}
+
+
+	pciRegObject = new PCIRegObject();
+
+	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3,
+			0xa0, getNodeMask())) {
+		printf("Brazos.cpp::setPsiThreshold - unable to read PCI register\n");
+		free(pciRegObject);
+		return;
+	}
+
+	/*
+	 * Psi threshold is stored in PCI register with
+	 * device PCI_DEV_NORTHBRIDGE
+	 * function PC_FUNC_MISC_CONTROL_3
+	 * register 0xa0
+	 * bits from 0 to 6
+	 */
+
+	pciRegObject->setBits(0, 7, threshold);
+
+	if (!pciRegObject->writePCIReg()) {
+		printf ("Brazos.cpp::setPsiThreshold - unable to write PCI register\n");
+		free (pciRegObject);
+		return;
+	}
+
+	free(pciRegObject);
+
+	return;
+
+}
+
+// Various settings
+
+bool Brazos::getC1EStatus () {
+
+	MSRObject *msrObject;
+	DWORD c1eBit;
+
+	msrObject=new MSRObject ();
+
+	if (!msrObject->readMSR(CMPHALT_REG, getMask())) {
+		printf ("Brazos.cpp::getC1EStatus - unable to read MSR\n");
+		free (msrObject);
+		return false;
+	}
+
+	//Returns data for the first cpu in cpuMask (cpu 0)
+	//C1E bit is stored in bit 28
+	c1eBit=msrObject->getBitsLow(0, 28, 1);
+
+	free (msrObject);
+
+	return (bool) c1eBit;
+	
+}
+
+void Brazos::setC1EStatus (bool toggle) {
+
+	MSRObject *msrObject;
+
+	msrObject=new MSRObject ();
+
+	if (!msrObject->readMSR(CMPHALT_REG, getMask())) {
+		printf ("Brazos.cpp::setC1EStatus - unable to read MSR\n");
+		free (msrObject);
+		return;
+	}
+
+	msrObject->setBitsLow(28, 1, toggle);
+
+	//C1E bit is stored in bit 28
+	if (!msrObject->writeMSR()) {
+		printf ("Brazos.cpp::setC1EStatus - unable to write MSR\n");
+		free (msrObject);
+		return;
+	}
+
+	free (msrObject);
+
+	return;
+
+}
+
+// Performance Counters
+
+/*
+ * Will show some informations about performance counter slots
+ */
+void Brazos::perfCounterGetInfo () {
+
+	PerformanceCounter *performanceCounter;
+	DWORD node, core, slot;
+
+	printf ("Caption:\n");
+	printf ("Evt:\tperformance counter event\n");
+	printf ("En:\tperformance counter is enabled\n");
+	printf ("U:\tperformance counter will count usermode instructions\n");
+	printf ("OS:\tperformance counter will counter Os/kernel instructions\n");
+	printf ("cMsk:\tperformance counter mask (see processor manual reference)\n");
+	printf ("ED:\tcounting on edge detect, else counting on level detect\n");
+	printf ("APIC:\tif set, an APIC interrupt will be issued on counter overflow\n");
+	printf ("icMsk:\tif set, mask is inversed (see processor manual reference)\n");
+	printf ("uMsk:\tunit mask (see processor manual reference)\n\n");
+
+	for (node=0;node<this->getProcessorNodes();node++) {
+
+		printf ("--- Node %d\n", node);
+
+		setNode(node);
+		setCore(ALL_CORES);
+
+		for (slot=0;slot<4;slot++) {
+
+			performanceCounter=new PerformanceCounter(getMask(), slot);
+
+			for (core=0;core<this->getProcessorCores();core++) {
+
+				if (!performanceCounter->fetch (core)) {
+					printf ("K10PerformanceCounters::perfCounterGetInfo - unable to read performance counter register\n");
+					free (performanceCounter);
+					return;
+				}
+
+				printf ("Slot %d core %d - evt:0x%x En:%d U:%d OS:%d cMsk:%x ED:%d APIC:%d icMsk:%x uMsk:%x\n",
+						slot,
+						core,
+						performanceCounter->getEventSelect(),
+						performanceCounter->getEnabled(),
+						performanceCounter->getCountUserMode(),
+						performanceCounter->getCountOsMode(),
+						performanceCounter->getCounterMask(),
+						performanceCounter->getEdgeDetect(),
+						performanceCounter->getEnableAPICInterrupt(),
+						performanceCounter->getInvertCntMask(),
+						performanceCounter->getUnitMask()
+						);
+			}
+
+			free (performanceCounter);
+
+		}
+
+	}
+
+}
+
+/*
+ * perfCounterGetValue will retrieve and show the performance counter value for all the selected nodes/processors
+ *
+ */
+void Brazos::perfCounterGetValue (unsigned int perfCounter) {
+
+	PerformanceCounter *performanceCounter;
+
+	performanceCounter=new PerformanceCounter(getMask(), perfCounter);
+
+	if (!performanceCounter->takeSnapshot()) {
+		printf ("K10PerformanceCounters::perfCounterGetValue - unable to read performance counter");
+		free (performanceCounter);
+		return;
+	}
+
+	printf ("Performance counter value: (decimal)%ld (hex)%lx\n", performanceCounter->getCounter(0), performanceCounter->getCounter(0));
+
+}
+
+void Brazos::perfMonitorCPUUsage () {
+
+	PerformanceCounter *perfCounter;
+	MSRObject *tscCounter; //We need the timestamp counter too to determine the cpu usage in percentage
+
+	DWORD cpuIndex, nodeId, coreId;
+	PROCESSORMASK cpuMask;
+	unsigned int perfCounterSlot;
+
+	uint64_t usage;
+
+	// These two pointers will refer to two arrays containing previous performance counter values
+	// and previous Time Stamp counters. We need these to obtain instantaneous CPU usage information
+	uint64_t *prevPerfCounters;
+	uint64_t *prevTSCCounters;
+
+	setNode (ALL_NODES);
+	setCore (ALL_CORES);
+
+	cpuMask=getMask (); /* We do this to do some "caching" of the mask, instead of calculating each time
+							we need to retrieve the time stamp counter */
+
+	// Allocating space for previous values of counters.
+	prevPerfCounters=(uint64_t *)calloc (processorCores*processorNodes, sizeof (uint64_t));
+	prevTSCCounters=(uint64_t *)calloc (processorCores*processorNodes, sizeof (uint64_t));
+
+	// MSR Object to retrieve the time stamp counter for all the nodes and all the processors
+	tscCounter=new MSRObject();
+
+	//Creates a new performance counter, for now we set slot 0, but we will
+	//use the findAvailable slot method to find an available method to be used
+	perfCounter=new PerformanceCounter(cpuMask, 0);
+
+	//Event 0x76 is Idle Counter
+	perfCounter->setEventSelect(0x76);
+	perfCounter->setCountOsMode(true);
+	perfCounter->setCountUserMode(true);
+	perfCounter->setCounterMask(0);
+	perfCounter->setEdgeDetect(false);
+	perfCounter->setEnableAPICInterrupt(false);
+	perfCounter->setInvertCntMask(false);
+	perfCounter->setUnitMask(0);
+
+	//Finds an available slot for our purpose
+	perfCounterSlot=perfCounter->findAvailableSlot();
+
+	//findAvailableSlot() returns -2 in case of error
+	if (perfCounterSlot==0xfffffffe) {
+		printf ("Brazos.cpp::perfMonitorCPUUsage - unable to access performance counter slots\n");
+		free (perfCounter);
+		free (tscCounter);
+		free (prevPerfCounters);
+		free (prevTSCCounters);
+		return;
+	}
+
+	//findAvailableSlot() returns -1 in case there aren't available slots
+	if (perfCounterSlot == 0xffffffff) {
+		printf(
+				"Brazos.cpp::perfMonitorCPUUsage - unable to find an available performance counter slot\n");
+		free(perfCounter);
+		free(tscCounter);
+		free(prevPerfCounters);
+		free(prevTSCCounters);
+		return;
+	}
+
+	printf ("Performance counter will use slot #%d\n", perfCounterSlot);
+
+	//In case there are no errors, we program the object with the slot itself has found
+	perfCounter->setSlot(perfCounterSlot);
+
+	// Program the counter slot
+	if (!perfCounter->program()) {
+		printf ("K10PerformanceCounters::perfMonitorCPUUsage - unable to program performance counter parameters\n");
+		free (perfCounter);
+		free (tscCounter);
+		free (prevPerfCounters);
+		free (prevTSCCounters);
+		return;
+	}
+
+	// Enabled the counter slot
+	if (!perfCounter->enable()) {
+		printf ("K10PerformanceCounters::perfMonitorCPUUsage - unable to enable performance counters\n");
+		free (perfCounter);
+		free (tscCounter);
+		free (prevPerfCounters);
+		free (prevTSCCounters);
+		return;
+	}
+
+	/* Here we take a snapshot of the performance counter and a snapshot of the time
+	 * stamp counter to initialize the arrays to let them not show erratic huge numbers
+	 * on first step
+	 */
+
+	if (!perfCounter->takeSnapshot()) {
+		printf ("K10PerformanceCounters::perfMonitorCPUUsage - unable to retrieve performance counter data\n");
+		free (perfCounter);
+		free (tscCounter);
+		free (prevPerfCounters);
+		free (prevTSCCounters);
+		return;
+	}
+
+	if (!tscCounter->readMSR(TIME_STAMP_COUNTER_REG, cpuMask)) {
+		printf(
+				"K10PerformanceCounters::perfMonitorCPUUsage - unable to retrieve time stamp counter\n");
+		free(perfCounter);
+		free(tscCounter);
+		free(prevPerfCounters);
+		free(prevTSCCounters);
+		return;
+	}
+
+	cpuIndex=0;
+	for (nodeId=0;nodeId<processorNodes;nodeId++) {
+		for (coreId=0x0;coreId<processorCores;coreId++) {
+			prevPerfCounters[cpuIndex]=perfCounter->getCounter(cpuIndex);
+			prevTSCCounters[cpuIndex]=tscCounter->getBits(cpuIndex,0,64);
+			cpuIndex++;
+		}
+	}
+
+	Signal::activateSignalHandler(SIGINT);
+
+	while (!Signal::getSignalStatus()) {
+
+		if (!perfCounter->takeSnapshot()) {
+			printf ("K10PerformanceCounters::perfMonitorCPUUsage - unable to retrieve performance counter data\n");
+			free (perfCounter);
+			free (tscCounter);
+			free (prevPerfCounters);
+			free (prevTSCCounters);
+			return;
+		}
+
+		if (!tscCounter->readMSR(TIME_STAMP_COUNTER_REG, cpuMask)) {
+			printf ("K10PerformanceCounters::perfMonitorCPUUsage - unable to retrieve time stamp counter\n");
+			free (perfCounter);
+			free (tscCounter);
+			free (prevPerfCounters);
+			free (prevTSCCounters);
+			return;
+		}
+
+		cpuIndex=0;
+
+		for (nodeId=0;nodeId<processorNodes;nodeId++) {
+
+			printf ("Node %d -", nodeId);
+
+			for (coreId=0x0;coreId<processorCores;coreId++) {
+
+				usage=((perfCounter->getCounter(cpuIndex))-prevPerfCounters[cpuIndex])*100;
+				usage/=tscCounter->getBits(cpuIndex,0,64)-prevTSCCounters[cpuIndex];
+
+				printf (" c%d:%d%%",coreId, (unsigned int)usage);
+
+				prevPerfCounters[cpuIndex]=perfCounter->getCounter(cpuIndex);
+				prevTSCCounters[cpuIndex]=tscCounter->getBits(cpuIndex,0,64);
+
+				cpuIndex++;
+
+			}
+
+			printf ("\n");
+
+		}
+
+		Sleep (1000);
+
+	}
+
+	printf ("CTRL-C executed. Cleaning on exit... ");
+	//Disables the performance counter
+	perfCounter->disable();
+
+	//Cleans the exit
+	free (perfCounter);
+	free (tscCounter);
+	free (prevPerfCounters);
+	free (prevTSCCounters);
+
+	printf ("Done!\n");
+
+}
+
+void Brazos::getCurrentStatus (struct procStatus *pStatus, DWORD core) {
+
+    DWORD eaxMsr, edxMsr;
+
+    RdmsrPx (0xc0010071,&eaxMsr,&edxMsr,(DWORD_PTR)1<<core);
+    pStatus->pstate=(eaxMsr>>16) & 0x7;
+    pStatus->vid=(eaxMsr>>9) & 0x7f;
+    pStatus->fid=eaxMsr & 0x3f;
+    pStatus->did=(eaxMsr >> 6) & 0x7;
+
+return;
+
+}
+
+void Brazos::checkMode () {
+
+	DWORD i,pstate,vid,fid,did;
+	DWORD eaxMsr,edxMsr;
+	DWORD timestamp;
+	DWORD states[2][5];
+	DWORD minTemp,maxTemp,temp;
+	DWORD oTimeStamp;
+	float curVcore;
+	DWORD maxPState;
+	int cid;
+
+	printf ("Monitoring...\n");
+
+	maxPState=getMaximumPState().getPState();
+
+	for (i=0;i<8;i++) {
+		states[0][i]=0;
+		states[1][i]=0;
+	}
+
+	minTemp=getTctlRegister();
+	maxTemp=minTemp;
+	oTimeStamp=GetTickCount ();
+
+	while (1) {
+
+		timestamp=GetTickCount ();
+
+		printf (" \rTs:%d - ",timestamp);
+		for (i=0;i<processorCores;i++) {
+
+			/*RdmsrPx (0xc0010063,&eaxMsr,&edxMsr,i+1);
+			pstate=eaxMsr & 0x7;*/
+
+			RdmsrPx (0xc0010071,&eaxMsr,&edxMsr,(PROCESSORMASK)1<<i);
+			pstate=(eaxMsr>>16) & 0x7;
+			vid=(eaxMsr>>9) & 0x7f;
+			curVcore=(float)((124-vid)*0.0125);
+			fid=eaxMsr & 0x3f;
+			did=(eaxMsr >> 6) & 0x7;
+
+			states[i][pstate]++;
+
+			printf ("c%d:ps%d - ",i,pstate);
+			if (pstate>maxPState)
+				printf ("\n * Detected pstate %d on core %d\n",pstate,i);
+		}
+
+		temp=getTctlRegister();
+
+		if (temp<minTemp) minTemp=temp;
+		if (temp>maxTemp) maxTemp=temp;
+
+		printf ("Tctl: %d",temp);
+
+		if ((timestamp-oTimeStamp)>30000) {
+			oTimeStamp=timestamp;
+
+
+			printf ("\n\tps0\tps1\tps2\tps3\tps4\n\n");
+			for (cid=0;cid<processorCores;cid++) {
+			printf ("Core%d:",cid);
+				for (i=0;i<5;i++)
+					printf ("\t%d",states[0][i]);
+
+			printf ("\n");
+			}
+
+			printf ("\n\nCurTctl:%d\t MinTctl:%d\t MaxTctl:%d\n",temp,minTemp,maxTemp);
+
+		}
+
+
+		Sleep (50);
+	}
+
+	return;
+}
+
+
+/************** PUBLIC SHOW METHODS ******************/
+
+
+void Brazos::showHTLink() {
+
+	printf("\nHypertransport Status:\n");
+	printf ("This processor has no Hypertransport Links\n");
+
+}
+
+void Brazos::showHTC() {
+
+	int i;
+	int nodes = getProcessorNodes();
+
+	printf("\nHardware Thermal Control Status:\n\n");
+
+	if (HTCisCapable() != true) {
+		printf("Processor is not HTC Capable\n");
+		return;
+	}
+
+	for (i = 0; i < nodes; i++) {
+		printf (" --- Node %u:\n", i);
+		setNode(i);
+		printf("HTC features enabled flag: ");
+		if (HTCisEnabled() == true)
+			printf("true. Hardware Thermal Control is enabled.\n");
+		else
+			printf("false. Hardware Thermal Control is disabled.\n");
+
+		printf("HTC features currently active (means overheating): ");
+		if (HTCisActive() == true)
+			printf("true\n");
+		else
+			printf("false\n");
+
+		printf("HTC features has been active (means overheated in past): ");
+		if (HTChasBeenActive() == true)
+			printf("true\n");
+		else
+			printf("false\n");
+
+		printf("HTC parameters are locked: ");
+		if (HTCLocked() == true)
+			printf("true\n");
+		else
+			printf("false\n");
+
+		printf("HTC Slew control: ");
+		if (HTCSlewControl() == true)
+			printf("by Tctl Slew register\n");
+		else
+			printf("by Tctl without Slew register\n");
+
+		printf("HTC Limit temperature (equal or above means overheating): %d\n",
+			HTCTempLimit());
+		printf(
+			"HTC Hysteresis temperature (equal or below means no more overheating) : %d\n",
+			HTCTempLimit() - HTCHystTemp());
+		printf("HTC PState Limit: %d\n", HTCPStateLimit());
+		printf("\n");
+	}
+}
+
+void Brazos::showDramTimings() {
+
+	printf ("Not yet implemented");
+
+	return;
+
+}

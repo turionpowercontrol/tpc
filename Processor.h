@@ -22,6 +22,7 @@
 #endif
 
 #include <math.h>
+#include <stdio.h>
 
 //MSRs defines
 //Base (pstate 0) MSR register for Family 11h processors:
@@ -29,6 +30,10 @@
 
 //Base (pstate 0) MSR register for Family 10h processors:
 #define BASE_K10_PSTATEMSR 0xC0010064
+
+//Base (pstate 0) MSR register for Family 14h processors:
+#define BASE_14H_PSTATEMSR 0xC0010064
+
 
 //Shared (both Family 10h and Family 11h use the same registers)
 //regarding PSTATE Control, COFVID Status and CMPHALT registers.
@@ -65,6 +70,8 @@
 
 #define PROCESSOR_10H_FAMILY 6
 
+#define PROCESSOR_14H_FAMILY 7
+
 //Scaler helper structures:
 	struct procStatus {
 	DWORD pstate;DWORD vid;DWORD fid;DWORD did;
@@ -87,7 +94,7 @@ protected:
 	 */
 
 	DWORD powerStates;DWORD processorCores;
-	char processorStrId[32];DWORD processorIdentifier;DWORD processorNodes; // count of physical processor nodes (eg: 8 on a quad 6100 opteron box).
+	char processorStrId[64];DWORD processorIdentifier;DWORD processorNodes; // count of physical processor nodes (eg: 8 on a quad 6100 opteron box).
 
 	//Processor Specs
 	int familyBase;
@@ -111,7 +118,7 @@ protected:
 
 	void setProcessorStrId(const char *);
 	void setPowerStates(DWORD);
-	//void setProcessorCores (DWORD); //Gone public to allow processor cores forcing from main program
+	void setProcessorCores (DWORD);
 	void setProcessorIdentifier(DWORD);
 	void setProcessorNodes(DWORD);
 
@@ -173,9 +180,6 @@ public:
 	//Public method to show some detailed information about Hardware Thermal Control
 	virtual void showHTC (void);
 
-	//Public method to override number of cores by main
-	void setProcessorCores(DWORD);
-
 	//Get methods to obtain general processor specifications
 	int getSpecFamilyBase();
 	int getSpecModel();
@@ -213,12 +217,12 @@ public:
 
 	//Low level functions to set specific processor primitives
 	virtual void setVID (PState , DWORD);
-	virtual void setFID (PState , DWORD);
-	virtual void setDID (PState , DWORD);
+	virtual void setFID (PState , float);
+	virtual void setDID (PState , float);
 
 	virtual DWORD getVID(PState);
-	virtual DWORD getFID(PState);
-	virtual DWORD getDID(PState);
+	virtual float getFID(PState);
+	virtual float getDID(PState);
 
 	//Higher level functions that do conversions into lower level primitives
 	virtual void setFrequency(PState, DWORD);

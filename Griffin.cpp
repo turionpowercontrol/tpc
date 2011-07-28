@@ -389,11 +389,15 @@ void Griffin::setVID (PState ps, DWORD vid) {
 
 //-----------------------setFID-----------------------------
 //Overloads abstract Processor method to allow per-core personalization
-void Griffin::setFID (PState ps, DWORD fid) {
+void Griffin::setFID (PState ps, float floatFid) {
+
+	unsigned int fid;
 
 	MSRObject *msrObject;
 
-	if ((fid<0) || (fid>31)) {
+	fid=(unsigned int) floatFid;
+
+	if (fid>31) {
 		printf ("Griffin.cpp::setFID - FID Allowed range 0-31\n");
 		return;
 	}
@@ -423,11 +427,14 @@ void Griffin::setFID (PState ps, DWORD fid) {
 
 //-----------------------setDID-----------------------------
 //Overloads abstract Processor method to allow per-core personalization
-void Griffin::setDID(PState ps, DWORD did) {
+void Griffin::setDID(PState ps, float floatDid) {
 
+	unsigned int did;
 	MSRObject *msrObject;
 
-	if ((did < 0) || (did > 4)) {
+	did=(unsigned int)floatDid;
+
+	if (did >= 4) {
 		printf("Griffin.cpp::setDID - DID Allowed range 0-3\n");
 		return;
 	}
@@ -482,7 +489,7 @@ DWORD Griffin::getVID (PState ps) {
 
 //-----------------------getFID-----------------------------
 
-DWORD Griffin::getFID (PState ps) {
+float Griffin::getFID (PState ps) {
 
 	MSRObject *msrObject;
 	DWORD fid;
@@ -507,7 +514,7 @@ DWORD Griffin::getFID (PState ps) {
 
 //-----------------------getDID-----------------------------
 
-DWORD Griffin::getDID (PState ps) {
+float Griffin::getDID (PState ps) {
 
 	MSRObject *msrObject;
 	DWORD did;
@@ -526,7 +533,7 @@ DWORD Griffin::getDID (PState ps) {
 
 	free (msrObject);
 
-	return did;
+	return (float)did;
 }
 
 //-----------------------setFrequency-----------------------------

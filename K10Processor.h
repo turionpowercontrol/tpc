@@ -44,12 +44,12 @@ public:
 	void convertFreqtoFD(DWORD, int *, int *);
 		
 	void setVID (PState , DWORD);
-	void setFID (PState , DWORD);
-	void setDID (PState , DWORD);
+	void setFID (PState , float);
+	void setDID (PState , float);
 
 	DWORD getVID (PState);
-	DWORD getFID (PState);
-	DWORD getDID (PState);
+	float getFID (PState);
+	float getDID (PState);
 
 	void setFrequency (PState , DWORD);
 	void setVCore (PState, float);

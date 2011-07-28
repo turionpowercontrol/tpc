@@ -230,6 +230,7 @@ void Processor::convertFreqtoFD(DWORD, int *, int *) {
 }
 
 void Processor::setProcessorStrId (const char *strId) {
+	if (strlen(strId)>64) printf ("Warning: processor string Id Exceeds 64 bytes!\n");
 	strcpy_s (processorStrId,strId);
 }
 
@@ -379,13 +380,13 @@ void Processor::setVID(PState ps, DWORD vid) {
 
 /* setFID */
 
-void Processor::setFID(PState ps, DWORD fid) {
+void Processor::setFID(PState ps, float fid) {
 	return;
 }
 
 /* setDID */
 
-void Processor::setDID(PState ps, DWORD did) {
+void Processor::setDID(PState ps, float did) {
 	return;
 }
 
@@ -407,13 +408,13 @@ DWORD Processor::getVID(PState ps) {
 
 /* getFID */
 
-DWORD Processor::getFID(PState ps) {
+float Processor::getFID(PState ps) {
 	return -1;
 }
 
 /* getDID */
 
-DWORD Processor::getDID(PState ps) {
+float Processor::getDID(PState ps) {
 	return -1;
 }
 
