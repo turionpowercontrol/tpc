@@ -31,6 +31,9 @@
 //Base (pstate 0) MSR register for Family 10h processors:
 #define BASE_K10_PSTATEMSR 0xC0010064
 
+//Base (pstate 0) MSR register for Family 12h processors:
+#define BASE_12H_PSTATEMSR 0xC0010064
+
 //Base (pstate 0) MSR register for Family 14h processors:
 #define BASE_14H_PSTATEMSR 0xC0010064
 
@@ -69,6 +72,8 @@
 #define SEMPRON_SI_FAMILY 5
 
 #define PROCESSOR_10H_FAMILY 6
+
+#define PROCESSOR_12H_FAMILY 8
 
 #define PROCESSOR_14H_FAMILY 7
 

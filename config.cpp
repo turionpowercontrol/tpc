@@ -41,8 +41,8 @@ int CfgManager::consumePStateSection () {
 	char line[256];
 	
 	//-1 means "do not touch".
-	int vid=-1, fid=-1, did=-1, enable=-1, frequency=-1, nbvid=-1;
-	float voltage=-1,nbvoltage=-1;
+	int vid=-1, enable=-1, frequency=-1, nbvid=-1;
+	float voltage=-1,nbvoltage=-1, fid=-1, did=-1;
 	
 	char *token;
 	
@@ -88,9 +88,9 @@ int CfgManager::consumePStateSection () {
 		} else if (strcmp (line,"vid")==0) {
 			fscanf (cfgFile, "%d", &vid);
 		} else if (strcmp (line,"fid")==0) {
-			fscanf (cfgFile, "%d", &fid);
+			fscanf (cfgFile, "%f", &fid);
 		} else if (strcmp (line,"did")==0) {
-			fscanf (cfgFile, "%d", &did);
+			fscanf (cfgFile, "%f", &did);
 		} else if (strcmp (line,"enable")==0) {
 			enable=1;
 		} else if (strcmp (line,"disable")==0) {

@@ -1,4 +1,4 @@
-class Brazos: protected Processor {
+class Llano: protected Processor {
 private:
 
 	bool getDramValid(DWORD device);
@@ -12,10 +12,13 @@ private:
 			DWORD *Trc, DWORD *Twr, DWORD *Trrd, DWORD *Tcwl, DWORD *T_mode,
 			DWORD *Twtr, DWORD *Tfaw);
 
+	float roundDivisor (float divisor);
+	int roundDivisorToDid (float divisor);
+	float didDivisors[9];
 
 public:
 
-	Brazos ();
+	Llano ();
 
  	static bool isProcessorSupported ();
 
@@ -26,13 +29,15 @@ public:
 
 	float convertVIDtoVcore (DWORD);
 	DWORD convertVcoretoVID (float);
-	DWORD convertFDtoFreq (float);
-	void convertFreqtoFD(DWORD, float *);
+	DWORD convertFDtoFreq (float, float);
+	void convertFreqtoFD(DWORD, float *, float *);
 		
 	void setVID (PState , DWORD);
+	void setFID (PState , float);
 	void setDID (PState , float);
 
 	DWORD getVID (PState);
+	float getFID (PState);
 	float getDID (PState);
 
 	void setFrequency (PState , DWORD);
@@ -88,8 +93,6 @@ public:
 	DWORD getPsiThreshold ();
 	void setPsiEnabled (bool);
 	void setPsiThreshold (DWORD);
-
-	//HyperTransport Section
 
 	//Various settings
 	bool getC1EStatus ();

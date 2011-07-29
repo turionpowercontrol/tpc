@@ -3168,7 +3168,7 @@ void K10Processor::getDramTimingHigh(DWORD device, DWORD *TrwtWB,
 
 	*TrwtWB = dramTimingHighRegister->getBits(0, 0, 4); //(miscReg >> 0) & 0x0f;
 	*TrwtTO = dramTimingHighRegister->getBits(0, 4, 4); //(miscReg >> 4) & 0x0f;
-	*Twtr = dramTimingHighRegister->getBits(0, 8, 2); //(miscReg >> 8) & 0x03;
+	*Twtr = dramTimingHighRegister->getBits(0, 8, 2); //(miscReg >> 8) & 0x03; TODO: fix this in case of DDR3!
 	*Twrrd = dramTimingHighRegister->getBits(0, 10, 2); //(miscReg >> 10) & 0x03;
 	*Twrwr = dramTimingHighRegister->getBits(0, 12, 2); //(miscReg >> 12) & 0x03;
 	*Trdrd = dramTimingHighRegister->getBits(0, 14, 2); //(miscReg >> 14) & 0x03;
@@ -3201,7 +3201,7 @@ void K10Processor::getDramTimingHigh(DWORD device, DWORD *TrwtWB,
 		if (!getDDR3Mode(device) && getDramFrequency(device)==533) {
 			*Trdrd += 2;
 		} else {
-			*Twrrd += (dramControlRegister->getBits(0,12,2)<<2) + 2;
+			*Trdrd += (dramControlRegister->getBits(0,12,2)<<2) + 2;
 		}
 
 	} else {
