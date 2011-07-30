@@ -2354,6 +2354,4 @@ void Llano::showDramTimings() {
 
 	return;
 
-	return;
-
 }

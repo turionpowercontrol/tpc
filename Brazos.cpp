@@ -2175,7 +2175,57 @@ void Brazos::showHTC() {
 
 void Brazos::showDramTimings() {
 
-	printf ("Not yet implemented");
+	int nodes = getProcessorNodes();
+	int node_index;
+	int dct_index;
+	DWORD Tcl, Trcd, Trp, Trtp, Tras, Trc, Twr, Trrd, Tcwl, T_mode;
+	DWORD Tfaw, TrwtWB, TrwtTO, Twtr, Twrrd, Twrwr, Trdrd, Tref, Trfc0;
+	DWORD Trfc1, MaxRdLatency;
+	DWORD ddrFrequency;
+
+	printf("\nDRAM Configuration Status\n\n");
+
+	for (node_index = 0; node_index < nodes; node_index++) {
+
+		setNode(node_index);
+		printf("Node %u ---\n", node_index);
+
+		//Only single channel processors are known from brazos platform
+		for (dct_index = 0; dct_index < 1; dct_index++) {
+
+			if (getDramValid(dct_index)) {
+
+				ddrFrequency = getDramFrequency(dct_index) * 2;
+
+				getDramTimingLow(dct_index, &Tcl, &Trcd, &Trp, &Trtp, &Tras,
+						&Trc, &Twr, &Trrd, &Tcwl, &T_mode, &Twtr, &Tfaw);
+
+				getDramTimingHigh(dct_index, &TrwtWB, &TrwtTO, &Twrrd, &Twrwr,
+						&Trdrd, &Tref, &Trfc0, &Trfc1, &MaxRdLatency);
+
+				printf("DCT%d: ", dct_index);
+				printf("memory type: DDR3");
+				printf(" frequency: %d MHz\n", ddrFrequency);
+
+				printf(
+						"Tcl=%u Trcd=%u Trp=%u Tras=%u Access Mode:%uT Trtp=%u Trc=%u Twr=%u Trrd=%u Tcwl=%u Tfaw=%u\n",
+						Tcl, Trcd, Trp, Tras, T_mode, Trtp, Trc, Twr, Trrd,
+						Tcwl, Tfaw);
+				printf(
+						"TrwtWB=%u TrwtTO=%u Twtr=%u Twrrd=%u Twrwr=%u Trdrd=%u Tref=%u Trfc0=%u Trfc1=%u MaxRdLatency=%u\n",
+						TrwtWB, TrwtTO, Twtr, Twrrd, Twrwr, Trdrd, Tref, Trfc0,
+						Trfc1, MaxRdLatency);
+
+			} else {
+
+				printf("- controller unactive -\n");
+			}
+
+		}
+
+		printf("\n");
+
+	} // while
 
 	return;
 
