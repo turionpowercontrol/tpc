@@ -857,17 +857,49 @@ DWORD Llano::getTctlMaxDiff() {
 }
 
 //Voltage Slamming time
-DWORD Llano::getSlamTime(void) {
+DWORD Llano::getRampTime(void) {
 	PCIRegObject *pciRegObject;
 	DWORD slamTime;
 
 	pciRegObject = new PCIRegObject();
 
 	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3,
-			0xd4, getNodeMask())) {
-		printf("Llano.cpp::getSlamTime unable to read PCI register\n");
+			0xd8, getNodeMask())) {
+		printf("Llano.cpp::getRampTime unable to read PCI register\n");
 		free(pciRegObject);
 		return NULL;
+	}
+
+	/*
+	 * voltage ramptime is stored in PCI register with
+	 * device PCI_DEV_NORTHBRIDGE
+	 * function PC_FUNC_MISC_CONTROL_3
+	 * register 0xd8
+	 * bits from 4 to 6
+	 */
+	slamTime = pciRegObject->getBits(0, 4, 3);
+
+	free(pciRegObject);
+
+	return slamTime;
+}
+
+void Llano::setRampTime(DWORD slmTime) {
+
+	PCIRegObject *pciRegObject;
+
+	if (slmTime < 0 || slmTime > 7) {
+		printf("Invalid Ramp Time: must be between 0 and 7\n");
+		return;
+	}
+
+	pciRegObject = new PCIRegObject();
+
+	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3,
+			0xd8, getNodeMask())) {
+		printf("Llano::setRampTime -  unable to read PCI Register\n");
+		free(pciRegObject);
+		return;
 	}
 
 	/*
@@ -875,45 +907,13 @@ DWORD Llano::getSlamTime(void) {
 	 * device PCI_DEV_NORTHBRIDGE
 	 * function PC_FUNC_MISC_CONTROL_3
 	 * register 0xd8
-	 * bits from 0 to 2
-	 */
-	slamTime = pciRegObject->getBits(0, 0, 3);
-
-	free(pciRegObject);
-
-	return slamTime;
-}
-
-void Llano::setSlamTime(DWORD slmTime) {
-
-	PCIRegObject *pciRegObject;
-
-	if (slmTime < 0 || slmTime > 7) {
-		printf("Invalid Slam Time: must be between 0 and 7\n");
-		return;
-	}
-
-	pciRegObject = new PCIRegObject();
-
-	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3,
-			0xd4, getNodeMask())) {
-		printf("Llano::setSlamTime -  unable to read PCI Register\n");
-		free(pciRegObject);
-		return;
-	}
-
-	/*
-	 * voltage slamtime is stored in PCI register with
-	 * device PCI_DEV_NORTHBRIDGE
-	 * function PC_FUNC_MISC_CONTROL_3
-	 * register 0xd4
-	 * bits from 0 to 2
+	 * bits from 4 to 6
 	 */
 
-	pciRegObject->setBits(0, 3, slmTime);
+	pciRegObject->setBits(4, 3, slmTime);
 
 	if (!pciRegObject->writePCIReg()) {
-		printf("Llano.cpp::setSlamTime - unable to write PCI register\n");
+		printf("Llano.cpp::setRampTime - unable to write PCI register\n");
 		free(pciRegObject);
 		return;
 	}
@@ -1332,6 +1332,8 @@ void Llano::HTCsetHystLimit(DWORD hystLimit) {
 	return;
 }
 
+
+/* todo: needs to be revised, if delivers coherent values or not */
 DWORD Llano::getAltVID() {
 
 	PCIRegObject *pciRegObject;
@@ -1540,6 +1542,7 @@ void Llano::setPsiThreshold(DWORD threshold) {
 
 // Various settings
 
+/* Register CMPHALT_REG is completely non-existent on Llano documentation. TODO: needs to be verified */
 bool Llano::getC1EStatus() {
 
 	MSRObject *msrObject;
@@ -1597,61 +1600,7 @@ void Llano::setC1EStatus(bool toggle) {
  */
 void Llano::perfCounterGetInfo() {
 
-	PerformanceCounter *performanceCounter;
-	DWORD node, core, slot;
-
-	printf("Caption:\n");
-	printf("Evt:\tperformance counter event\n");
-	printf("En:\tperformance counter is enabled\n");
-	printf("U:\tperformance counter will count usermode instructions\n");
-	printf("OS:\tperformance counter will counter Os/kernel instructions\n");
-	printf("cMsk:\tperformance counter mask (see processor manual reference)\n");
-	printf("ED:\tcounting on edge detect, else counting on level detect\n");
-	printf(
-			"APIC:\tif set, an APIC interrupt will be issued on counter overflow\n");
-	printf(
-			"icMsk:\tif set, mask is inversed (see processor manual reference)\n");
-	printf("uMsk:\tunit mask (see processor manual reference)\n\n");
-
-	for (node = 0; node < this->getProcessorNodes(); node++) {
-
-		printf("--- Node %d\n", node);
-
-		setNode(node);
-		setCore(ALL_CORES);
-
-		for (slot = 0; slot < 4; slot++) {
-
-			performanceCounter = new PerformanceCounter(getMask(), slot);
-
-			for (core = 0; core < this->getProcessorCores(); core++) {
-
-				if (!performanceCounter->fetch(core)) {
-					printf(
-							"Llano.cpp::perfCounterGetInfo - unable to read performance counter register\n");
-					free(performanceCounter);
-					return;
-				}
-
-				printf(
-						"Slot %d core %d - evt:0x%x En:%d U:%d OS:%d cMsk:%x ED:%d APIC:%d icMsk:%x uMsk:%x\n",
-						slot, core, performanceCounter->getEventSelect(),
-						performanceCounter->getEnabled(),
-						performanceCounter->getCountUserMode(),
-						performanceCounter->getCountOsMode(),
-						performanceCounter->getCounterMask(),
-						performanceCounter->getEdgeDetect(),
-						performanceCounter->getEnableAPICInterrupt(),
-						performanceCounter->getInvertCntMask(),
-						performanceCounter->getUnitMask());
-			}
-
-			free(performanceCounter);
-
-		}
-
-	}
-
+	Llano::K10PerformanceCounters::perfCounterGetInfo(this);
 }
 
 /*
@@ -1679,201 +1628,19 @@ void Llano::perfCounterGetValue(unsigned int perfCounter) {
 
 void Llano::perfMonitorCPUUsage() {
 
-	PerformanceCounter *perfCounter;
-	MSRObject *tscCounter; //We need the timestamp counter too to determine the cpu usage in percentage
+	Llano::K10PerformanceCounters::perfMonitorCPUUsage(this);
 
-	DWORD cpuIndex, nodeId, coreId;
-	PROCESSORMASK cpuMask;
-	unsigned int perfCounterSlot;
+}
 
-	uint64_t usage;
+void Llano::perfMonitorFPUUsage () {
 
-	// These two pointers will refer to two arrays containing previous performance counter values
-	// and previous Time Stamp counters. We need these to obtain instantaneous CPU usage information
-	uint64_t *prevPerfCounters;
-	uint64_t *prevTSCCounters;
+	Llano::K10PerformanceCounters::perfMonitorFPUUsage(this);
 
-	setNode(ALL_NODES);
-	setCore(ALL_CORES);
+}
 
-	cpuMask = getMask(); /* We do this to do some "caching" of the mask, instead of calculating each time
-	 we need to retrieve the time stamp counter */
+void Llano::perfMonitorDCMA () {
 
-	// Allocating space for previous values of counters.
-	prevPerfCounters = (uint64_t *) calloc(processorCores * processorNodes,
-			sizeof(uint64_t));
-	prevTSCCounters = (uint64_t *) calloc(processorCores * processorNodes,
-			sizeof(uint64_t));
-
-	// MSR Object to retrieve the time stamp counter for all the nodes and all the processors
-	tscCounter = new MSRObject();
-
-	//Creates a new performance counter, for now we set slot 0, but we will
-	//use the findAvailable slot method to find an available method to be used
-	perfCounter = new PerformanceCounter(cpuMask, 0);
-
-	//Event 0x76 is Idle Counter
-	perfCounter->setEventSelect(0x76);
-	perfCounter->setCountOsMode(true);
-	perfCounter->setCountUserMode(true);
-	perfCounter->setCounterMask(0);
-	perfCounter->setEdgeDetect(false);
-	perfCounter->setEnableAPICInterrupt(false);
-	perfCounter->setInvertCntMask(false);
-	perfCounter->setUnitMask(0);
-
-	//Finds an available slot for our purpose
-	perfCounterSlot = perfCounter->findAvailableSlot();
-
-	//findAvailableSlot() returns -2 in case of error
-	if (perfCounterSlot == 0xfffffffe) {
-		printf(
-				"Llano.cpp::perfMonitorCPUUsage - unable to access performance counter slots\n");
-		free(perfCounter);
-		free(tscCounter);
-		free(prevPerfCounters);
-		free(prevTSCCounters);
-		return;
-	}
-
-	//findAvailableSlot() returns -1 in case there aren't available slots
-	if (perfCounterSlot == 0xffffffff) {
-		printf(
-				"Llano.cpp::perfMonitorCPUUsage - unable to find an available performance counter slot\n");
-		free(perfCounter);
-		free(tscCounter);
-		free(prevPerfCounters);
-		free(prevTSCCounters);
-		return;
-	}
-
-	printf("Performance counter will use slot #%d\n", perfCounterSlot);
-
-	//In case there are no errors, we program the object with the slot itself has found
-	perfCounter->setSlot(perfCounterSlot);
-
-	// Program the counter slot
-	if (!perfCounter->program()) {
-		printf(
-				"Llano.cpp::perfMonitorCPUUsage - unable to program performance counter parameters\n");
-		free(perfCounter);
-		free(tscCounter);
-		free(prevPerfCounters);
-		free(prevTSCCounters);
-		return;
-	}
-
-	// Enabled the counter slot
-	if (!perfCounter->enable()) {
-		printf(
-				"Llano.cpp::perfMonitorCPUUsage - unable to enable performance counters\n");
-		free(perfCounter);
-		free(tscCounter);
-		free(prevPerfCounters);
-		free(prevTSCCounters);
-		return;
-	}
-
-	/* Here we take a snapshot of the performance counter and a snapshot of the time
-	 * stamp counter to initialize the arrays to let them not show erratic huge numbers
-	 * on first step
-	 */
-
-	if (!perfCounter->takeSnapshot()) {
-		printf(
-				"Llano.cpp::perfMonitorCPUUsage - unable to retrieve performance counter data\n");
-		free(perfCounter);
-		free(tscCounter);
-		free(prevPerfCounters);
-		free(prevTSCCounters);
-		return;
-	}
-
-	if (!tscCounter->readMSR(TIME_STAMP_COUNTER_REG, cpuMask)) {
-		printf(
-				"Llano.cpp::perfMonitorCPUUsage - unable to retrieve time stamp counter\n");
-		free(perfCounter);
-		free(tscCounter);
-		free(prevPerfCounters);
-		free(prevTSCCounters);
-		return;
-	}
-
-	cpuIndex = 0;
-	for (nodeId = 0; nodeId < processorNodes; nodeId++) {
-		for (coreId = 0x0; coreId < processorCores; coreId++) {
-			prevPerfCounters[cpuIndex] = perfCounter->getCounter(cpuIndex);
-			prevTSCCounters[cpuIndex] = tscCounter->getBits(cpuIndex, 0, 64);
-			cpuIndex++;
-		}
-	}
-
-	Signal::activateSignalHandler(SIGINT);
-
-	while (!Signal::getSignalStatus()) {
-
-		if (!perfCounter->takeSnapshot()) {
-			printf(
-					"Llano.cpp::perfMonitorCPUUsage - unable to retrieve performance counter data\n");
-			free(perfCounter);
-			free(tscCounter);
-			free(prevPerfCounters);
-			free(prevTSCCounters);
-			return;
-		}
-
-		if (!tscCounter->readMSR(TIME_STAMP_COUNTER_REG, cpuMask)) {
-			printf(
-					"Llano.cpp::perfMonitorCPUUsage - unable to retrieve time stamp counter\n");
-			free(perfCounter);
-			free(tscCounter);
-			free(prevPerfCounters);
-			free(prevTSCCounters);
-			return;
-		}
-
-		cpuIndex = 0;
-
-		for (nodeId = 0; nodeId < processorNodes; nodeId++) {
-
-			printf("Node %d -", nodeId);
-
-			for (coreId = 0x0; coreId < processorCores; coreId++) {
-
-				usage = ((perfCounter->getCounter(cpuIndex))
-						- prevPerfCounters[cpuIndex]) * 100;
-				usage /= tscCounter->getBits(cpuIndex, 0, 64)
-						- prevTSCCounters[cpuIndex];
-
-				printf(" c%d:%d%%", coreId, (unsigned int) usage);
-
-				prevPerfCounters[cpuIndex] = perfCounter->getCounter(cpuIndex);
-				prevTSCCounters[cpuIndex]
-						= tscCounter->getBits(cpuIndex, 0, 64);
-
-				cpuIndex++;
-
-			}
-
-			printf("\n");
-
-		}
-
-		Sleep(1000);
-
-	}
-
-	printf("CTRL-C executed. Cleaning on exit... ");
-	//Disables the performance counter
-	perfCounter->disable();
-
-	//Cleans the exit
-	free(perfCounter);
-	free(tscCounter);
-	free(prevPerfCounters);
-	free(prevTSCCounters);
-
-	printf("Done!\n");
+	Llano::K10PerformanceCounters::perfMonitorDCMA(this);
 
 }
 
@@ -1894,7 +1661,7 @@ void Llano::checkMode() {
 	DWORD i, pstate, vid, fid, did;
 	DWORD eaxMsr, edxMsr;
 	DWORD timestamp;
-	DWORD states[2][5];
+	DWORD states[2][8];
 	DWORD minTemp, maxTemp, temp;
 	DWORD oTimeStamp;
 	float curVcore;

@@ -127,6 +127,8 @@ public:
 	void perfCounterGetInfo ();
 	void perfCounterGetValue (unsigned int);
 	void perfMonitorCPUUsage ();
+	void perfMonitorFPUUsage ();
+	void perfMonitorDCMA ();
 
 
 	// Autocheck mode

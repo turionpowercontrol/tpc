@@ -148,6 +148,8 @@ public:
 	void perfCounterGetInfo ();
 	void perfCounterGetValue (unsigned int);
 	void perfMonitorCPUUsage ();
+	void perfMonitorFPUUsage ();
+	void perfMonitorDCMA ();
 
 	//Scaler helper methods
 	void getCurrentStatus (struct procStatus *pStatus, DWORD core);

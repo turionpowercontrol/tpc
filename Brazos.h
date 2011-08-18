@@ -59,8 +59,8 @@ public:
 	DWORD getTctlRegister (void);
 	DWORD getTctlMaxDiff (void);
 
-	DWORD getSlamTime (void);
-	void setSlamTime (DWORD);
+	DWORD getRampTime (void);
+	void setRampTime (DWORD);
 
 	//HTC Section - Read status
 	bool HTCisCapable ();
@@ -102,6 +102,8 @@ public:
 	void perfCounterGetInfo ();
 	void perfCounterGetValue (unsigned int);
 	void perfMonitorCPUUsage ();
+	void perfMonitorFPUUsage ();
+	void perfMonitorDCMA ();
 
 	//Scaler helper methods
 	void getCurrentStatus (struct procStatus *pStatus, DWORD core);

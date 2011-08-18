@@ -261,6 +261,8 @@ bool PerformanceCounter::enable() {
 
 	}
 
+	this->enabled=true;
+
 	free(pCounterMSRObject);
 	return true;
 
@@ -293,6 +295,8 @@ bool PerformanceCounter::disable() {
 		return false;
 
 	}
+
+	this->enabled=false;
 
 	free(pCounterMSRObject);
 	return true;

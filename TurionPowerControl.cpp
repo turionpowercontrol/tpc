@@ -390,7 +390,9 @@ void printUsage (const char *name) {
 	printf ("\t ----- Performance Counters -----\n\n");
 	printf (" -pcgetinfo\n\tShows various informations about Performance Counters\n\n");
 	printf (" -pcgetvalue <counter>\n\tShows the raw value of a specific performance counter\n\tslot of a specific core\n\n");
-	printf (" -cpuusage\n\tCostantly monitors CPU Usage using performance counters\n\n");
+	printf (" -perf-cpuusage\n\tCostantly monitors CPU Usage using performance counters\n\n");
+	printf (" -perf-fpuusage\n\tCostantly monitors FPU Usage using performance counters\n\n");
+	printf (" -perf-dcma\n\tCostantly monitors Data Cache Misaligned Accesses\n\n");
 
 	printf ("\t ----- Daemon Mode -----\n\n");
 	printf (" -autorecall\n\tSet up daemon mode, autorecalling command line parameters\n\tevery 60 seconds\n\n");
@@ -1171,12 +1173,28 @@ int main (int argc,const char **argv) {
 		}
 
 		//Costantly monitors CPU Usage 
-		if (strcmp((const char*)argv[argvStep],"-cpuusage")==0) {
+		if (strcmp((const char*)argv[argvStep],"-perf-cpuusage")==0) {
 
 			processor->perfMonitorCPUUsage ();
 
 		}
 		
+		//Costantly monitors FPU Usage
+		if (strcmp((const char*)argv[argvStep],"-perf-fpuusage")==0) {
+
+			processor->perfMonitorFPUUsage ();
+
+		}
+
+		//Constantly monitors Data Cache Misaligned Accesses
+		if (strcmp((const char*)argv[argvStep],"-perf-dcma")==0) {
+
+			processor->perfMonitorDCMA();
+
+		}
+
+
+
 		//Open a configuration file
 		if (strcmp((const char*)argv[argvStep],"-cfgfile")==0) {
 		
@@ -1206,7 +1224,7 @@ int main (int argc,const char **argv) {
 		if (strcmp((const char *)argv[argvStep],"-scaler")==0) {
 
 			printf ("Scaler is not active in this version.\n");
-			//scaler->beginScaling ();
+			scaler->beginScaling ();
 
 		}
 

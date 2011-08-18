@@ -2319,62 +2319,9 @@ void Griffin::getCurrentStatus (struct procStatus *pStatus) {
  */
 void Griffin::perfCounterGetInfo () {
 
-	PerformanceCounter *performanceCounter;
-	DWORD node, core, slot;
-
-	printf ("Caption:\n");
-	printf ("Evt:\tperformance counter event\n");
-	printf ("En:\tperformance counter is enabled\n");
-	printf ("U:\tperformance counter will count usermode instructions\n");
-	printf ("OS:\tperformance counter will counter Os/kernel instructions\n");
-	printf ("cMsk:\tperformance counter mask (see processor manual reference)\n");
-	printf ("ED:\tcounting on edge detect, else counting on level detect\n");
-	printf ("APIC:\tif set, an APIC interrupt will be issued on counter overflow\n");
-	printf ("icMsk:\tif set, mask is inversed (see processor manual reference)\n");
-	printf ("uMsk:\tunit mask (see processor manual reference)\n\n");
-
-	for (node=0;node<this->getProcessorNodes();node++) {
-
-		printf ("--- Node %d\n", node);
-
-		setNode(node);
-		setCore(ALL_CORES);
-
-		for (slot=0;slot<4;slot++) {
-
-			performanceCounter=new PerformanceCounter(getMask(), slot);
-
-			for (core=0;core<this->getProcessorCores();core++) {
-
-				if (!performanceCounter->fetch (core)) {
-					printf ("K10PerformanceCounters::perfCounterGetInfo - unable to read performance counter register\n");
-					free (performanceCounter);
-					return;
-				}
-
-				printf ("Slot %d core %d - evt:0x%x En:%d U:%d OS:%d cMsk:%x ED:%d APIC:%d icMsk:%x uMsk:%x\n",
-						slot,
-						core,
-						performanceCounter->getEventSelect(),
-						performanceCounter->getEnabled(),
-						performanceCounter->getCountUserMode(),
-						performanceCounter->getCountOsMode(),
-						performanceCounter->getCounterMask(),
-						performanceCounter->getEdgeDetect(),
-						performanceCounter->getEnableAPICInterrupt(),
-						performanceCounter->getInvertCntMask(),
-						performanceCounter->getUnitMask()
-						);
-			}
-
-			free (performanceCounter);
-
-		}
-
-	}
+	Griffin::K10PerformanceCounters::perfCounterGetInfo(this);
 
 }
-
 /*
  * perfCounterGetValue will retrieve and show the performance counter value for all the selected nodes/processors
  *
@@ -2397,191 +2344,19 @@ void Griffin::perfCounterGetValue (unsigned int perfCounter) {
 
 void Griffin::perfMonitorCPUUsage () {
 
-	PerformanceCounter *perfCounter;
-	MSRObject *tscCounter; //We need the timestamp counter too to determine the cpu usage in percentage
+	Griffin::K10PerformanceCounters::perfMonitorCPUUsage(this);
 
-	DWORD cpuIndex, nodeId, coreId;
-	PROCESSORMASK cpuMask;
-	unsigned int perfCounterSlot;
+}
 
-	uint64_t usage;
+void Griffin::perfMonitorFPUUsage () {
 
-	// These two pointers will refer to two arrays containing previous performance counter values
-	// and previous Time Stamp counters. We need these to obtain instantaneous CPU usage information
-	uint64_t *prevPerfCounters;
-	uint64_t *prevTSCCounters;
+	Griffin::K10PerformanceCounters::perfMonitorFPUUsage(this);
 
-	setNode (ALL_NODES);
-	setCore (ALL_CORES);
+}
 
-	cpuMask=getMask (); /* We do this to do some "caching" of the mask, instead of calculating each time
-							we need to retrieve the time stamp counter */
+void Griffin::perfMonitorDCMA () {
 
-	// Allocating space for previous values of counters.
-	prevPerfCounters=(uint64_t *)calloc (processorCores*processorNodes, sizeof (uint64_t));
-	prevTSCCounters=(uint64_t *)calloc (processorCores*processorNodes, sizeof (uint64_t));
-
-	// MSR Object to retrieve the time stamp counter for all the nodes and all the processors
-	tscCounter=new MSRObject();
-
-	//Creates a new performance counter, for now we set slot 0, but we will
-	//use the findAvailable slot method to find an available method to be used
-	perfCounter=new PerformanceCounter(cpuMask, 0);
-
-	//Event 0x76 is Idle Counter
-	perfCounter->setEventSelect(0x76);
-	perfCounter->setCountOsMode(true);
-	perfCounter->setCountUserMode(true);
-	perfCounter->setCounterMask(0);
-	perfCounter->setEdgeDetect(false);
-	perfCounter->setEnableAPICInterrupt(false);
-	perfCounter->setInvertCntMask(false);
-	perfCounter->setUnitMask(0);
-
-	//Finds an available slot for our purpose
-	perfCounterSlot=perfCounter->findAvailableSlot();
-
-	//findAvailableSlot() returns -2 in case of error
-	if (perfCounterSlot==0xfffffffe) {
-		printf ("Griffin.cpp::perfMonitorCPUUsage - unable to access performance counter slots\n");
-		free (perfCounter);
-		free (tscCounter);
-		free (prevPerfCounters);
-		free (prevTSCCounters);
-		return;
-	}
-
-	//findAvailableSlot() returns -1 in case there aren't available slots
-	if (perfCounterSlot == 0xffffffff) {
-		printf(
-				"Griffin.cpp::perfMonitorCPUUsage - unable to find an available performance counter slot\n");
-		free(perfCounter);
-		free(tscCounter);
-		free(prevPerfCounters);
-		free(prevTSCCounters);
-		return;
-	}
-
-	printf ("Performance counter will use slot #%d\n", perfCounterSlot);
-
-	//In case there are no errors, we program the object with the slot itself has found
-	perfCounter->setSlot(perfCounterSlot);
-
-	// Program the counter slot
-	if (!perfCounter->program()) {
-		printf ("K10PerformanceCounters::perfMonitorCPUUsage - unable to program performance counter parameters\n");
-		free (perfCounter);
-		free (tscCounter);
-		free (prevPerfCounters);
-		free (prevTSCCounters);
-		return;
-	}
-
-	// Enabled the counter slot
-	if (!perfCounter->enable()) {
-		printf ("K10PerformanceCounters::perfMonitorCPUUsage - unable to enable performance counters\n");
-		free (perfCounter);
-		free (tscCounter);
-		free (prevPerfCounters);
-		free (prevTSCCounters);
-		return;
-	}
-
-	/* Here we take a snapshot of the performance counter and a snapshot of the time
-	 * stamp counter to initialize the arrays to let them not show erratic huge numbers
-	 * on first step
-	 */
-
-	if (!perfCounter->takeSnapshot()) {
-		printf ("K10PerformanceCounters::perfMonitorCPUUsage - unable to retrieve performance counter data\n");
-		free (perfCounter);
-		free (tscCounter);
-		free (prevPerfCounters);
-		free (prevTSCCounters);
-		return;
-	}
-
-	if (!tscCounter->readMSR(TIME_STAMP_COUNTER_REG, cpuMask)) {
-		printf(
-				"K10PerformanceCounters::perfMonitorCPUUsage - unable to retrieve time stamp counter\n");
-		free(perfCounter);
-		free(tscCounter);
-		free(prevPerfCounters);
-		free(prevTSCCounters);
-		return;
-	}
-
-	cpuIndex=0;
-	for (nodeId=0;nodeId<processorNodes;nodeId++) {
-		for (coreId=0x0;coreId<processorCores;coreId++) {
-			prevPerfCounters[cpuIndex]=perfCounter->getCounter(cpuIndex);
-			prevTSCCounters[cpuIndex]=tscCounter->getBits(cpuIndex,0,64);
-			cpuIndex++;
-		}
-	}
-
-	Signal::activateSignalHandler(SIGINT);
-
-	while (!Signal::getSignalStatus()) {
-
-		if (!perfCounter->takeSnapshot()) {
-			printf ("K10PerformanceCounters::perfMonitorCPUUsage - unable to retrieve performance counter data\n");
-			free (perfCounter);
-			free (tscCounter);
-			free (prevPerfCounters);
-			free (prevTSCCounters);
-			return;
-		}
-
-		if (!tscCounter->readMSR(TIME_STAMP_COUNTER_REG, cpuMask)) {
-			printf ("K10PerformanceCounters::perfMonitorCPUUsage - unable to retrieve time stamp counter\n");
-			free (perfCounter);
-			free (tscCounter);
-			free (prevPerfCounters);
-			free (prevTSCCounters);
-			return;
-		}
-
-		cpuIndex=0;
-
-		for (nodeId=0;nodeId<processorNodes;nodeId++) {
-
-			printf ("Node %d -", nodeId);
-
-			for (coreId=0x0;coreId<processorCores;coreId++) {
-
-				usage=((perfCounter->getCounter(cpuIndex))-prevPerfCounters[cpuIndex])*100;
-				usage/=tscCounter->getBits(cpuIndex,0,64)-prevTSCCounters[cpuIndex];
-
-				printf (" c%d:%d%%",coreId, (unsigned int)usage);
-
-				prevPerfCounters[cpuIndex]=perfCounter->getCounter(cpuIndex);
-				prevTSCCounters[cpuIndex]=tscCounter->getBits(cpuIndex,0,64);
-
-				cpuIndex++;
-
-			}
-
-			printf ("\n");
-
-		}
-
-		Sleep (1000);
-
-	}
-
-	printf ("CTRL-C executed. Cleaning on exit... ");
-
-	//Disabled the performance counter
-	perfCounter->disable();
-
-	//Cleans used memory
-	free (perfCounter);
-	free (tscCounter);
-	free (prevPerfCounters);
-	free (prevTSCCounters);
-
-	printf (" Done!");
+	Griffin::K10PerformanceCounters::perfMonitorDCMA(this);
 
 }
 

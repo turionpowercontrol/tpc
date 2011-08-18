@@ -22,6 +22,7 @@ SOURCES=TurionPowerControl.cpp \
 	PCIRegObject.cpp \
 	PerformanceCounter.cpp \
 	Processor.cpp \
+	K10PerformanceCounters.cpp \
 	scaler.cpp \
 	Signal.cpp
 

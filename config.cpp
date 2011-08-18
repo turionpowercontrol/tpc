@@ -251,7 +251,7 @@ int CfgManager::consumeScalerSection () {
 	
 		if (fscanf (cfgFile, "%s", line)==-1) break;
 		
-		//This are generic items for comments or ending sections, don't change them
+		//These are generic items for comments or ending sections, don't change them
 		
 		if (strcmp (line,"#")==0) {
 			//This is a comment, then read the whole line and go ahead
@@ -266,26 +266,14 @@ int CfgManager::consumeScalerSection () {
 		} else if (strcmp (line,"samplingrate")==0) {
 			fscanf (cfgFile, "%d", &temp);
 			scaler->setSamplingFrequency (temp);
-		} else if (strcmp (line,"uppolicy")==0) {
+		} else if (strcmp (line,"policy")==0) {
 			fscanf (cfgFile, "%s", strTemp);
 			if (strcmp(strTemp,"rocket")==0)
-				scaler->setUpPolicy (POLICY_ROCKET);
+				scaler->setPolicy (POLICY_ROCKET);
 			else if (strcmp(strTemp,"step")==0)
-				scaler->setUpPolicy (POLICY_STEP);
-			else if (strcmp(strTemp,"dynamic")==0)
-				scaler->setUpPolicy (POLICY_DYNAMIC);
+				scaler->setPolicy (POLICY_STEP);
 			else return true;
 
-		} else if (strcmp (line,"downpolicy")==0) {
-			fscanf (cfgFile, "%s", strTemp);
-			if (strcmp(strTemp,"rocket")==0)
-				scaler->setDownPolicy (POLICY_ROCKET);
-			else if (strcmp(strTemp,"step")==0)
-				scaler->setDownPolicy (POLICY_STEP);
-			else if (strcmp(strTemp,"dynamic")==0)
-				scaler->setDownPolicy (POLICY_DYNAMIC);
-			else return true;
-			
 		} else if (strcmp (line,"upperthreshold")==0) {
 			fscanf (cfgFile, "%d", &temp);
 			if ((temp<0) || (temp>100)) return true;

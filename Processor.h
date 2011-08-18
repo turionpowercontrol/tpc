@@ -94,6 +94,19 @@ public:
 class Processor {
 protected:
 
+	//Nested class that defines the behaviour of K10-style performance counters
+
+	friend class K10PerfomanceCounters;
+	class K10PerformanceCounters {
+
+		public:
+			static void perfMonitorCPUUsage (class Processor *p);
+			static void perfMonitorFPUUsage (class Processor *p);
+			static void perfMonitorDCMA (class Processor *p); //Data Cache Misaligned Accesses
+			static void perfCounterGetInfo (class Processor *p);
+	};
+
+
 	/*
 	 *	Attributes
 	 */
@@ -127,8 +140,6 @@ protected:
 	void setProcessorIdentifier(DWORD);
 	void setProcessorNodes(DWORD);
 
-	PROCESSORMASK getMask (DWORD, DWORD);
-	PROCESSORMASK getMask ();
 	DWORD getNodeMask (DWORD);
 	DWORD getNodeMask ();
 	bool isValidNode (DWORD);
@@ -154,6 +165,10 @@ public:
 
 	const static DWORD ALL_NODES=-1;
 	const static DWORD ALL_CORES=-1;
+
+	PROCESSORMASK getMask (DWORD, DWORD);
+	PROCESSORMASK getMask ();
+
 
 	//Sets the current node to operate on
 	void setNode (DWORD);
@@ -335,6 +350,8 @@ public:
 	virtual void perfCounterGetInfo();
 	virtual void perfCounterGetValue(unsigned int);
 	virtual void perfMonitorCPUUsage();
+	virtual void perfMonitorFPUUsage();
+	virtual void perfMonitorDCMA(); //Data Cache Misaligned Accesses
 
 
 	//Scaler helper methods

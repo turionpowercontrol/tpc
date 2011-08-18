@@ -691,6 +691,14 @@ void Processor::perfMonitorCPUUsage() {
 	return;
 }
 
+void Processor::perfMonitorFPUUsage() {
+	return;
+}
+
+void Processor::perfMonitorDCMA() {
+	return;
+}
+
 void Processor::checkMode() {
 	return;
 }
