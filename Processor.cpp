@@ -122,7 +122,7 @@ PROCESSORMASK Processor::getMask (DWORD core, DWORD node) {
 		return mask;
 	}
 
-	return NULL;
+	return 0;
 
 }
 
@@ -466,7 +466,7 @@ void Processor::setMaximumPState(PState ps) {
 
 PState Processor::getMaximumPState() {
 	printf("Unsupported processor feature\n");
-	return NULL;
+	return 0;
 }
 
 /* setNBVid */

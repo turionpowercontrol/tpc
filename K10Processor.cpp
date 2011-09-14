@@ -763,7 +763,7 @@ PState K10Processor::getMaximumPState () {
 	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3, 0xdc, getNodeMask())) {
 		printf ("K10Processor.cpp::getMaximumPState - unable to read PCI register\n");
 		free (pciRegObject);
-		return NULL;
+		return 0;
 	}
 
 	/*
@@ -1369,7 +1369,7 @@ DWORD K10Processor::getTctlRegister (void) {
 				0xa4, getNodeMask())) {
 			printf("K10Processor.cpp::getTctlRegister - unable to read PCI register\n");
 			free(pciRegObject);
-			return NULL;
+			return 0;
 		}
 
 		/*
@@ -1397,7 +1397,7 @@ DWORD K10Processor::getTctlMaxDiff() {
 			0xa4, getNodeMask())) {
 		printf("K10Processor.cpp::getTctlMaxDiff unable to read PCI register\n");
 		free(pciRegObject);
-		return NULL;
+		return 0;
 	}
 
 	/*
@@ -1426,7 +1426,7 @@ DWORD K10Processor::getSlamTime (void) {
 			0xd4, getNodeMask())) {
 		printf("K10Processor.cpp::getSlamTime unable to read PCI register\n");
 		free(pciRegObject);
-		return NULL;
+		return 0;
 	}
 
 	/*
@@ -2737,7 +2737,7 @@ void K10Processor::checkMode () {
 	DWORD oTimeStamp;
 	float curVcore;
 	DWORD maxPState;
-	int cid;
+	unsigned int cid;
 
 	printf ("Monitoring...\n");
 

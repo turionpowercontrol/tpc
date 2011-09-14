@@ -379,7 +379,7 @@ void Scaler::createPerformanceTables () {
 
 				}
 
-				printf ("Ra:%d Re:%d ",raiseTable[targetUnit], reduceTable[targetUnit]);
+				//printf ("Ra:%ld Re:%ld ",raiseTable[targetUnit], reduceTable[targetUnit]);
 
 				unitIndex++;
 

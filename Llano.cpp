@@ -639,7 +639,7 @@ PState Llano::getMaximumPState() {
 			0xdc, getNodeMask())) {
 		printf("Llano.cpp::getMaximumPState - unable to read PCI register\n");
 		free(pciRegObject);
-		return NULL;
+		return 0;
 	}
 
 	/*
@@ -810,7 +810,7 @@ DWORD Llano::getTctlRegister(void) {
 			0xa4, getNodeMask())) {
 		printf("Llano.cpp::getTctlRegister - unable to read PCI register\n");
 		free(pciRegObject);
-		return NULL;
+		return 0;
 	}
 
 	/*
@@ -838,7 +838,7 @@ DWORD Llano::getTctlMaxDiff() {
 			0xa4, getNodeMask())) {
 		printf("Llano.cpp::getTctlMaxDiff unable to read PCI register\n");
 		free(pciRegObject);
-		return NULL;
+		return 0;
 	}
 
 	/*
@@ -867,7 +867,7 @@ DWORD Llano::getRampTime(void) {
 			0xd8, getNodeMask())) {
 		printf("Llano.cpp::getRampTime unable to read PCI register\n");
 		free(pciRegObject);
-		return NULL;
+		return 0;
 	}
 
 	/*
@@ -1666,7 +1666,7 @@ void Llano::checkMode() {
 	DWORD oTimeStamp;
 	float curVcore;
 	DWORD maxPState;
-	int cid;
+	unsigned int cid;
 
 	printf("Monitoring...\n");
 

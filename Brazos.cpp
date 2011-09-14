@@ -529,7 +529,7 @@ PState Brazos::getMaximumPState () {
 	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3, 0xdc, getNodeMask())) {
 		printf ("Brazos.cpp::getMaximumPState - unable to read PCI register\n");
 		free (pciRegObject);
-		return NULL;
+		return 0;
 	}
 
 	/*
@@ -696,7 +696,7 @@ DWORD Brazos::getTctlRegister (void) {
 				0xa4, getNodeMask())) {
 			printf("Brazos.cpp::getTctlRegister - unable to read PCI register\n");
 			free(pciRegObject);
-			return NULL;
+			return 0;
 		}
 
 		/*
@@ -724,7 +724,7 @@ DWORD Brazos::getTctlMaxDiff() {
 			0xa4, getNodeMask())) {
 		printf("Brazos.cpp::getTctlMaxDiff unable to read PCI register\n");
 		free(pciRegObject);
-		return NULL;
+		return 0;
 	}
 
 	/*
@@ -753,7 +753,7 @@ DWORD Brazos::getRampTime (void) {
 			0xd8, getNodeMask())) {
 		printf("Brazos.cpp::getRampTime unable to read PCI register\n");
 		free(pciRegObject);
-		return NULL;
+		return 0;
 	}
 
 	/*
@@ -1818,7 +1818,7 @@ void Brazos::checkMode () {
 	DWORD oTimeStamp;
 	float curVcore;
 	DWORD maxPState;
-	int cid;
+	unsigned int cid;
 
 	printf ("Monitoring...\n");
 

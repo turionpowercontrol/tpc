@@ -761,7 +761,7 @@ PState Griffin::getMaximumPState () {
 	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3, 0xdc, getNodeMask())) {
 		printf ("Griffin.cpp::getMaximumPState - unable to read PCI register\n");
 		free (pciRegObject);
-		return NULL;
+		return 0;
 	}
 
 	/*
@@ -821,7 +821,7 @@ DWORD Griffin::getNBVid(void) {
 			0xdc, getNodeMask())) {
 		printf("Griffin.cpp::getNBVid - unable to read PCI register\n");
 		free(pciRegObject);
-		return NULL;
+		return 0;
 	}
 
 	/*
@@ -908,7 +908,7 @@ DWORD Griffin::c1eDID() {
 			0x1ec, getNodeMask())) {
 		printf("Griffin.cpp::c1eDID - unable to read PCI register\n");
 		free(pciRegObject);
-		return NULL;
+		return 0;
 	}
 
 	/*
@@ -1033,7 +1033,7 @@ DWORD Griffin::getTctlRegister (void) {
 			0xa4, getNodeMask())) {
 		printf("Griffin.cpp::getTctlRegister - unable to read PCI register\n");
 		free(pciRegObject);
-		return NULL;
+		return 0;
 	}
 
 	/*
@@ -1061,7 +1061,7 @@ DWORD Griffin::getTctlMaxDiff (void) {
 			0xa4, getNodeMask())) {
 		printf("Griffin.cpp::getTclMaxDiff - unable to read PCI register\n");
 		free(pciRegObject);
-		return NULL;
+		return 0;
 	}
 
 	/*
@@ -1090,7 +1090,7 @@ DWORD Griffin::getSlamTime (void) {
 			0xd8, getNodeMask())) {
 		printf("Griffin.cpp::getSlamTime - unable to read PCI register\n");
 		free(pciRegObject);
-		return NULL;
+		return 0;
 	}
 
 	/*
@@ -1158,7 +1158,7 @@ DWORD Griffin::getAltVidSlamTime (void) {
 			0xd8, getNodeMask())) {
 		printf("Griffin.cpp::getAltVidSlamTime - unable to read PCI register\n");
 		free(pciRegObject);
-		return NULL;
+		return 0;
 	}
 
 	/*
