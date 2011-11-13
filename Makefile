@@ -56,7 +56,6 @@ distclean: clean
 	$(RM) -r $(OBJROOT)
 	$(RM) core core.[0-9]
 	$(RM) *~ DEADJOE *.orig *.rej *.i *.r[0-9]* *.mine
-	$(RM) TurionPowerControl TurionPowerControl
 
 .PHONY: clean distclean all install uninstall i386
 
