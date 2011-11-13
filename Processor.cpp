@@ -94,10 +94,11 @@ PROCESSORMASK Processor::getMask (DWORD core, DWORD node) {
 	//If core is set to ALL_CORES and node is free we set the mask
 	//to specify all the cores of one specific node
 	if ((core==ALL_CORES) && (node!=ALL_NODES)) {
-		mask=-1;
-		mask=mask<<(MAX_CORES-((node+1)*processorCores));
-		mask=mask>>(MAX_CORES-processorCores);
-		mask=mask<<(node*processorCores);
+		mask = 1;
+		mask <<= processorCores;
+		mask -= 1;
+		mask <<= processorCores * node;
+
 		return mask;
 	}
 
@@ -115,10 +116,10 @@ PROCESSORMASK Processor::getMask (DWORD core, DWORD node) {
 	//we set the mask as a whole sequence of true bits, except for
 	//exceeding bits
 	if ((core==ALL_CORES) && (node==ALL_NODES)) {
-		mask=-1;
-		offset=(MAX_CORES-(processorCores*processorNodes));
-		mask=mask << offset;
-		mask=mask >> offset;
+		mask = 1;
+		mask <<= processorCores * processorNodes;
+		mask -= 1;
+
 		return mask;
 	}
 
@@ -142,13 +143,12 @@ PROCESSORMASK Processor::getMask () {
  */
 DWORD Processor::getNodeMask(DWORD node) {
 	DWORD mask;
-	DWORD offset;
 
 	if (node == ALL_NODES) {
-		offset = MAX_NODES - processorNodes;
-		mask = -1;
-		mask = mask << offset;
-		mask = mask >> offset;
+		mask = 1;
+		mask <<= processorNodes;
+		mask -= 1;
+
 		return mask;
 	}
 

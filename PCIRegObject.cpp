@@ -204,10 +204,10 @@ bool PCIRegObject::setBits (unsigned int base, unsigned int length, DWORD value)
 
 	if (this->nodeCount==0) return false;
 
-	mask=-1;
-	mask=mask<<(32-base-length);
-	mask=mask>>(32-length);
-	mask=mask<<base;
+	mask = 1;
+	mask <<= length;
+	mask -= 1;
+	mask <<= base;
 
 	value=value<<base;
 	value=value & mask;
