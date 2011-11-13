@@ -3077,11 +3077,11 @@ void K10Processor::getDramTimingLow(
 	*Twr = dramMsrRegister->getBits(0, 4, 3); //(miscReg >> 4) & 0x07; // assumes ddr3
 	*Tcwl = dramMsrRegister->getBits(0, 20, 3); //(miscReg >> 20) & 0x07;
 
-	if (getDDR3Mode(device) || (!getDDR3Mode(device) && (getDramFrequency(device)==533))) {
+	if (getDDR3Mode(device) || getDramFrequency(device) == 533) {
 
 		//Assumes DDR3/DDR2-1066 memory type
 
-		if (!getDDR3Mode(device) && (getDramFrequency(device)==533))
+		if (!getDDR3Mode(device))
 			*Tcl += 1;
 		else
 			*Tcl += 4;
@@ -3089,7 +3089,7 @@ void K10Processor::getDramTimingLow(
 		*Trcd += 5;
 		*Trp += 5;
 
-		if (!getDDR3Mode(device) && (getDramFrequency(device)==533)) {
+		if (!getDDR3Mode(device)) {
 			*Trtp = dramTimingLowRegister->getBits(0, 11, 1);
 			*Trtp += 2;
 		} else
