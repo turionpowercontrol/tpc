@@ -3097,7 +3097,12 @@ void K10Processor::getDramTimingLow(
 
 		*Tras += 15;
 		*Trc += 11;
+
 		*Twr += 4;
+		if (*Twr > 8) {
+			*Twr += *Twr - 8;
+		}
+
 		*Trrd += 4;
 		*Tcwl += 5;
 
