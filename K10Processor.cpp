@@ -2966,19 +2966,11 @@ void K10Processor::getDramTimingHigh(DWORD device, DWORD *TrwtWB,
 
 		if (!getDDR3Mode(device)) {
 			*Twrrd += 1;
-		} else {
-			*Twrrd += (dramControlRegister->getBits(0,8,2)<<2) + 0;
-		}
-
-		if (!getDDR3Mode(device)) {
 			*Twrwr += 1;
-		} else {
-			*Twrwr += (dramControlRegister->getBits(0,10,2)<<2) + 1;
-		}
-
-		if (!getDDR3Mode(device)) {
 			*Trdrd += 2;
 		} else {
+			*Twrrd += (dramControlRegister->getBits(0,8,2)<<2) + 0;
+			*Twrwr += (dramControlRegister->getBits(0,10,2)<<2) + 1;
 			*Trdrd += (dramControlRegister->getBits(0,12,2)<<2) + 2;
 		}
 
