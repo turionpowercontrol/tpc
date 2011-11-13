@@ -2956,7 +2956,7 @@ void K10Processor::getDramTimingHigh(DWORD device, DWORD *TrwtWB,
 	*Trfc2 = dramTimingHighRegister->getBits(0, 26, 3); //(miscReg >> 26) & 0x07;
 	*Trfc3 = dramTimingHighRegister->getBits(0, 29, 3); //(miscReg >> 29) & 0x07;
 
-	if (getDDR3Mode(device) || (!getDDR3Mode(device) && getDramFrequency(device)==533)) {
+	if (getDDR3Mode(device) || getDramFrequency(device) == 533) {
 
 		//Adjusting timings for DDR3/DDR2-1066 memories.
 
@@ -2964,19 +2964,19 @@ void K10Processor::getDramTimingHigh(DWORD device, DWORD *TrwtWB,
 		*TrwtTO += 2;
 		*Twtr += 4;
 
-		if (!getDDR3Mode(device) && getDramFrequency(device)==533) {
+		if (!getDDR3Mode(device)) {
 			*Twrrd += 1;
 		} else {
 			*Twrrd += (dramControlRegister->getBits(0,8,2)<<2) + 0;
 		}
 
-		if (!getDDR3Mode(device) && getDramFrequency(device)==533) {
+		if (!getDDR3Mode(device)) {
 			*Twrwr += 1;
 		} else {
 			*Twrwr += (dramControlRegister->getBits(0,10,2)<<2) + 1;
 		}
 
-		if (!getDDR3Mode(device) && getDramFrequency(device)==533) {
+		if (!getDDR3Mode(device)) {
 			*Trdrd += 2;
 		} else {
 			*Trdrd += (dramControlRegister->getBits(0,12,2)<<2) + 2;
@@ -3056,7 +3056,7 @@ void K10Processor::getDramTimingLow(
 	// 1b= 16 memclk .... 1001b= 32 memclk
 	*Tfaw = dramConfigurationHighRegister->getBits(0, 28, 4) << 1; //((miscReg >> 28) << 1);
 	if (*Tfaw != 0) {
-		if (getDDR3Mode(device) || (!getDDR3Mode(device) && (getDramFrequency(device)==533)))
+		if (getDDR3Mode(device) || getDramFrequency(device) == 533)
 			*Tfaw += 14;
 		else
 			*Tfaw += 7;
