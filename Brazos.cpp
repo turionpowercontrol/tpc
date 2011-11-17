@@ -1872,7 +1872,7 @@ void Brazos::checkMode () {
 			for (cid=0;cid<processorCores;cid++) {
 			printf ("Core%d:",cid);
 				for (i=0;i<5;i++)
-					printf ("\t%d",states[0][i]);
+					printf ("\t%d",states[cid][i]);
 
 			printf ("\n");
 			}
