@@ -2901,7 +2901,7 @@ void Interlagos::perfCounterGetValue (unsigned int perfCounter)
 {
 	PerformanceCounter *performanceCounter;
 
-	performanceCounter = new PerformanceCounter(getMask(), perfCounter, 6);
+	performanceCounter = new PerformanceCounter(getMask(), perfCounter, this->getMaxSlots());
 
 	if (!performanceCounter->takeSnapshot())
 	{

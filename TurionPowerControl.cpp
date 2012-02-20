@@ -370,7 +370,7 @@ void printUsage (const char *name) {
 	printf ("\ta SVI Voltage command and a FID change. Values range from 0 to 7 \n");
 	printf ("\tand corresponds to:\n\n");
 	printf ("\t\t0=10us\n\t\t1=20us\n\t\t2=30us\n\t\t3=40us\n\t\t4=60us\n\t\t5=100us\n\t\t6=200us\n\t\t7=500us\n\n");
-	printf (" -gettdp\n\tReturns the current TDP for the processor\n");
+	printf (" -gettdp\n\tReturns the current TDP for the processor\n\n");
 
 	printf (" -rampuptime <value>\n -rampdowntime <value>\n\tSet, on active nodes, the StepUpTime or StepDownTime. \n");
 	printf ("\tIt is not documented in Turion (Family 11h) datasheet, but only in\n");
@@ -1002,7 +1002,6 @@ int main (int argc,const char **argv) {
 			argvStep++;
 		}
 
-
 		//Set Ramp time for StepUpTime for current nodes
 		if (strcmp((const char *)argv[argvStep],"-rampuptime")==0) {
 			
@@ -1154,13 +1153,13 @@ int main (int argc,const char **argv) {
 			
 		}
 		
-		//Set Boost state for supported processors
+		//Set Boost state to enabled for supported processors
 		if (strcmp((const char *)argv[argvStep],"-boostenable")==0)
 		{	
 			processor->setBoost(true);
 		}
 		
-		//Set C1E disabled on current nodes and current cores
+		//Set Boost state to disabled for supported processors
 		if (strcmp((const char *)argv[argvStep],"-boostdisable")==0)
 		{
 			processor->setBoost(false);

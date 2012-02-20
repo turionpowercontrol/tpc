@@ -1501,7 +1501,7 @@ void Brazos::perfCounterGetValue (unsigned int perfCounter) {
 
 	PerformanceCounter *performanceCounter;
 
-	performanceCounter=new PerformanceCounter(getMask(), perfCounter, 4);
+	performanceCounter=new PerformanceCounter(getMask(), perfCounter, this->getMaxSlots());
 
 	if (!performanceCounter->takeSnapshot()) {
 		printf ("Brazos.cpp::perfCounterGetValue - unable to read performance counter");
