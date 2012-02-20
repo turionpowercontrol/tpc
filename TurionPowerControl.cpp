@@ -122,6 +122,9 @@ Processor *getSupportedProcessor () {
 	if (Llano::isProcessorSupported()) {
 				return (class Processor *)new Llano();
 	}
+	if (Interlagos::isProcessorSupported()) {
+				return (class Processor *)new Interlagos();
+	}
 
 	/*TODO: This code should be moved somewhere else than here:
 	 *
@@ -149,8 +152,9 @@ void processorStatus (Processor *p) {
 	int cores=p->getProcessorCores();
 	int pstates=p->getPowerStates();
 	int nodes=p->getProcessorNodes();
+	int boost = p->getBoostStates();
 
-	printf ("\nMain processor is %s\n",p->getProcessorStrId());
+	printf ("Main processor is %s\n",p->getProcessorStrId());
 
 	printf ("\tFamily: 0x%x\t\tModel: 0x%x\t\tStepping: 0x%x\n",p->getSpecFamilyBase(),p->getSpecModel(),p->getSpecStepping());
 	printf ("\tExtended Family: 0x%x\tExtended Model: 0x%x\n",p->getSpecFamilyExtended(),p->getSpecModelExtended());
@@ -159,31 +163,49 @@ void processorStatus (Processor *p) {
 	printf ("Machine has %d nodes\n",p->getProcessorNodes());
 	printf ("Processor has %d cores\n",cores);
 	printf ("Processor has %d p-states\n",pstates);
+	printf ("Processor has %d boost states\n",boost);
 	printf ("\nPower States table:\n");
 
-	for (j = 0; j < nodes; j++) {
-		for (i = 0; i < cores; i++) {
+	for (j = 0; j < nodes; j++)
+	{
+		for (i = 0; i < cores; i++)
+		{
 			printf("-- Node: %d Core %d\n", j, i);
-			for (k = 0; k < pstates; k++) {
+			for (k = 0; k < pstates; k++)
+			{
 				ps.setPState(k);
 				p->setCore(i);
 				p->setNode(j);
 
 				printf("core %d ", i);
-				printf("pstate %d - ", k);
-				printf("En:%d ", p->pStateEnabled(ps.getPState()));
-				printf("VID:%d ", p->getVID(ps.getPState()));
-				if (p->getFID(ps.getPState())!=-1) printf("FID:%0.0f ", p->getFID(ps.getPState()));
-				if (p->getDID(ps.getPState())!=-1) printf("DID:%0.2f ", p->getDID(ps.getPState()));
-				printf("Freq:%d ", p->getFrequency(ps.getPState()));
-				printf("VCore:%.4f", p->getVCore(ps.getPState()));
+				printf("pstate %d ", k);
+				if (boost > 0 && k < boost)
+					printf("(pb%d) - ",k);
+				else if (boost > 0 && k >= boost)
+					printf("(p%d) - ",(k - boost));
+				else
+					printf("(p%d) - ",k);
+				
+				if (!(p->getBoost()) && k < boost)
+				{
+					printf ("Boost PState Disabled");
+				}
+				else
+				{
+					printf("En:%d ", p->pStateEnabled(ps.getPState()));
+					printf("VID:%d ", p->getVID(ps.getPState()));
+					if (p->getFID(ps.getPState())!=-1) printf("FID:%0.0f ", p->getFID(ps.getPState()));
+					if (p->getDID(ps.getPState())!=-1) printf("DID:%0.2f ", p->getDID(ps.getPState()));
+					printf("Freq:%d ", p->getFrequency(ps.getPState()));
+					printf("VCore:%.4f", p->getVCore(ps.getPState()));
+				}
 				printf("\n");
 			}
-
 		}
 	}
 
-	for (j=0;j<p->getProcessorNodes();j++) {
+	for (j=0;j<p->getProcessorNodes();j++)
+	{
 		p->setNode (j);
 		p->setCore (0);
 		printf ("\n --- Node %u:\n", p->getNode());
@@ -216,6 +238,7 @@ void processorTempMonitoring (Processor *p) {
 	printf("Machine has %d nodes\n", p->getProcessorNodes());
 	printf("Processor has %d cores\n", p->getProcessorCores());
 	printf("Processor has %d p-states\n", p->getPowerStates());
+	printf("Processor has %d boost states\n", p->getBoostStates());
 
 	printf("Processor temperature slew rate:");
 	switch (p->getTctlMaxDiff()) {
@@ -244,10 +267,13 @@ void processorTempMonitoring (Processor *p) {
 
 	printf ("\nTemperature table (monitoring):\n");
 
-	while (1) {
-		for (node = 0; node < p->getProcessorNodes(); node++) {
-			printf("Node %d\t", node);
-			for (core = 0; core < p->getProcessorCores(); core++) {
+	while (1)
+	{
+		for (node = 0; node < p->getProcessorNodes(); node++)
+		{
+			printf("\nNode %d\t", node);
+			for (core = 0; core < p->getProcessorCores(); core++)
+			{
 				p->setNode(node);
 				p->setCore(core);
 				printf("C%d:%d\t", core, p->getTctlRegister());
@@ -256,7 +282,6 @@ void processorTempMonitoring (Processor *p) {
 		printf("\n");
 		Sleep(100);
 		Sleep(900);
-
 	};
 
 	return;
@@ -271,6 +296,7 @@ void processorTempStatus(Processor *p) {
 	printf("Machine has %d nodes\n", p->getProcessorNodes());
 	printf("Processor has %d cores\n", p->getProcessorCores());
 	printf("Processor has %d p-states\n", p->getPowerStates());
+	printf("Processor has %d boost states\n", p->getBoostStates());
 
 	printf("Processor temperature slew rate:");
 	switch (p->getTctlMaxDiff()) {
@@ -332,6 +358,7 @@ void printUsage (const char *name) {
 	printf (" -di <pstateId>\n\tDisables a specified (pStateId) for active cores and active nodes\n\n");
 	printf (" -fo <pstateId>\n\tForce a pstate transition to specified (pStateId) for active cores\n\tand active nodes\n\n");
 	printf (" -psmax <pstateMaxId>\n\tSet maximum Power State for active nodes\n\n");
+	printf (" -bst <numBoostStates>\n\tSet the number of boosted states in an unlocked processor\n\n");
 
 	printf (" -set <commands>\n\tUseful switch to set frequency and voltage without manual\n");
 	printf ("\tmanipulation of FID, DID and VID values. Check the documentation\n");
@@ -343,6 +370,7 @@ void printUsage (const char *name) {
 	printf ("\ta SVI Voltage command and a FID change. Values range from 0 to 7 \n");
 	printf ("\tand corresponds to:\n\n");
 	printf ("\t\t0=10us\n\t\t1=20us\n\t\t2=30us\n\t\t3=40us\n\t\t4=60us\n\t\t5=100us\n\t\t6=200us\n\t\t7=500us\n\n");
+	printf (" -gettdp\n\tReturns the current TDP for the processor\n");
 
 	printf (" -rampuptime <value>\n -rampdowntime <value>\n\tSet, on active nodes, the StepUpTime or StepDownTime. \n");
 	printf ("\tIt is not documented in Turion (Family 11h) datasheet, but only in\n");
@@ -386,6 +414,8 @@ void printUsage (const char *name) {
 	printf ("\t ----- Various and others -----\n\n");
 	printf (" -c1eenable\n\tSets C1E on Cmp Halt bit enabled for active nodes and active cores\n\n");
 	printf (" -c1edisable\n\tSets C1E on Cmp Halt bit disabled for active nodes and active cores\n\n");
+	printf (" -boostenable\n\tEnable Boost for supported processors\n\n");
+	printf (" -boostdisable\n\tDisable Boost for supported processors\n\n");
 
 
 	printf ("\t ----- Performance Counters -----\n\n");
@@ -743,7 +773,7 @@ int main (int argc,const char **argv) {
 	
 	Scaler *scaler;
 	
-	printf ("Turion Power States Optimization and Control - by blackshard - v0.41\n");
+	printf ("Turion Power States Optimization and Control - by blackshard - v0.422\n\n");
 
 	if (argc<2) {
 		printUsage(argv[0]);
@@ -928,6 +958,18 @@ int main (int argc,const char **argv) {
 
 			argvStep++;
 		}
+		
+		if (strcmp((const char *)argv[argvStep],"-bst")==0)
+		{
+			if (argv[argvStep + 1]==NULL)
+			{
+				printf ("Wrong -bst option\n");
+				return 1;
+			}
+			
+			processor->setNumBoostStates(arg2i(argv,argvStep+1));
+			argvStep++;
+		}
 
 		//Show temperature table
 		if (strcmp((const char *)argv[argvStep],"-temp")==0) {
@@ -983,6 +1025,11 @@ int main (int argc,const char **argv) {
 			
 			processor->setStepDownRampTime (arg2i(argv,argvStep+1));
 			argvStep++;
+		}
+		
+		if (strcmp((const char *)argv[argvStep],"-gettdp")==0)
+		{
+			processor->getTDP();
 		}
 
 		//Show information about per-family specifications
@@ -1106,6 +1153,18 @@ int main (int argc,const char **argv) {
 			processor->setC1EStatus(false);
 			
 		}
+		
+		//Set Boost state for supported processors
+		if (strcmp((const char *)argv[argvStep],"-boostenable")==0)
+		{	
+			processor->setBoost(true);
+		}
+		
+		//Set C1E disabled on current nodes and current cores
+		if (strcmp((const char *)argv[argvStep],"-boostdisable")==0)
+		{
+			processor->setBoost(false);
+		}
 
 		//Goes in temperature monitoring
 		if (strcmp((const char *)argv[argvStep],"-mtemp")==0) {
@@ -1113,12 +1172,10 @@ int main (int argc,const char **argv) {
 			processorTempMonitoring(processor);
 		}
 
-
 		//Goes into Check Mode and controls very fastly if a transition to a wrong pstate happens
-		if (strcmp((const char *)argv[argvStep],"-CM")==0) {
-			
+		if (strcmp((const char *)argv[argvStep],"-CM")==0)
+		{
 			processor->checkMode ();
-			
 		}
 
 		//Allow cyclic parameter auto recall

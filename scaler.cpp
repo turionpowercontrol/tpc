@@ -101,7 +101,7 @@ int Scaler::initializeCounters() {
 
 		//Creates a new performance counter, for now we set slot 0, but we will
 		//use the findAvailable slot method to find an available method to be used
-		this->perfCounter = new PerformanceCounter(cpuMask, 0);
+		this->perfCounter = new PerformanceCounter(cpuMask, 0, this->processor->getMaxSlots());
 
 		//Event 0x76 is Idle Counter
 		perfCounter->setEventSelect(0x76);

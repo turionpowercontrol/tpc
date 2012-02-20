@@ -24,20 +24,27 @@ bool Cpuid (DWORD fn, DWORD *eax, DWORD *ebx, DWORD *ecx, DWORD *edx) {
 
 	fd = open(cpuid_filename, O_RDONLY);
 
-	if ( fd < 0 ) {
-		if ( errno == ENXIO ) {
+	if ( fd < 0 )
+	{
+		if ( errno == ENXIO )
+		{
 			fprintf(stderr, "cpuid: No CPUID on processor 0\n");
 			return false;
-		} else if (errno == EIO ) {
+		}
+		else if (errno == EIO )
+		{
 			fprintf(stderr, "cpuid: CPU 0 doesn't support CPUID\n");
 			return false;
-		} else {
+		}
+		else
+		{
 			perror("cpuid:open");
 			return false;
 		}
 	}
   
-	if ( pread(fd, &data, sizeof data, fn) != sizeof data ) {
+	if ( pread(fd, &data, sizeof data, fn) != sizeof data )
+	{
 		perror("cpuid:pread");
 		return false;
 	}
@@ -67,86 +74,99 @@ bool ReadPciConfigDwordEx (DWORD devfunc, DWORD reg, DWORD *res)
 
 	fd = open(pcidev_filename, O_RDONLY);
 
-	if ( fd < 0 ) {
-		if ( errno == ENXIO ) {
+	if ( fd < 0 )
+	{
+		if ( errno == ENXIO )
+		{
 			fprintf(stderr, "ReadPciConfigDwordEx: ENXIO error\n");
 			return false;
-		} else if (errno == EIO ) {
+		}
+		else if (errno == EIO )
+		{
 			fprintf(stderr, "ReadPciConfigDwordEx: EIO error\n");
 			return false;
-		} else {
+		}
+		else
+		{
 			perror("ReadPciConfigDwordEx: open");
 			return false;
 		}
 	}
   
-	if ( pread(fd, &data, sizeof data, reg) != sizeof data ) {
+	if ( pread(fd, &data, sizeof data, reg) != sizeof data )
+	{
 		perror("ReadPciConfigDwordEx: pread");
 		return false;
 	}
-
-	*res=data;
-
+	
+	*res = data;
+	
 	close(fd);
-
+	
 	return true;
-
 }
 
-bool WritePciConfigDwordEx (DWORD devfunc, DWORD reg, DWORD res) {
+bool WritePciConfigDwordEx (DWORD devfunc, DWORD reg, DWORD res)
+{
 	char pcidev_filename[128];
 	int fd;
 	DWORD data;
 	DWORD bus, device, function;
-
+	
 	bus=(devfunc >> 8) & 0xff;
 	device=(devfunc >> 3) & 0x1f;
 	function=devfunc & 0x7;
-
+	
 	sprintf(pcidev_filename, "/proc/bus/pci/%02x/%02x.%x",bus,device,function);
-
+	
 	fd = open(pcidev_filename, O_WRONLY);
-
-	if ( fd < 0 ) {
-		if ( errno == ENXIO ) {
+	
+	if ( fd < 0 )
+	{
+		if ( errno == ENXIO )
+		{
 			fprintf(stderr, "WritePciConfigDwordEx: ENXIO error\n");
 			return false;
-		} else if (errno == EIO ) {
+		}
+		else if (errno == EIO )
+		{
 			fprintf(stderr, "WritePciConfigDwordEx: EIO error\n");
 			return false;
-		} else {
+		}
+		else
+		{
 			perror("WritePciConfigDwordEx: open");
 			return false;
 		}
 	}
-
+	
 	data=res;
-  
-	if ( pwrite(fd, &data, sizeof data, reg) != sizeof data ) {
+	
+	if ( pwrite(fd, &data, sizeof data, reg) != sizeof data )
+	{
 		perror("WritePciConfigDwordEx: pwrite");
 		return false;
 	}
-
+	
 	close(fd);
-
+	
 	return true;
-
-
 }
 
-bool RdmsrPx (DWORD msr,DWORD *eax,DWORD *ebx,PROCESSORMASK processorMask) {
+bool RdmsrPx (DWORD msr,DWORD *eax,DWORD *ebx,PROCESSORMASK processorMask)
+{
 	char msr_filename[128];
 	DWORD data[2];
 	int fd;
 	DWORD processor=0;
 	bool isValidProcessor;
 
-	while (processor<MAX_CORES) {
-	
+	while (processor<MAX_CORES)
+	{
 		isValidProcessor=processorMask & ((PROCESSORMASK)1<<processor);
 
-		if (isValidProcessor) {			
-
+		if (isValidProcessor)
+		{			
 			sprintf(msr_filename, "/dev/cpu/%d/msr",processor);
 
 			fd = open(msr_filename, O_RDONLY);
@@ -165,7 +185,8 @@ bool RdmsrPx (DWORD msr,DWORD *eax,DWORD *ebx,PROCESSORMASK processorMask) {
 			}
 	
   	
-			if ( pread(fd, &data, sizeof data, msr) != sizeof data ) {
+			if ( pread(fd, &data, sizeof data, msr) != sizeof data )
+			{
 				perror("rdmsr: pread");
 				return false;
 			}
@@ -182,11 +203,8 @@ bool RdmsrPx (DWORD msr,DWORD *eax,DWORD *ebx,PROCESSORMASK processorMask) {
 			//for all processors in the mask.
 			return true;
 		}
-
 		processor++;
-	
 	}
-
 	return true;
 }
 

@@ -64,6 +64,8 @@ K10Processor::K10Processor () {
 	setSpecString1 (string1);
 	setSpecString2 (string2);
 	setSpecPkgType (pkgType);
+	setBoostStates (0);
+	setMaxSlots(4);
 
     // determine the number of nodes, and number of processors.
 	// different operating systems have different APIs for doing similiar, but below steps are OS agnostic.
@@ -2682,7 +2684,7 @@ void K10Processor::perfCounterGetValue (unsigned int perfCounter) {
 
 	PerformanceCounter *performanceCounter;
 
-	performanceCounter=new PerformanceCounter(getMask(), perfCounter);
+	performanceCounter=new PerformanceCounter(getMask(), perfCounter, 4);
 
 	if (!performanceCounter->takeSnapshot()) {
 		printf ("K10PerformanceCounters::perfCounterGetValue - unable to read performance counter");

@@ -54,9 +54,9 @@
 #define TIME_STAMP_COUNTER_REG 0x00000010
 
 //Family 15h Performance Registers
-#define BASE_PESR_REG_15 0xc0010200
-#define BASE_PERC_REG_15 0xc0010201
-#define APML_TDP_LIMIT_REG_15 0xc0010075
+#define BASE_PESR_REG_15 0xC0010200
+#define BASE_PERC_REG_15 0xC0010201
+#define APML_TDP_LIMIT_REG_15 0xC0010075
 
 //Performance Event constants (used for IDLE counting for CPU Usage
 //counter)
@@ -127,6 +127,7 @@ protected:
 
 	//Processor Specs
 	int familyBase;
+	int familyExtended;
 	int model;
 
 	int stepping;
@@ -138,6 +139,7 @@ protected:
 	int pkgType;
 	int numBoostStates;
 	int TDP;
+	int maxslots;
 
 	DWORD selectedCore;
 	DWORD selectedNode;
@@ -170,14 +172,13 @@ protected:
 	void setSpecPkgType(int);
 	void setBoostStates(int);
 	void setTDP(int);
+	void setMaxSlots(int);
 
 	virtual void setPCtoIdleCounter(int, int) {
 		return;
 	}
 
 public:
-	int familyExtended;
-
 	const static DWORD ALL_NODES=-1;
 	const static DWORD ALL_CORES=-1;
 
@@ -227,6 +228,7 @@ public:
 	int getSpecString2();
 	int getSpecPkgType();
 	int getBoostStates();
+	int getMaxSlots();
 
 	virtual float convertVIDtoVcore(DWORD);
 	virtual DWORD convertVcoretoVID(float);

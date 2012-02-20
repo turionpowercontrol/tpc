@@ -71,6 +71,8 @@ Llano::Llano() {
 	setSpecString1(string1);
 	setSpecString2(string2);
 	setSpecPkgType(pkgType);
+	setBoostStates(0);
+	setMaxSlots(4);
 
 	//Llano platform will always contain one node per system, since it has no Hypertransport Link.
 	//Maybe can change in the future.
@@ -1611,7 +1613,7 @@ void Llano::perfCounterGetValue(unsigned int perfCounter) {
 
 	PerformanceCounter *performanceCounter;
 
-	performanceCounter = new PerformanceCounter(getMask(), perfCounter);
+	performanceCounter = new PerformanceCounter(getMask(), perfCounter, 4);
 
 	if (!performanceCounter->takeSnapshot()) {
 		printf(

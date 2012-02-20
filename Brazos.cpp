@@ -60,6 +60,8 @@ Brazos::Brazos () {
 	setSpecString1 (string1);
 	setSpecString2 (string2);
 	setSpecPkgType (pkgType);
+	setBoostStates (0);
+	setMaxSlots(4);
 
 	//Brazos platform will always contain one node per system, since it has no Hypertransport Link.
 	//Maybe can change in the future.
@@ -1499,7 +1501,7 @@ void Brazos::perfCounterGetValue (unsigned int perfCounter) {
 
 	PerformanceCounter *performanceCounter;
 
-	performanceCounter=new PerformanceCounter(getMask(), perfCounter);
+	performanceCounter=new PerformanceCounter(getMask(), perfCounter, 4);
 
 	if (!performanceCounter->takeSnapshot()) {
 		printf ("Brazos.cpp::perfCounterGetValue - unable to read performance counter");
