@@ -25,17 +25,20 @@
 #include <stdio.h>
 
 //MSRs defines
-//Base (pstate 0) MSR register for Family 11h processors:
-#define BASE_ZM_PSTATEMSR 0xC0010064
-
 //Base (pstate 0) MSR register for Family 10h processors:
 #define BASE_K10_PSTATEMSR 0xC0010064
+
+//Base (pstate 0) MSR register for Family 11h processors:
+#define BASE_ZM_PSTATEMSR 0xC0010064
 
 //Base (pstate 0) MSR register for Family 12h processors:
 #define BASE_12H_PSTATEMSR 0xC0010064
 
 //Base (pstate 0) MSR register for Family 14h processors:
 #define BASE_14H_PSTATEMSR 0xC0010064
+
+//Base (pstate 0) MSR register for Family 15h processors:
+#define BASE_15H_PSTATEMSR 0xC0010064
 
 
 //Shared (both Family 10h and Family 11h use the same registers)
@@ -46,9 +49,14 @@
 
 //Shared (both Family 10h and Family 11h use the same registers)
 //regarding Performance Registers and Time stamp counter
-#define BASE_PESR_REG 0xc0010000	
+#define BASE_PESR_REG 0xc0010000
 #define BASE_PERC_REG 0xc0010004
 #define TIME_STAMP_COUNTER_REG 0x00000010
+
+//Family 15h Performance Registers
+#define BASE_PESR_REG_15 0xc0010200
+#define BASE_PERC_REG_15 0xc0010201
+#define APML_TDP_LIMIT_REG_15 0xc0010075
 
 //Performance Event constants (used for IDLE counting for CPU Usage
 //counter)
@@ -58,6 +66,7 @@
 //PCI Registers defines for northbridge
 #define PCI_FUNC_LINK_CONTROL 0x4
 #define PCI_FUNC_MISC_CONTROL_3 0x3
+#define PCI_FUNC_MISC_CONTROL_5 0x5
 #define PCI_FUNC_DRAM_CONTROLLER 0x2
 #define PCI_FUNC_ADDRESS_MAP 0x1
 #define PCI_FUNC_HT_CONFIG 0x0
@@ -76,6 +85,8 @@
 #define PROCESSOR_12H_FAMILY 8
 
 #define PROCESSOR_14H_FAMILY 7
+
+#define PROCESSOR_15H_FAMILY 9
 
 //Scaler helper structures:
 	struct procStatus {
@@ -119,13 +130,14 @@ protected:
 	int model;
 
 	int stepping;
-	int familyExtended;
 	int modelExtended;
 	int brandId;
 	int processorModel;
 	int string1;
 	int string2;
 	int pkgType;
+	int numBoostStates;
+	int TDP;
 
 	DWORD selectedCore;
 	DWORD selectedNode;
@@ -156,12 +168,15 @@ protected:
 	void setSpecString1(int);
 	void setSpecString2(int);
 	void setSpecPkgType(int);
+	void setBoostStates(int);
+	void setTDP(int);
 
 	virtual void setPCtoIdleCounter(int, int) {
 		return;
 	}
 
 public:
+	int familyExtended;
 
 	const static DWORD ALL_NODES=-1;
 	const static DWORD ALL_CORES=-1;
@@ -211,6 +226,7 @@ public:
 	int getSpecString1();
 	int getSpecString2();
 	int getSpecPkgType();
+	int getBoostStates();
 
 	virtual float convertVIDtoVcore(DWORD);
 	virtual DWORD convertVcoretoVID(float);
@@ -288,6 +304,10 @@ public:
 	virtual DWORD startupPState();
 	virtual DWORD maxCPUFrequency(); // 0 means that there
 		//is no maximum CPU frequency, i.e. unlocked multiplier
+	virtual void setBoost(bool);
+	virtual DWORD getBoost(void);
+	virtual void setNumBoostStates(DWORD);
+	virtual DWORD getTDP(void);
 
 	//Temperature registers
 	virtual DWORD getTctlRegister(void);

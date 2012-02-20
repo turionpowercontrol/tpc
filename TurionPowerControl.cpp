@@ -26,6 +26,7 @@
 #include "K10Processor.h"
 #include "Brazos.h"
 #include "Llano.h"
+#include "Interlagos.h"
 
 #include "config.h"
 #include "scaler.h"
