@@ -1218,6 +1218,14 @@ DWORD Interlagos::maxCPUFrequency()
 	return maxCPUFid * 100;
 }
 
+/*
+ * As per page 416 of BKDG
+ * 15C -> Core Performance Boost Control
+ * Bits 2:4 to indicate the number of boosted states
+ * 
+ * If bosotlock (bit 31) is not enabled, then it can be modified
+ */
+
 DWORD Interlagos::getNumBoostStates(void)
 {	
 	PCIRegObject *boostControl = new PCIRegObject();
@@ -1275,6 +1283,9 @@ void Interlagos::setNumBoostStates(DWORD numBoostStates)
 	return;
 }
 
+/*
+ * Specifies whether CPB is enabled or disabled
+ */
 
 DWORD Interlagos::getBoost(void)
 {
@@ -1360,7 +1371,9 @@ void Interlagos::setBoost(bool boost)
 DWORD Interlagos::getTDP(void)
 {
 	PCIRegObject *TDPReg = new PCIRegObject();
+	PCIRegObject *TDP2Watt = new PCIRegObject();
 	DWORD TDP;
+	float tdpwatt;
 	
 	if (!TDPReg->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_LINK_CONTROL, 0x1B8, getNodeMask()))
 	{
@@ -1368,9 +1381,17 @@ DWORD Interlagos::getTDP(void)
 		return -1;
 	}
 	
-	TDP = TDPReg->getBits(0, 0, 15);
+	if (!TDP2Watt->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_5, 0xE8, getNodeMask()))
+	{
+		printf("Interlagos::getTDP unable to read TDP2Watt control register\n");
+		return -1;
+	}
 	
-	printf("TDP is: %d\n",TDP);
+	TDP = TDPReg->getBits(0, 0, 16);
+	tdpwatt = TDP2Watt->getBits(0, 0, 10);
+	tdpwatt = (tdpwatt / 1024) * TDP;
+	
+	printf("TDP is: %f\n",tdpwatt);
 	
 	setTDP(TDP);
 	
@@ -3034,6 +3055,8 @@ void Interlagos::checkMode()
  * 0Eh = 1333
  * 12h = 1600
  * 16h = 1866
+ * 1Ah = 2133
+ * 1Eh = 2400
  */
 bool Interlagos::getDramValid (DWORD device)
 {
@@ -3113,6 +3136,10 @@ int Interlagos::getDramFrequency (DWORD device, DWORD *T_mode)
 			return 1600;
 		case 0x16:
 			return 1866;
+		case 0x1A:
+			return 2133;
+		case 0x1E:
+			return 2400;
 		default:
 			return 0;
 	}

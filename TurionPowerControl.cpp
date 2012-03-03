@@ -773,7 +773,7 @@ int main (int argc,const char **argv) {
 	
 	Scaler *scaler;
 	
-	printf ("Turion Power States Optimization and Control - by blackshard - v0.422\n\n");
+	printf ("Turion Power States Optimization and Control - by blackshard - v0.423\n\n");
 
 	if (argc<2) {
 		printUsage(argv[0]);
