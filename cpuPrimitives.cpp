@@ -219,7 +219,7 @@ bool WrmsrPx (DWORD msr,DWORD eax,DWORD ebx,PROCESSORMASK processorMask) {
 	DWORD processor=0;
 	bool isValidProcessor;
 
-	//printf ("Mask: %x", processorMask);
+// 	printf ("Mask: %x\n", processorMask);
 
 	while (processor<MAX_CORES) {
 
@@ -227,7 +227,7 @@ bool WrmsrPx (DWORD msr,DWORD eax,DWORD ebx,PROCESSORMASK processorMask) {
 
 		if (isValidProcessor) {
 
-			//printf ("processor %d is valid", processor);
+// 			printf ("processor %d is valid\n", processor);
 
 			data[0]=eax;
 			data[1]=ebx;
@@ -236,26 +236,37 @@ bool WrmsrPx (DWORD msr,DWORD eax,DWORD ebx,PROCESSORMASK processorMask) {
 	
 			fd = open(msr_filename, O_WRONLY);
 	
-			if ( fd < 0 ) {
-				if ( errno == ENXIO ) {
+			if ( fd < 0 )
+			{
+				if ( errno == ENXIO )
+				{
 					fprintf(stderr, "WrmsrPx: Invalid %u processor\n",processor);
 					return false;
-				} else if (errno == EIO ) {
+				}
+				else if (errno == EIO )
+				{
 					fprintf(stderr, "WrmsrPx: CPU %u doesn't support MSR\n",processor);
 					return false;
-				} else {
-					perror("WrmsrPx: open");
+				}
+				else
+				{
+					fprintf(stderr, "WrmsrPx: open");
 					return false;
 				}
 			}
   	
-			if ( pwrite(fd, &data, sizeof data, msr) != sizeof data ) {
-				perror("WrmsrPx: pread");
+			if ( pwrite(fd, &data, sizeof data, msr) != sizeof data)
+			{
+				if (errno == EIO) 
+					fprintf(stderr, "wrmsr: CPU %d cannot set MSR %X to %X %X\n", processor, msr, data[0], data[1]);
+				else
+					fprintf(stderr, "WrmsrPx pread Errno %x\n",errno);
+				close(fd);
 				return false;
 			}
-	
-			close(fd);
 
+			close(fd);
+			
 			/*
 			 * Removes the current processor from the mask to optimize the write loop with
 			 * a further check on processorMask variable

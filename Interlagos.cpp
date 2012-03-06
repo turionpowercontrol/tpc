@@ -18,9 +18,9 @@
 #include "MSRObject.h"
 #include "PerformanceCounter.h"
 
-//Brazos class constructor
-Interlagos::Interlagos () {
-
+//Interlagos class constructor
+Interlagos::Interlagos ()
+{
 	DWORD eax,ebx,ecx,edx;
 	PCIRegObject *pciReg60;
 	PCIRegObject *pciReg160;
@@ -696,7 +696,7 @@ void Interlagos::pStateDisable (PState ps)
 	}
 
 	//To disable a pstate, base offset is 63 bits (31th bit of edx) and value is 1 bit wide
-	msrObject->setBitsHigh(31, 1, 0x0);
+	msrObject->setBitsHigh(31, 1, 0);
 
 	if (!msrObject->writeMSR())
 	{
@@ -724,7 +724,7 @@ void Interlagos::pStateEnable (PState ps)
 	}
 
 	//To disable a pstate, base offset is 63 bits (31th bit of edx) and value is 1 bit wide
-	msrObject->setBitsHigh(31, 1, 0x1);
+	msrObject->setBitsHigh(31, 1, 1);
 
 	if (!msrObject->writeMSR())
 	{
@@ -941,7 +941,7 @@ void Interlagos::forcePState (PState ps)
 
 	msrObject = new MSRObject();
 	
-	if (ps.getPState() + boostState > 7)
+	if (ps.getPState() > 6 - boostState)
 	{
 		printf ("Interlagos.cpp::forcePState - Forcing PStates on a boosted processor ignores boosted PStates\n");
 		printf ("Subtract %d from the PState entered\n", boostState);
@@ -949,16 +949,15 @@ void Interlagos::forcePState (PState ps)
 	}
 
 	//Add Boost States as C001_0062 uses software PState Numbering - pg560
-	if (!msrObject->readMSR(BASE_PSTATE_CTRL_REG + boostState, getMask()))
+	if (!msrObject->readMSR(BASE_PSTATE_CTRL_REG, getMask()))
 	{
 		printf ("Interlagos.cpp::forcePState - unable to read MSR\n");
 		free (msrObject);
 		return;
 	}
-
+	
 	//To force a pstate, we act on setting the first 3 bits of register. All other bits must be zero
-	msrObject->setBitsLow(0, 32, 0x0);
-	msrObject->setBitsHigh(0, 32, 0x0);
+	msrObject->setBits(0, 64, 0);
 	msrObject->setBitsLow(0, 3, ps.getPState());
 
 	if (!msrObject->writeMSR())
@@ -968,7 +967,7 @@ void Interlagos::forcePState (PState ps)
 		return;
 	}
 	
-	printf("PState set to %d.  %d Boost States\n", ps.getPState(), boostState);
+	printf ("PState set to %d\n", ps.getPState());
 
 	free (msrObject);
 
@@ -1223,7 +1222,7 @@ DWORD Interlagos::maxCPUFrequency()
  * 15C -> Core Performance Boost Control
  * Bits 2:4 to indicate the number of boosted states
  * 
- * If bosotlock (bit 31) is not enabled, then it can be modified
+ * If boostlock (bit 31) is not enabled, then it can be modified
  */
 
 DWORD Interlagos::getNumBoostStates(void)
