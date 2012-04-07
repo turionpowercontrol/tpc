@@ -26,13 +26,14 @@
 
 #include "PerformanceCounter.h"
 
-PerformanceCounter::PerformanceCounter(PROCESSORMASK cpuMask, DWORD slot) {
-
-	if (slot > 3)
-		this->slot = 3;
+PerformanceCounter::PerformanceCounter(PROCESSORMASK cpuMask, DWORD slot, DWORD maxslots)
+{
+	if (slot > maxslots)
+		this->slot = maxslots;
 	else
 		this->slot = slot;
 
+	this->maxslots = maxslots;
 	this->cpuMask = cpuMask;
 	this->eventSelect = 0x00; //Default event
 	this->countOsMode = true;
@@ -42,9 +43,43 @@ PerformanceCounter::PerformanceCounter(PROCESSORMASK cpuMask, DWORD slot) {
 	this->enableAPICInterrupt = false;
 	this->invertCntMask = false;
 	this->unitMask = 0;
+	
+	//Note that the number of slots determines the register to be used
+	//Based on BKDG for 15h (pg 547), the legacy slots do exist, however if they are used
+	//	you are only receiving the performance info for the lower 4 of 6 slots
+	//Therefore the max number of slots can be used to determine the appropriate register
+	//If a newer CPU is misdetected/mishandled, the performance info will be correct,
+	//	However it will not give you all available info
+	if (maxslots == 6)
+	{
+		this->pesrReg = BASE_PESR_REG_15;
+		this->percReg = BASE_PERC_REG_15;
+		this->offset = 2;
+	}
+	else
+	{
+		this->pesrReg = BASE_PESR_REG;
+		this->percReg = BASE_PERC_REG;
+		this->offset = 1;
+	}
 
 	snapshotRegister = new MSRObject();
+}
 
+/*
+ * MSR Register is different based on the Extended CPU Family
+ * This method will return the register required to get/set the PESR bits
+ *
+ */
+
+unsigned int PerformanceCounter::getPESRReg(unsigned char slot)
+{
+	return (this->pesrReg + (this->offset * slot));
+}
+
+unsigned int PerformanceCounter::getPERCReg(unsigned char slot)
+{
+	return (this->percReg + (this->offset * slot));
 }
 
 /*
@@ -55,15 +90,18 @@ PerformanceCounter::PerformanceCounter(PROCESSORMASK cpuMask, DWORD slot) {
  *
  */
 
-bool PerformanceCounter::program() {
-
+bool PerformanceCounter::program()
+{
 	MSRObject *pCounterMSRObject = new MSRObject();
-
+	
 	//Loads the current status of the MS registers for all the cpus in the mask
-	if (!pCounterMSRObject->readMSR(BASE_PESR_REG + this->slot, this->cpuMask)) {
+	if (!pCounterMSRObject->readMSR(getPESRReg(this->slot), this->cpuMask))
+	{
 		free(pCounterMSRObject);
 		return false;
 	}
+	else
+		return -2;
 
 	//Programs the bits of the performance counter register according with specifications
 	pCounterMSRObject->setBits(8, 8, this->unitMask);
@@ -78,7 +116,8 @@ bool PerformanceCounter::program() {
 	pCounterMSRObject->setBits(22, 1, 0); //Disables the counter, it must be enabled with another method
 
 	//Writes the data in the MS registers;
-	if (!pCounterMSRObject->writeMSR()) {
+	if (!pCounterMSRObject->writeMSR())
+	{
 		free(pCounterMSRObject);
 		return false;
 	}
@@ -98,16 +137,19 @@ bool PerformanceCounter::program() {
  * in the cpu mask.
  *
  */
-bool PerformanceCounter::fetch(DWORD cpuIndex) {
-
+bool PerformanceCounter::fetch(DWORD cpuIndex)
+{
 	MSRObject *pCounterMSRObject = new MSRObject();
 
 	//Loads the current status of the MS registers for all the cpus in the mask.
 	//Actually it could be optimized reading data for one cpu only.
-	if (!pCounterMSRObject->readMSR(BASE_PESR_REG + this->slot, this->cpuMask)) {
+	if (!pCounterMSRObject->readMSR(getPESRReg(this->slot), this->cpuMask))
+	{
 		free(pCounterMSRObject);
 		return false;
 	}
+	else
+		return -2;
 
 	this->unitMask=pCounterMSRObject->getBits(cpuIndex, 8, 8);
 	this->countUserMode=pCounterMSRObject->getBits(cpuIndex, 16, 1);
@@ -135,50 +177,53 @@ bool PerformanceCounter::fetch(DWORD cpuIndex) {
  *
  */
 
-unsigned int PerformanceCounter::findAvailableSlot () {
-
+unsigned int PerformanceCounter::findAvailableSlot ()
+{
 	MSRObject *pCounterMSRObject = new MSRObject();
 	unsigned int slot;
 	unsigned int cpuIndex;
 	bool valid;
 
-	for (slot=0;slot<4;slot++) {
-
+	for (slot = 0; slot < this->maxslots; slot++)
+	{
 		//Loads the current status of the MS registers for all the cpus in the mask.
-		if (!pCounterMSRObject->readMSR(BASE_PESR_REG + slot, this->cpuMask)) {
+		if (!pCounterMSRObject->readMSR(getPESRReg(this->slot), this->cpuMask))
+		{
 			free(pCounterMSRObject);
 			return -2;
 		}
 
-		valid=true;
+		valid = true;
 
-		for (cpuIndex=0;cpuIndex<pCounterMSRObject->getCount();cpuIndex++) {
-
+		for (cpuIndex = 0; cpuIndex < pCounterMSRObject->getCount(); cpuIndex++)
+		{
 			//If the counter slot is disabled, we proceed to the next cpu in the mask
 			//If the counter slot is enabled, we check the parameters. If we find that parameters are
 			//exactly the same as those programmed in the class object, we proceed to the next
 			//cpu in the mask. If parameters are not the same, we break the cycle and proceed to the next slot
-			if (pCounterMSRObject->getBits(cpuIndex, 22,1!=0)) {
-				if ((pCounterMSRObject->getBits(cpuIndex, 8, 8)!=this->unitMask) ||
-					(pCounterMSRObject->getBits(cpuIndex, 16, 1)!=this->countUserMode) ||
-					(pCounterMSRObject->getBits(cpuIndex, 17, 1)!=this->countOsMode) ||
-					(pCounterMSRObject->getBits(cpuIndex, 18, 1)!=this->edgeDetect) ||
-					(pCounterMSRObject->getBits(cpuIndex, 20, 1)!=this->enableAPICInterrupt) ||
-					(pCounterMSRObject->getBits(cpuIndex, 23, 1)!=this->invertCntMask) ||
-					(pCounterMSRObject->getBits(cpuIndex, 24, 8)!=this->counterMask) ||
-					(pCounterMSRObject->getBits(cpuIndex, 0, 8)!=(this->eventSelect & 0xff)) ||
-					(pCounterMSRObject->getBits(cpuIndex, 32, 4)!=(this->eventSelect & 0xf00))) {
+			if (pCounterMSRObject->getBits(cpuIndex, 22, 1 != 0))
+			{
+				if ((pCounterMSRObject->getBits(cpuIndex, 8, 8) != this->unitMask) ||
+					(pCounterMSRObject->getBits(cpuIndex, 16, 1) != this->countUserMode) ||
+					(pCounterMSRObject->getBits(cpuIndex, 17, 1) != this->countOsMode) ||
+					(pCounterMSRObject->getBits(cpuIndex, 18, 1) != this->edgeDetect) ||
+					(pCounterMSRObject->getBits(cpuIndex, 20, 1) != this->enableAPICInterrupt) ||
+					(pCounterMSRObject->getBits(cpuIndex, 23, 1) != this->invertCntMask) ||
+					(pCounterMSRObject->getBits(cpuIndex, 24, 8) != this->counterMask) ||
+					(pCounterMSRObject->getBits(cpuIndex, 0, 8) != (this->eventSelect & 0xff)) ||
+					(pCounterMSRObject->getBits(cpuIndex, 32, 4) != (this->eventSelect & 0xf00)))
+				{
 						valid=false;
 						break;
 				}
 			}
 
 		}
-
-		if (valid==true) return slot;
-
+		
+		if (valid == true)
+			return slot;
 	}
-
+	
 	//We found no valid slot, returns -1 as expected
 	return -1;
 
@@ -195,28 +240,30 @@ unsigned int PerformanceCounter::findAvailableSlot () {
  *
  */
 
-unsigned int PerformanceCounter::findFreeSlot () {
-
+unsigned int PerformanceCounter::findFreeSlot ()
+{
 	MSRObject *pCounterMSRObject = new MSRObject();
 	unsigned int slot;
 	unsigned int cpuIndex;
 	bool valid;
 
-	for (slot=0;slot<4;slot++) {
-
+	for (slot = 0; slot < this->maxslots; slot++)
+	{
 		//Loads the current status of the MS registers for all the cpus in the mask.
-		if (!pCounterMSRObject->readMSR(BASE_PESR_REG + slot, this->cpuMask)) {
+		if (!pCounterMSRObject->readMSR(getPESRReg(this->slot), this->cpuMask))
+		{
 			free(pCounterMSRObject);
 			return -2;
 		}
 
 		valid=true;
 
-		for (cpuIndex=0;cpuIndex<pCounterMSRObject->getCount();cpuIndex++) {
-
+		for (cpuIndex=0;cpuIndex<pCounterMSRObject->getCount();cpuIndex++)
+		{
 			//If the counter slot is disabled, we proceed to the next cpu in the mask
 			//If the counter slos is enabled, we stop the cycle and declare the slot unfree
-			if (pCounterMSRObject->getBits(cpuIndex, 22,1!=0)) {
+			if (pCounterMSRObject->getBits(cpuIndex, 22, 1 != 0))
+			{
 				valid=false;
 				break;
 			}
@@ -241,27 +288,27 @@ unsigned int PerformanceCounter::findFreeSlot () {
  *
  */
 
-bool PerformanceCounter::enable() {
+bool PerformanceCounter::enable()
+{
 
 	MSRObject *pCounterMSRObject = new MSRObject();
 
-	if (!pCounterMSRObject->readMSR(BASE_PESR_REG + this->slot, this->cpuMask)) {
-
+	//Loads the current status of the MS registers for all the cpus in the mask.
+	if (!pCounterMSRObject->readMSR(getPESRReg(this->slot), this->cpuMask))
+	{
 		free(pCounterMSRObject);
-		return false;
-
+		return -2;
 	}
 
 	pCounterMSRObject->setBitsLow(22, 1, 0x1); //Sets the bit 22, enables the performance counter
 
-	if (!pCounterMSRObject->writeMSR()) {
-
+	if (!pCounterMSRObject->writeMSR())
+	{
 		free(pCounterMSRObject);
 		return false;
-
 	}
 
-	this->enabled=true;
+	this->enabled = true;
 
 	free(pCounterMSRObject);
 	return true;
@@ -276,20 +323,22 @@ bool PerformanceCounter::enable() {
  *
  */
 
-bool PerformanceCounter::disable() {
+bool PerformanceCounter::disable()
+{
 
 	MSRObject *pCounterMSRObject = new MSRObject();
-
-	if (!pCounterMSRObject->readMSR(BASE_PESR_REG + this->slot, this->cpuMask)) {
-
+	
+	//Loads the current status of the MS registers for all the cpus in the mask.
+	if (!pCounterMSRObject->readMSR(getPESRReg(this->slot), this->cpuMask))
+	{
 		free(pCounterMSRObject);
-		return false;
-
+		return -2;
 	}
 
 	pCounterMSRObject->setBitsLow(22, 1, 0x0); //Sets the bit 22, disables the performance counter
 
-	if (!pCounterMSRObject->writeMSR()) {
+	if (!pCounterMSRObject->writeMSR())
+	{
 
 		free(pCounterMSRObject);
 		return false;
@@ -310,9 +359,9 @@ bool PerformanceCounter::disable() {
  *
  * Returns true if the snapshot has been taken correctly, else will return false
  */
-bool PerformanceCounter::takeSnapshot() {
-
-	if (!snapshotRegister->readMSR(BASE_PERC_REG + this->slot, this->cpuMask))
+bool PerformanceCounter::takeSnapshot()
+{
+	if (!snapshotRegister->readMSR(getPERCReg(this->slot), this->cpuMask))
 		return false;
 
 	return true;
@@ -326,10 +375,9 @@ bool PerformanceCounter::takeSnapshot() {
  * Remember also to issue a call to takeSnapshot before calling getCounter, else you will get invalid data
  *
  */
-uint64_t PerformanceCounter::getCounter(DWORD cpuIndex) {
-
+uint64_t PerformanceCounter::getCounter(DWORD cpuIndex)
+{
 	return snapshotRegister->getBits(cpuIndex, 0, 64);
-
 }
 
 /*
@@ -411,16 +459,21 @@ void PerformanceCounter::setSlot(unsigned char slot) {
 
 bool PerformanceCounter::getCountOsMode() const
 {
-    return countOsMode;
+	return countOsMode;
 }
 
 void PerformanceCounter::setCountOsMode(bool countOsMode)
 {
-    this->countOsMode = countOsMode;
+	this->countOsMode = countOsMode;
 }
 
 void PerformanceCounter::setUnitMask(unsigned char unitMask) {
 	this->unitMask = unitMask;
+}
+
+void PerformanceCounter::setMaxSlots(unsigned char maxslots)
+{
+	this->maxslots = maxslots;
 }
 
 /*

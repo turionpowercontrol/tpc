@@ -31,12 +31,12 @@ DWORD PState::getPState () {
 
 void PState::setPState (DWORD ps) {
 	if ((ps>=0) && (ps<=7))
-			pstate=ps;
-		else
-		{
-			printf ("PState.cpp: Wrong pstate %d, assuming default PState 0\n",ps);
-			pstate=0;
-		}
+		pstate=ps;
+	else
+	{
+		printf ("PState.cpp: Wrong pstate %d, assuming default PState 0\n",ps);
+		pstate=0;
+	}
 }
 
 void Processor::setCore (DWORD core) {
@@ -80,8 +80,8 @@ DWORD Processor::getNode () {
  * If selectedNode is ALL_NODES and selectedCore is a single value, then
  * the mask returned will set the selected core bit for each node in the system.
  */
-PROCESSORMASK Processor::getMask (DWORD core, DWORD node) {
-
+PROCESSORMASK Processor::getMask (DWORD core, DWORD node)
+{
 	PROCESSORMASK mask;
 	unsigned int offset;
 
@@ -93,7 +93,8 @@ PROCESSORMASK Processor::getMask (DWORD core, DWORD node) {
 
 	//If core is set to ALL_CORES and node is free we set the mask
 	//to specify all the cores of one specific node
-	if ((core==ALL_CORES) && (node!=ALL_NODES)) {
+	if ((core==ALL_CORES) && (node!=ALL_NODES))
+	{
 		mask = 1;
 		mask <<= processorCores;
 		mask -= 1;
@@ -104,7 +105,8 @@ PROCESSORMASK Processor::getMask (DWORD core, DWORD node) {
 
 	//If core is free and node is set to ALL_NODES, we set
 	//the mask to cover that specific core of all the nodes
-	if ((core!=ALL_CORES) && (node==ALL_NODES)) {
+	if ((core!=ALL_CORES) && (node==ALL_NODES))
+	{
 		mask=0;
 		for (offset=core;offset<(processorCores*processorNodes);offset+=processorCores)
 			mask|=(PROCESSORMASK)1<<offset;
@@ -115,7 +117,8 @@ PROCESSORMASK Processor::getMask (DWORD core, DWORD node) {
 	//If core is set to ALL_NODES and node is set to ALL_NODES,
 	//we set the mask as a whole sequence of true bits, except for
 	//exceeding bits
-	if ((core==ALL_CORES) && (node==ALL_NODES)) {
+	if ((core==ALL_CORES) && (node==ALL_NODES))
+	{
 		mask = 1;
 		mask <<= processorCores * processorNodes;
 		mask -= 1;
@@ -141,10 +144,12 @@ PROCESSORMASK Processor::getMask () {
  * the bitmask returned by this function will set bits for only
  * active and present nodes.
  */
-DWORD Processor::getNodeMask(DWORD node) {
+DWORD Processor::getNodeMask(DWORD node)
+{
 	DWORD mask;
 
-	if (node == ALL_NODES) {
+	if (node == ALL_NODES)
+	{
 		mask = 1;
 		mask <<= processorNodes;
 		mask -= 1;
@@ -157,10 +162,9 @@ DWORD Processor::getNodeMask(DWORD node) {
 
 }
 
-DWORD Processor::getNodeMask () {
-
+DWORD Processor::getNodeMask ()
+{
 	return getNodeMask (selectedNode);
-
 }
 
 //Return true if core is in the range, else shows an error message and return false
@@ -330,6 +334,36 @@ void Processor::setSpecPkgType (int pkgType) {
 	this->pkgType=pkgType;
 }
 
+void Processor::setBoostStates(int numBoostStates)
+{
+	this->numBoostStates = numBoostStates;
+}
+
+DWORD Processor::getBoost(void)
+{
+	return -1;
+}
+
+void Processor::setBoost(bool boost)
+{
+	return;
+}
+
+void Processor::setNumBoostStates(DWORD numBoostStates)
+{
+	return;
+}
+
+void Processor::setTDP(int TDP)
+{
+	this->TDP = TDP;
+}
+
+void Processor::setMaxSlots(int maxslots)
+{
+	this->maxslots = maxslots;
+}
+
 int Processor::getSpecFamilyBase () {
 	return this->familyBase;
 }
@@ -368,6 +402,22 @@ int Processor::getSpecString2 () {
 
 int Processor::getSpecPkgType () {
 	return this->pkgType;
+}
+
+int Processor::getBoostStates ()
+{
+	return this->numBoostStates;
+}
+
+DWORD Processor::getTDP ()
+{
+	return this->TDP;
+}
+
+
+int Processor::getMaxSlots ()
+{
+	return this->maxslots;
 }
 
 /*** Following methods are likely to be overloaded/overridden inside each module ***/

@@ -15,8 +15,10 @@
 #include "MSRObject.h"
 #include "Signal.h"
 
-void Processor::K10PerformanceCounters::perfMonitorCPUUsage(class Processor *p) {
+#include <unistd.h>
 
+void Processor::K10PerformanceCounters::perfMonitorCPUUsage(class Processor *p)
+{
 	PerformanceCounter *perfCounter;
 	MSRObject *tscCounter; //We need the timestamp counter too to determine the cpu usage in percentage
 
@@ -31,8 +33,8 @@ void Processor::K10PerformanceCounters::perfMonitorCPUUsage(class Processor *p) 
 	uint64_t *prevPerfCounters;
 	uint64_t *prevTSCCounters;
 
-	try {
-
+	try
+	{
 		p->setNode(p->ALL_NODES);
 		p->setCore(p->ALL_CORES);
 
@@ -41,19 +43,15 @@ void Processor::K10PerformanceCounters::perfMonitorCPUUsage(class Processor *p) 
 		 we need to retrieve the time stamp counter */
 
 		// Allocating space for previous values of counters.
-		prevPerfCounters = (uint64_t *) calloc(
-				p->getProcessorCores() * p->getProcessorNodes(),
-				sizeof(uint64_t));
-		prevTSCCounters = (uint64_t *) calloc(
-				p->getProcessorCores() * p->getProcessorNodes(),
-				sizeof(uint64_t));
+		prevPerfCounters = (uint64_t *) calloc(p->getProcessorCores() * p->getProcessorNodes(), sizeof(uint64_t));
+		prevTSCCounters = (uint64_t *) calloc(p->getProcessorCores() * p->getProcessorNodes(), sizeof(uint64_t));
 
 		// MSR Object to retrieve the time stamp counter for all the nodes and all the processors
 		tscCounter = new MSRObject();
 
 		//Creates a new performance counter, for now we set slot 0, but we will
 		//use the findAvailable slot method to find an available method to be used
-		perfCounter = new PerformanceCounter(cpuMask, 0);
+		perfCounter = new PerformanceCounter(cpuMask, 0, p->getMaxSlots());
 
 		//Event 0x76 is Idle Counter
 		perfCounter->setEventSelect(0x76);
@@ -64,6 +62,7 @@ void Processor::K10PerformanceCounters::perfMonitorCPUUsage(class Processor *p) 
 		perfCounter->setEnableAPICInterrupt(false);
 		perfCounter->setInvertCntMask(false);
 		perfCounter->setUnitMask(0);
+		perfCounter->setMaxSlots(p->getMaxSlots());
 
 		//Finds an available slot for our purpose
 		perfCounterSlot = perfCounter->findAvailableSlot();
@@ -95,61 +94,65 @@ void Processor::K10PerformanceCounters::perfMonitorCPUUsage(class Processor *p) 
 		 */
 
 		if (!perfCounter->takeSnapshot())
+		{
 			throw "unable to retrieve performance counter data";
+			return;
+		}
 
 		if (!tscCounter->readMSR(TIME_STAMP_COUNTER_REG, cpuMask))
+		{
 			throw "unable to retrieve time stamp counter";
+			return;
+		}
 
 		cpuIndex = 0;
-		for (nodeId = 0; nodeId < p->getProcessorNodes(); nodeId++) {
-			for (coreId = 0x0; coreId < p->getProcessorCores(); coreId++) {
+		for (nodeId = 0; nodeId < p->getProcessorNodes(); nodeId++)
+		{
+			for (coreId = 0; coreId < p->getProcessorCores(); coreId++)
+			{
 				prevPerfCounters[cpuIndex] = perfCounter->getCounter(cpuIndex);
-				prevTSCCounters[cpuIndex]
-						= tscCounter->getBits(cpuIndex, 0, 64);
+				prevTSCCounters[cpuIndex] = tscCounter->getBits(cpuIndex, 0, 64);
 				cpuIndex++;
 			}
 		}
 
 		Signal::activateSignalHandler(SIGINT);
+		printf("Values >100%% can be expected if the CPU is in a Boosted State\n");
 
-		while (!Signal::getSignalStatus()) {
-
+		while (!Signal::getSignalStatus())
+		{
 			if (!perfCounter->takeSnapshot())
+			{
 				throw "unable to retrieve performance counter data";
+				return;
+			}
 
 			if (!tscCounter->readMSR(TIME_STAMP_COUNTER_REG, cpuMask))
+			{
 				throw "unable to retrieve time stamp counter";
+				return;
+			}
 
 			cpuIndex = 0;
 
-			for (nodeId = 0; nodeId < p->getProcessorNodes(); nodeId++) {
+			for (nodeId = 0; nodeId < p->getProcessorNodes(); nodeId++)
+			{
+				printf("\nNode %d -", nodeId);
 
-				printf("Node %d -", nodeId);
-
-				for (coreId = 0x0; coreId < p->getProcessorCores(); coreId++) {
-
-					usage = ((perfCounter->getCounter(cpuIndex))
-							- prevPerfCounters[cpuIndex]) * 100;
-					usage /= tscCounter->getBits(cpuIndex, 0, 64)
-							- prevTSCCounters[cpuIndex];
-
-					printf(" c%d:%d%%", coreId, (unsigned int) usage);
-
-					prevPerfCounters[cpuIndex] = perfCounter->getCounter(
-							cpuIndex);
-					prevTSCCounters[cpuIndex] = tscCounter->getBits(cpuIndex,
-							0, 64);
+				for (coreId = 0x0; coreId < p->getProcessorCores(); coreId++)
+				{
+ 					usage = ((perfCounter->getCounter(cpuIndex)) - prevPerfCounters[cpuIndex]) * 100;
+ 					usage /= tscCounter->getBits(cpuIndex, 0, 64) - prevTSCCounters[cpuIndex];
+ 
+ 					printf(" c%d:%d%%", coreId, (unsigned int) usage);
+ 
+ 					prevPerfCounters[cpuIndex] = perfCounter->getCounter(cpuIndex);
+ 					prevTSCCounters[cpuIndex] = tscCounter->getBits(cpuIndex, 0, 64);
 
 					cpuIndex++;
-
 				}
-
-				printf("\n");
-
 			}
-
 			Sleep(1000);
-
 		}
 
 		perfCounter->disable();
@@ -173,8 +176,8 @@ void Processor::K10PerformanceCounters::perfMonitorCPUUsage(class Processor *p) 
 
 }
 
-void Processor::K10PerformanceCounters::perfMonitorFPUUsage(class Processor *p) {
-
+void Processor::K10PerformanceCounters::perfMonitorFPUUsage(class Processor *p)
+{
 	PerformanceCounter *perfCounter;
 	MSRObject *tscCounter; //We need the timestamp counter too to determine the cpu usage in percentage
 
@@ -199,19 +202,15 @@ void Processor::K10PerformanceCounters::perfMonitorFPUUsage(class Processor *p) 
 		 we need to retrieve the time stamp counter */
 
 		// Allocating space for previous values of counters.
-		prevPerfCounters = (uint64_t *) calloc(
-				p->getProcessorCores() * p->getProcessorNodes(),
-				sizeof(uint64_t));
-		prevTSCCounters = (uint64_t *) calloc(
-				p->getProcessorCores() * p->getProcessorNodes(),
-				sizeof(uint64_t));
+		prevPerfCounters = (uint64_t *) calloc(p->getProcessorCores() * p->getProcessorNodes(), sizeof(uint64_t));
+		prevTSCCounters = (uint64_t *) calloc(p->getProcessorCores() * p->getProcessorNodes(), sizeof(uint64_t));
 
 		// MSR Object to retrieve the time stamp counter for all the nodes and all the processors
 		tscCounter = new MSRObject();
 
 		//Creates a new performance counter, for now we set slot 0, but we will
 		//use the findAvailable slot method to find an available method to be used
-		perfCounter = new PerformanceCounter(cpuMask, 0);
+		perfCounter = new PerformanceCounter(cpuMask, 0, p->getMaxSlots());
 
 		//Event 0x76 is Idle Counter
 		perfCounter->setEventSelect(0x1);
@@ -259,19 +258,20 @@ void Processor::K10PerformanceCounters::perfMonitorFPUUsage(class Processor *p) 
 			throw "unable to retrieve time stamp counter";
 
 		cpuIndex = 0;
-		for (nodeId = 0; nodeId < p->getProcessorNodes(); nodeId++) {
-			for (coreId = 0x0; coreId < p->getProcessorCores(); coreId++) {
+		for (nodeId = 0; nodeId < p->getProcessorNodes(); nodeId++)
+		{
+			for (coreId = 0x0; coreId < p->getProcessorCores(); coreId++)
+			{
 				prevPerfCounters[cpuIndex] = perfCounter->getCounter(cpuIndex);
-				prevTSCCounters[cpuIndex]
-						= tscCounter->getBits(cpuIndex, 0, 64);
+				prevTSCCounters[cpuIndex] = tscCounter->getBits(cpuIndex, 0, 64);
 				cpuIndex++;
 			}
 		}
 
 		Signal::activateSignalHandler(SIGINT);
 
-		while (!Signal::getSignalStatus()) {
-
+		while (!Signal::getSignalStatus())
+		{
 			if (!perfCounter->takeSnapshot())
 				throw "unable to retrieve performance counter data";
 
@@ -280,34 +280,26 @@ void Processor::K10PerformanceCounters::perfMonitorFPUUsage(class Processor *p) 
 
 			cpuIndex = 0;
 
-			for (nodeId = 0; nodeId < p->getProcessorNodes(); nodeId++) {
-
+			for (nodeId = 0; nodeId < p->getProcessorNodes(); nodeId++)
+			{
 				printf("Node %d -", nodeId);
 
-				for (coreId = 0x0; coreId < p->getProcessorCores(); coreId++) {
+				for (coreId = 0x0; coreId < p->getProcessorCores(); coreId++)
+				{
 
-					usage = ((perfCounter->getCounter(cpuIndex))
-							- prevPerfCounters[cpuIndex]) * 100;
-					usage /= tscCounter->getBits(cpuIndex, 0, 64)
-							- prevTSCCounters[cpuIndex];
+					usage = ((perfCounter->getCounter(cpuIndex)) - prevPerfCounters[cpuIndex]) * 100;
+					usage /= tscCounter->getBits(cpuIndex, 0, 64) - prevTSCCounters[cpuIndex];
 
 					printf(" c%u:%u%%", coreId, (unsigned int) usage);
 
-					prevPerfCounters[cpuIndex] = perfCounter->getCounter(
-							cpuIndex);
-					prevTSCCounters[cpuIndex] = tscCounter->getBits(cpuIndex,
-							0, 64);
+					prevPerfCounters[cpuIndex] = perfCounter->getCounter(cpuIndex);
+					prevTSCCounters[cpuIndex] = tscCounter->getBits(cpuIndex, 0, 64);
 
 					cpuIndex++;
-
 				}
-
 				printf("\n");
-
 			}
-
 			Sleep(1000);
-
 		}
 
 		perfCounter->disable();
@@ -319,7 +311,6 @@ void Processor::K10PerformanceCounters::perfMonitorFPUUsage(class Processor *p) 
 		if (perfCounter->getEnabled()) perfCounter->disable();
 
 		printf("K10PerformanceCounters.cpp::perfMonitorCPUUsage - %s\n", str);
-
 	}
 
 	free(perfCounter);
@@ -331,8 +322,8 @@ void Processor::K10PerformanceCounters::perfMonitorFPUUsage(class Processor *p) 
 
 }
 
-void Processor::K10PerformanceCounters::perfMonitorDCMA(class Processor *p) {
-
+void Processor::K10PerformanceCounters::perfMonitorDCMA(class Processor *p)
+{
 	PerformanceCounter *perfCounter;
 
 	DWORD cpuIndex, nodeId, coreId;
@@ -360,7 +351,7 @@ void Processor::K10PerformanceCounters::perfMonitorDCMA(class Processor *p) {
 
 		//Creates a new performance counter, for now we set slot 0, but we will
 		//use the findAvailable slot method to find an available method to be used
-		perfCounter = new PerformanceCounter(cpuMask, 0);
+		perfCounter = new PerformanceCounter(cpuMask, 0, p->getMaxSlots());
 
 		//Event 0x76 is Idle Counter
 		perfCounter->setEventSelect(0x47);
@@ -405,8 +396,10 @@ void Processor::K10PerformanceCounters::perfMonitorDCMA(class Processor *p) {
 			throw "unable to retrieve performance counter data";
 
 		cpuIndex = 0;
-		for (nodeId = 0; nodeId < p->getProcessorNodes(); nodeId++) {
-			for (coreId = 0x0; coreId < p->getProcessorCores(); coreId++) {
+		for (nodeId = 0; nodeId < p->getProcessorNodes(); nodeId++)
+		{
+			for (coreId = 0x0; coreId < p->getProcessorCores(); coreId++)
+			{
 				prevPerfCounters[cpuIndex] = perfCounter->getCounter(cpuIndex);
 				cpuIndex++;
 			}
@@ -414,37 +407,30 @@ void Processor::K10PerformanceCounters::perfMonitorDCMA(class Processor *p) {
 
 		Signal::activateSignalHandler(SIGINT);
 
-		while (!Signal::getSignalStatus()) {
-
+		while (!Signal::getSignalStatus())
+		{
 			if (!perfCounter->takeSnapshot())
 				throw "unable to retrieve performance counter data";
 
 			cpuIndex = 0;
 
-			for (nodeId = 0; nodeId < p->getProcessorNodes(); nodeId++) {
-
+			for (nodeId = 0; nodeId < p->getProcessorNodes(); nodeId++)
+			{
 				printf("Node %d -", nodeId);
 
-				for (coreId = 0x0; coreId < p->getProcessorCores(); coreId++) {
-
-					misses = perfCounter->getCounter(cpuIndex)
-							- prevPerfCounters[cpuIndex];
+				for (coreId = 0x0; coreId < p->getProcessorCores(); coreId++)
+				{
+					misses = perfCounter->getCounter(cpuIndex) - prevPerfCounters[cpuIndex];
 
 					printf(" c%u:%0.3fk", coreId, (float) (misses/1000.0f));
 
-					prevPerfCounters[cpuIndex] = perfCounter->getCounter(
-							cpuIndex);
+					prevPerfCounters[cpuIndex] = perfCounter->getCounter(cpuIndex);
 
 					cpuIndex++;
-
 				}
-
 				printf("\n");
-
 			}
-
 			Sleep(1000);
-
 		}
 
 		perfCounter->disable();
@@ -484,20 +470,21 @@ void Processor::K10PerformanceCounters::perfCounterGetInfo (class Processor *p) 
 	printf ("icMsk:\tif set, mask is inversed (see processor manual reference)\n");
 	printf ("uMsk:\tunit mask (see processor manual reference)\n\n");
 
-	for (node=0;node<p->getProcessorNodes();node++) {
-
+	for (node = 0; node < p->getProcessorNodes(); node++)
+	{
 		printf ("--- Node %d\n", node);
 
 		p->setNode(node);
 		p->setCore(ALL_CORES);
 
-		for (slot=0;slot<4;slot++) {
+		for (slot = 0; slot < p->getMaxSlots(); slot++)
+		{
+			performanceCounter = new PerformanceCounter(p->getMask(), slot, p->getMaxSlots());
 
-			performanceCounter=new PerformanceCounter(p->getMask(), slot);
-
-			for (core=0;core<p->getProcessorCores();core++) {
-
-				if (!performanceCounter->fetch (core)) {
+			for (core = 0; core < p->getProcessorCores(); core++)
+			{
+				if (!performanceCounter->fetch (core))
+				{
 					printf ("K10PerformanceCounters.cpp::perfCounterGetInfo - unable to read performance counter register\n");
 					free (performanceCounter);
 					return;
@@ -517,11 +504,7 @@ void Processor::K10PerformanceCounters::perfCounterGetInfo (class Processor *p) 
 						performanceCounter->getUnitMask()
 						);
 			}
-
 			free (performanceCounter);
-
 		}
-
 	}
-
 }

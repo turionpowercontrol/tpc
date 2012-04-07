@@ -17,6 +17,7 @@ SOURCES=TurionPowerControl.cpp \
 	K10Processor.cpp \
 	Brazos.cpp \
 	Llano.cpp \
+	Interlagos.cpp \
 	MSRObject.cpp \
 	MSVC_Round.cpp \
 	PCIRegObject.cpp \

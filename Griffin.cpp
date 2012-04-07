@@ -58,6 +58,8 @@ Griffin::Griffin () {
 	setSpecString1 (string1);
 	setSpecString2 (string2);
 	setSpecPkgType (pkgType);
+	setBoostStates (0);
+	setMaxSlots(4);
 
 	//Check how many physical cores are present - CPUID Function 8000_0008 reg ECX
 	if (Cpuid(0x80000008,&eax,&ebx,&ecx,&edx)!=TRUE) {
@@ -2330,7 +2332,7 @@ void Griffin::perfCounterGetValue (unsigned int perfCounter) {
 
 	PerformanceCounter *performanceCounter;
 
-	performanceCounter=new PerformanceCounter(getMask(), perfCounter);
+	performanceCounter=new PerformanceCounter(getMask(), perfCounter, 4);
 
 	if (!performanceCounter->takeSnapshot()) {
 		printf ("K10PerformanceCounters::perfCounterGetValue - unable to read performance counter");

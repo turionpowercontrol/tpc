@@ -8,31 +8,32 @@
 #include "MSRObject.h"
 
 //Constructor: inizializes the object
-MSRObject::MSRObject() {
+MSRObject::MSRObject()
+{
 	this->eax_ptr=NULL;
 	this->edx_ptr=NULL;
 	this->absIndex=NULL;
 	this->cpuMask=0x0;
 	this->reg=0x0;
 	this->cpuCount=0x0;
-
 }
 
 /*
  * readMSR: reads the MSR defined in reg parameter with the mask described in cpuMask
  * cpuMask is defined as a bitmask where bit 0 is cpu 0, bit 1 is cpu 1 and so on
  */
-bool MSRObject::readMSR (DWORD reg, PROCESSORMASK cpuMask) {
-
+bool MSRObject::readMSR (DWORD reg, PROCESSORMASK cpuMask)
+{
 	unsigned int count=0;
 	unsigned int pId=0;
 	PROCESSORMASK mask;
 
-	this->reg=reg;
-	this->cpuMask=cpuMask;
+	this->reg = reg;
+	this->cpuMask = cpuMask;
 
 	//count as many processors are accounted in cpuMask
-	for (pId=0;pId<MAX_CORES;pId++) {
+	for (pId = 0; pId < MAX_CORES; pId++)
+	{
 		mask=(PROCESSORMASK)1<<pId;
 		if (cpuMask & mask) count++;
 	}
@@ -50,11 +51,14 @@ bool MSRObject::readMSR (DWORD reg, PROCESSORMASK cpuMask) {
 	count=0;
 	pId=0;
 
-	while (pId<MAX_CORES) {
-
-		mask=(PROCESSORMASK)1<<pId;
-		if (cpuMask & mask) {
-			if (!RdmsrPx (this->reg,&eax_ptr[count], &edx_ptr[count], mask)) {
+	while (pId < MAX_CORES)
+	{
+		mask = (PROCESSORMASK) 1 << pId;
+		
+		if (cpuMask & mask)
+		{
+			if (!RdmsrPx (this->reg, &eax_ptr[count], &edx_ptr[count], mask))
+			{
 				/* This is not needed, memory will be freed by destructor
 				free(this->eax_ptr);
 				free(this->edx_ptr);
@@ -65,13 +69,9 @@ bool MSRObject::readMSR (DWORD reg, PROCESSORMASK cpuMask) {
 			this->absIndex[count]=pId;
 			count++;
 		}
-
 		pId++;
-
 	}
-
 	return true;
-
 }
 
 /*
@@ -79,36 +79,36 @@ bool MSRObject::readMSR (DWORD reg, PROCESSORMASK cpuMask) {
  * defined when readMSR is called and the mask is the same
  *
  */
-bool MSRObject::writeMSR () {
-
+bool MSRObject::writeMSR ()
+{
 	PROCESSORMASK mask;
 	PROCESSORMASK cCpuMask;
 	DWORD pId;
 	unsigned int count;
 
-	if (this->cpuCount==0) return true;
+	if (this->cpuCount==0)
+		return true;
 
 	cCpuMask=this->cpuMask;
 	pId=0;
 	count=0;
 
-	while (pId<MAX_CORES) {
-
+	while (pId<MAX_CORES)
+	{
 		mask=(PROCESSORMASK)1<<pId;
-
-		if (cCpuMask & mask) {
+		
+		if (cCpuMask & mask)
+		{
 			if (!WrmsrPx (this->reg, this->eax_ptr[count], this->edx_ptr[count], mask)) return false;
 			cCpuMask^=mask; //Inverts the bit of current cpu in the mask.
 			if (cCpuMask==0) return true; //No more cpu's in the mask, stops the loop
 			count++;
 		}
-
+		
 		pId++;
-
 	}
 
 	return true;
-
 }
 
 /*
@@ -175,7 +175,8 @@ DWORD MSRObject::getBitsLow (unsigned int cpuNumber, unsigned int base, unsigned
  * It is preferable to use this on 32 bit systems since it is faster in such environment
  *
  */
-DWORD MSRObject::getBitsHigh (unsigned int cpuNumber, unsigned int base, unsigned int length) {
+DWORD MSRObject::getBitsHigh (unsigned int cpuNumber, unsigned int base, unsigned int length)
+{
 
 	DWORD xReg;
 

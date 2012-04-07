@@ -7,16 +7,19 @@
 
 #include "PCIRegObject.h"
 
-DWORD PCIRegObject::getPath() {
+DWORD PCIRegObject::getPath()
+{
 	return getPath(this->device, this->function);
 }
 
-DWORD PCIRegObject::getPath(DWORD device, DWORD function) {
-	return (device<<3)+(function);
+DWORD PCIRegObject::getPath(DWORD device, DWORD function)
+{
+	return (device << 3) + (function);
 }
 
 //Constructor
-PCIRegObject::PCIRegObject() {
+PCIRegObject::PCIRegObject()
+{
 	this->reg_ptr=NULL;
 	this->absIndex=NULL;
 	this->nodeMask=0x0;
@@ -24,16 +27,14 @@ PCIRegObject::PCIRegObject() {
 	this->function=0x0;
 	this->device=0x0;
 	this->nodeCount=0x0;
-
 }
 
 /*
  * newPCIReg initializes a new object with default values (zeros).
  * Use this function if you are going to override register values
  */
-void PCIRegObject::newPCIReg(DWORD device, DWORD function, DWORD reg,
-		DWORD nodeMask) {
-
+void PCIRegObject::newPCIReg(DWORD device, DWORD function, DWORD reg, DWORD nodeMask)
+{
 	DWORD nid;
 	DWORD mask;
 	unsigned int count=0;
@@ -44,7 +45,8 @@ void PCIRegObject::newPCIReg(DWORD device, DWORD function, DWORD reg,
 	this->device = device;
 
 	//count as many nodes are accounted in nodeMask
-	for (nid = 0; nid < MAX_NODES; nid++) {
+	for (nid = 0; nid < MAX_NODES; nid++)
+	{
 		mask = (DWORD) 1 << nid;
 		if (nodeMask & mask)
 			count++;
@@ -59,7 +61,6 @@ void PCIRegObject::newPCIReg(DWORD device, DWORD function, DWORD reg,
 	this->absIndex = (unsigned int *) calloc (this->nodeCount, sizeof(unsigned int));
 
 	return;
-
 }
 
 /*
@@ -76,8 +77,8 @@ void PCIRegObject::newPCIReg(DWORD device, DWORD function, DWORD reg,
  * 	nodeMask is a bitmask of nodes. Bit 0 will let the function read the PCI register from
  * 	node 0, bit 1 for node 1 and so on.
  */
-bool PCIRegObject::readPCIReg(DWORD device, DWORD function, DWORD reg, DWORD nodeMask) {
-
+bool PCIRegObject::readPCIReg(DWORD device, DWORD function, DWORD reg, DWORD nodeMask)
+{
 	DWORD nid;
 	DWORD mask;
 	unsigned int count=0;
@@ -85,10 +86,11 @@ bool PCIRegObject::readPCIReg(DWORD device, DWORD function, DWORD reg, DWORD nod
 	this->nodeMask = nodeMask;
 	this->reg = reg;
 	this->function = function;
-	this->device=device;
+	this->device = device;
 
 	//count as many nodes are accounted in nodeMask
-	for (nid = 0; nid < MAX_NODES; nid++) {
+	for (nid = 0; nid < MAX_NODES; nid++)
+	{
 		mask = (DWORD) 1 << nid;
 		if (nodeMask & mask)
 			count++;
@@ -105,19 +107,20 @@ bool PCIRegObject::readPCIReg(DWORD device, DWORD function, DWORD reg, DWORD nod
 	count = 0;
 	nid = 0;
 
-	while (nid < MAX_NODES) {
-
+	while (nid < MAX_NODES)
+	{
 		mask = (DWORD) 1 << nid;
-		if (nodeMask & mask) {
-			if (!ReadPciConfigDwordEx(getPath(this->device+nid, this->function), this->reg,
-					&this->reg_ptr[count])) {
+		if (nodeMask & mask)
+		{
+			if (!ReadPciConfigDwordEx(getPath(this->device+nid, this->function), this->reg, &this->reg_ptr[count]))
+			{
 				/*This is not needed since memory will be freed by destructor
 				free(this->reg_ptr);
 				free(this->absIndex);*/
 				this->nodeCount = 0;
 				return false;
 			}
-			absIndex[count]=nid;
+			absIndex[count] = nid;
 			count++;
 		}
 
@@ -126,7 +129,6 @@ bool PCIRegObject::readPCIReg(DWORD device, DWORD function, DWORD reg, DWORD nod
 	}
 
 	return true;
-
 }
 
 /*
@@ -134,8 +136,8 @@ bool PCIRegObject::readPCIReg(DWORD device, DWORD function, DWORD reg, DWORD nod
  * set when using readPCIReg.
  */
 
-bool PCIRegObject::writePCIReg () {
-
+bool PCIRegObject::writePCIReg ()
+{
 	DWORD mask;
 	DWORD nid;
 	unsigned int count;
@@ -145,11 +147,12 @@ bool PCIRegObject::writePCIReg () {
 	nid=0;
 	count=0;
 
-	while (nid<MAX_NODES) {
-
+	while (nid<MAX_NODES)
+	{
 		mask=(DWORD)1<<nid;
 
-		if (this->nodeMask & mask) {
+		if (this->nodeMask & mask)
+		{
 			if (!WritePciConfigDwordEx (getPath(this->device+nid, this->function),this->reg,this->reg_ptr[count])) return false;
 			count++;
 		}
@@ -162,14 +165,16 @@ bool PCIRegObject::writePCIReg () {
 
 }
 
-unsigned int PCIRegObject::indexToAbsolute (unsigned int index) {
+unsigned int PCIRegObject::indexToAbsolute (unsigned int index)
+{
 
 	return this->absIndex[index];
 
 }
 
 /* Returns the number of nodes currently in memory of an object */
-DWORD PCIRegObject::getCount () {
+DWORD PCIRegObject::getCount ()
+{
 	return this->nodeCount;
 }
 
@@ -177,7 +182,8 @@ DWORD PCIRegObject::getCount () {
  * getBits returns an integer for a specific node. Base and length parameters are used to isolate
  * the sector of the whole register that is interesting.
  */
-DWORD PCIRegObject::getBits (unsigned int nodeNumber, unsigned int base, unsigned int length) {
+DWORD PCIRegObject::getBits (unsigned int nodeNumber, unsigned int base, unsigned int length)
+{
 
 	DWORD xReg;
 
@@ -197,7 +203,8 @@ DWORD PCIRegObject::getBits (unsigned int nodeNumber, unsigned int base, unsigne
  * Base and length specify the offset and the width of the sector of the register
  * we're interested in.
  */
-bool PCIRegObject::setBits (unsigned int base, unsigned int length, DWORD value) {
+bool PCIRegObject::setBits (unsigned int base, unsigned int length, DWORD value)
+{
 
 	DWORD mask;
 	DWORD count;
@@ -221,7 +228,8 @@ bool PCIRegObject::setBits (unsigned int base, unsigned int length, DWORD value)
 
 }
 
-PCIRegObject::~PCIRegObject() {
+PCIRegObject::~PCIRegObject()
+{
 
 	if (this->reg_ptr) free (this->reg_ptr);
 	if (this->absIndex) free (this->absIndex);
