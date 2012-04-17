@@ -122,8 +122,7 @@ protected:
 	 *	Attributes
 	 */
 
-	DWORD powerStates;
-	DWORD processorCores;
+	DWORD powerStates;DWORD processorCores;
 	char processorStrId[64];DWORD processorIdentifier;DWORD processorNodes; // count of physical processor nodes (eg: 8 on a quad 6100 opteron box).
 
 	//Processor Specs

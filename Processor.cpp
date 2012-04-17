@@ -346,11 +346,13 @@ DWORD Processor::getBoost(void)
 
 void Processor::setBoost(bool boost)
 {
+	printf ("Unsupported processor feature\n");
 	return;
 }
 
 void Processor::setNumBoostStates(DWORD numBoostStates)
 {
+	printf ("Unsupported processor feature\n");
 	return;
 }
 

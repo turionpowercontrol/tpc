@@ -2332,7 +2332,7 @@ void Griffin::perfCounterGetValue (unsigned int perfCounter) {
 
 	PerformanceCounter *performanceCounter;
 
-	performanceCounter=new PerformanceCounter(getMask(), perfCounter, 4);
+	performanceCounter=new PerformanceCounter(getMask(), perfCounter, this->getMaxSlots());
 
 	if (!performanceCounter->takeSnapshot()) {
 		printf ("K10PerformanceCounters::perfCounterGetValue - unable to read performance counter");
