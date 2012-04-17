@@ -1,7 +1,7 @@
 /*
  * K10PerformanceCounters.cpp
  *
- * Collection of static method to exploit performance counters. Since many architectures shares the same
+ * Collection of static methods to exploit performance counters. Since many architectures shares the same
  * performance counter structure, counting and registers, we use this technique to not repeat a lot of times
  * the same common code
  *
