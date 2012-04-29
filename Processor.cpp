@@ -83,7 +83,6 @@ DWORD Processor::getNode () {
 PROCESSORMASK Processor::getMask (DWORD core, DWORD node)
 {
 	PROCESSORMASK mask;
-	unsigned int offset;
 
 	//In the case we are pointing to a specific core on a specific node, this is
 	//the right formula to get the mask for a single cpu.
@@ -107,6 +106,8 @@ PROCESSORMASK Processor::getMask (DWORD core, DWORD node)
 	//the mask to cover that specific core of all the nodes
 	if ((core!=ALL_CORES) && (node==ALL_NODES))
 	{
+		unsigned int offset;
+
 		mask=0;
 		for (offset=core;offset<(processorCores*processorNodes);offset+=processorCores)
 			mask|=(PROCESSORMASK)1<<offset;
