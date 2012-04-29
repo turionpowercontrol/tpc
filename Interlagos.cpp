@@ -188,7 +188,7 @@ void Interlagos::showFamilySpecs()
 		setNode(j);
 		setCore(0);
 
-		printf("NbVid %d (%.4fV) NbDid %d NbFid %d NbCOF %d MHz\n", getNBVid(), convertVIDtoVcore(getNBVid()), getNBDid(), getNBFid(), getNBCOF());
+		printf("NbVid %d (%0.4fV) NbDid %d NbFid %d NbCOF %d MHz\n", getNBVid(), convertVIDtoVcore(getNBVid()), getNBDid(), getNBFid(), getNBCOF());
 
 		printf("Northbridge Maximum frequency: ");
 		if (getMaxNBFrequency() == 0)
@@ -258,7 +258,7 @@ void Interlagos::showFamilySpecs()
 		if (psi_l_enable)
 		{
 			printf("PSI_L bit enabled (improve VRM efficiency in low power)\n");
-			printf("PSI voltage threshold VID: %d (%.3fv)\n", psi_thres, convertVIDtoVcore(psi_thres));
+			printf("PSI voltage threshold VID: %d (%0.4fV)\n", psi_thres, convertVIDtoVcore(psi_thres));
 		}
 		else
 		{
@@ -614,14 +614,14 @@ void Interlagos::setVCore (PState ps, float vcore)
 	//we reply with an error
 	if (vid<maxVID())
 	{
-		printf ("Unable to set vcore: %0.3fv exceed maximum allowed vcore (%0.3fv)\n", vcore, convertVIDtoVcore(maxVID()));
+		printf ("Unable to set vcore: %0.4fV exceeds maximum allowed vcore (%0.4fV)\n", vcore, convertVIDtoVcore(maxVID()));
 		return;
 	}
 
 	//Again we che if VID is above minVID value set by processor.
 	if (vid>minVID())
 	{
-		printf ("Unable to set vcore: %0.3fv is below minimum allowed vcore (%0.3fv)\n", vcore, convertVIDtoVcore(minVID()));
+		printf ("Unable to set vcore: %0.4fV is below minimum allowed vcore (%0.4fV)\n", vcore, convertVIDtoVcore(minVID()));
 		return;
 	}
 

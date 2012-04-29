@@ -197,7 +197,7 @@ void processorStatus (Processor *p) {
 					if (p->getFID(ps.getPState())!=-1) printf("FID:%0.0f ", p->getFID(ps.getPState()));
 					if (p->getDID(ps.getPState())!=-1) printf("DID:%0.2f ", p->getDID(ps.getPState()));
 					printf("Freq:%d ", p->getFrequency(ps.getPState()));
-					printf("VCore:%.4f", p->getVCore(ps.getPState()));
+					printf("VCore:%0.4f", p->getVCore(ps.getPState()));
 				}
 				printf("\n");
 			}
@@ -222,9 +222,9 @@ void processorStatus (Processor *p) {
 		else
 			printf ("%d MHz\n", p->maxCPUFrequency());
 
-		printf ("\nMinimum allowed VID: %d (%.3fv) - Maximum allowed VID %d (%.3fv)\n", p->minVID(),
+		printf ("\nMinimum allowed VID: %d (%0.4fV) - Maximum allowed VID %d (%0.4fV)\n", p->minVID(),
 			p->convertVIDtoVcore(p->minVID()),p->maxVID(),p->convertVIDtoVcore(p->maxVID()));
-		printf ("Processor AltVID: %d (%.3fv)\n",p->getAltVID(),p->convertVIDtoVcore(p->getAltVID()));
+		printf ("Processor AltVID: %d (%0.4fV)\n",p->getAltVID(),p->convertVIDtoVcore(p->getAltVID()));
 	}
 
 }
@@ -517,7 +517,7 @@ void print_stat (Processor *p, PState ps, const char *what, float value) {
 		if (p->getNode()==p->ALL_NODES) printf ("All nodes "); else printf ("Node: %d ",p->getNode());
 		if (p->getCore()==p->ALL_CORES) printf ("all cores "); else printf ("core: %d ",p->getCore());
 		printf ("pstate %d - ", ps.getPState());
-		printf ("set %s to %0.3f", what, value);
+		printf ("set %s to %0.4f", what, value);
 		return;
 }
 
@@ -644,7 +644,7 @@ int parseSetCommand (Processor *p, int argc, const char **argv, int argcOffset) 
 				argcOffset++;
 				print_stat (p,ps,"core voltage",voltage);
 				p->setVCore (ps, voltage);
-				if (p->getVCore(ps)!=voltage) printf (" (rounded to %0.4f)",p->getVCore(ps));
+				if (p->getVCore(ps)!=voltage) printf (" (rounded to %0.4fV)",p->getVCore(ps));
 
 			} else {
 	
@@ -674,7 +674,7 @@ int parseSetCommand (Processor *p, int argc, const char **argv, int argcOffset) 
 
 					print_stat (p,ps,"nbvoltage",nbvoltage);
 					p->setNBVid (ps, p->convertVcoretoVID(nbvoltage));
-					if (p->convertVIDtoVcore(p->getNBVid(ps,0))!=nbvoltage) printf (" (rounded to %0.4f)",p->convertVIDtoVcore(p->getNBVid(ps,0)));
+					if (p->convertVIDtoVcore(p->getNBVid(ps,0))!=nbvoltage) printf (" (rounded to %0.4fV)",p->convertVIDtoVcore(p->getNBVid(ps,0)));
 
 				} else if ((p->getProcessorIdentifier()==TURION_ULTRA_ZM_FAMILY) ||
 						(p->getProcessorIdentifier()==TURION_X2_RM_FAMILY) ||
@@ -683,7 +683,7 @@ int parseSetCommand (Processor *p, int argc, const char **argv, int argcOffset) 
 
 					print_stat (p,ps,"nbvoltage",nbvoltage);
 					p->setNBVid (p->convertVcoretoVID(nbvoltage));
-					if (p->convertVIDtoVcore(p->getNBVid())!=nbvoltage) printf (" (rounded to %0.4f)",p->convertVIDtoVcore(p->getNBVid()));
+					if (p->convertVIDtoVcore(p->getNBVid())!=nbvoltage) printf (" (rounded to %0.4fV)",p->convertVIDtoVcore(p->getNBVid()));
 				}
 
 			} else {

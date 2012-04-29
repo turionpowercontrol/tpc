@@ -190,7 +190,7 @@ void Griffin::showFamilySpecs () {
 
 	//Shows Northbridge VID, SMAF7 and C1E info only if we detect a family 11h processor.
 	//family 10h processors have a different approach 
-	printf ("Processor Northbridge VID: %d (%.3fv)\n",getNBVid(),convertVIDtoVcore(getNBVid()));
+	printf ("Processor Northbridge VID: %d (%0.4fV)\n",getNBVid(),convertVIDtoVcore(getNBVid()));
 	printf ("\n");
 
 	if (getSMAF7Enabled()==true)
@@ -241,7 +241,7 @@ void Griffin::showFamilySpecs () {
 	if (psi_l_enable)
 	{
 		printf ("PSI_L bit enabled (improve VRM efficiency in low power)\n");
-		printf ("PSI voltage threshold VID: %d (%.3fv)\n", psi_thres, convertVIDtoVcore(psi_thres));
+		printf ("PSI voltage threshold VID: %d (%0.4fV)\n", psi_thres, convertVIDtoVcore(psi_thres));
 	}
 	else
 		printf ("PSI_L bit not enabled\n");
@@ -564,13 +564,13 @@ void Griffin::setVCore (PState ps, float vcore) {
 	//If it is, then there are no chances the processor will accept it and
 	//we reply with an error
 	if (vid<maxVID()) {
-		printf ("Unable to set vcore: %0.3fv (vid %d) exceed maximum allowed vcore (%0.3fv)\n", vcore, vid, convertVIDtoVcore(maxVID()));
+		printf ("Unable to set vcore: %0.4fV (vid %d) exceeds maximum allowed vcore (%0.4fV)\n", vcore, vid, convertVIDtoVcore(maxVID()));
 		return;
 	}
 
 	//Again we che if VID is above minVID value set by processor.
 	if (vid>minVID()) {
-		printf ("Unable to set vcore: %0.3fv is below minimum allowed vcore (%0.3fv)\n", vcore, convertVIDtoVcore(minVID()));
+		printf ("Unable to set vcore: %0.4fV is below minimum allowed vcore (%0.4fV)\n", vcore, convertVIDtoVcore(minVID()));
 		return;
 	}
 
@@ -2407,7 +2407,7 @@ void Griffin::checkMode () {
 
 			states[i][pstate]++;
 
-			printf ("c%d:ps%d vc%.3f fr%d - ",i,pstate,curVcore,curFreq);
+			printf ("c%d:ps%d vc%0.4f fr%d - ",i,pstate,curVcore,curFreq);
 			if (pstate>maxPState) 
 				printf ("\n * Detected pstate %d on core %d\n",pstate,i);
 		}

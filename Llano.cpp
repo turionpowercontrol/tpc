@@ -467,7 +467,7 @@ void Llano::setVCore(PState ps, float vcore) {
 	//we reply with an error
 	if (vid < maxVID()) {
 		printf(
-				"Unable to set vcore: %0.3fv exceed maximum allowed vcore (%0.3fv)\n",
+				"Unable to set vcore: %0.4fV exceeds maximum allowed vcore (%0.4fV)\n",
 				vcore, convertVIDtoVcore(maxVID()));
 		return;
 	}
@@ -475,7 +475,7 @@ void Llano::setVCore(PState ps, float vcore) {
 	//Again we che if VID is above minVID value set by processor.
 	if (vid > minVID()) {
 		printf(
-				"Unable to set vcore: %0.3fv is below minimum allowed vcore (%0.3fv)\n",
+				"Unable to set vcore: %0.4fV is below minimum allowed vcore (%0.4fV)\n",
 				vcore, convertVIDtoVcore(minVID()));
 		return;
 	}

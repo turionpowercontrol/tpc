@@ -187,7 +187,7 @@ void K10Processor::showFamilySpecs() {
 		setNode(j);
 		setCore(0);
 		for (i = 0; i < getPowerStates(); i++) {
-			printf("PState %d - NbVid %d (%.4f) NbDid %d NbFid %d\n", i,
+			printf("PState %d - NbVid %d (%0.4fV) NbDid %d NbFid %d\n", i,
 					getNBVid(i), convertVIDtoVcore(getNBVid(i)), getNBDid(i),
 					getNBFid());
 		}
@@ -249,7 +249,7 @@ void K10Processor::showFamilySpecs() {
 
 		if (psi_l_enable) {
 			printf("PSI_L bit enabled (improve VRM efficiency in low power)\n");
-			printf("PSI voltage threshold VID: %d (%.3fv)\n", psi_thres,
+			printf("PSI voltage threshold VID: %d (%0.4fV)\n", psi_thres,
 					convertVIDtoVcore(psi_thres));
 		} else
 			printf("PSI_L bit not enabled\n");
@@ -575,13 +575,13 @@ void K10Processor::setVCore (PState ps, float vcore) {
 	//If it is, then there are no chances the processor will accept it and
 	//we reply with an error
 	if (vid<maxVID()) {
-		printf ("Unable to set vcore: %0.3fv exceed maximum allowed vcore (%0.3fv)\n", vcore, convertVIDtoVcore(maxVID()));
+		printf ("Unable to set vcore: %0.4fV exceeds maximum allowed vcore (%0.4fV)\n", vcore, convertVIDtoVcore(maxVID()));
 		return;
 	}
 
 	//Again we che if VID is above minVID value set by processor.
 	if (vid>minVID()) {
-		printf ("Unable to set vcore: %0.3fv is below minimum allowed vcore (%0.3fv)\n", vcore, convertVIDtoVcore(minVID()));
+		printf ("Unable to set vcore: %0.4fV is below minimum allowed vcore (%0.4fV)\n", vcore, convertVIDtoVcore(minVID()));
 		return;
 	}
 
