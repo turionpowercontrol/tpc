@@ -119,9 +119,8 @@ PROCESSORMASK Processor::getMask (DWORD core, DWORD node)
 	//exceeding bits
 	if ((core==ALL_CORES) && (node==ALL_NODES))
 	{
-		mask = 1;
-		mask <<= processorCores * processorNodes;
-		mask -= 1;
+		mask = -1;
+		mask >>= (64 - processorCores * processorNodes);
 
 		return mask;
 	}

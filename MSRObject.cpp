@@ -209,9 +209,8 @@ bool MSRObject::setBits (unsigned int base, unsigned int length, uint64_t value)
 
 	//Does some bitshifting to create a bitmask to isolate
 	//the part of the register that is afftected by the change
-	mask = 1;
-	mask <<= length;
-	mask -= 1;
+	mask = -1;
+	mask >>= (64 - length);
 	mask <<= base;
 
 	//Bitshifts the value parameter to the right position
@@ -252,9 +251,8 @@ bool MSRObject::setBitsLow (unsigned int base, unsigned int length, DWORD value)
 
 	if (this->cpuCount==0) return false;
 
-	mask = 1;
-	mask <<= length;
-	mask -= 1;
+	mask = -1;
+	mask >>= (32 - length);
 	mask <<= base;
 
 	value=value<<base;
@@ -281,9 +279,8 @@ bool MSRObject::setBitsHigh (unsigned int base, unsigned int length, DWORD value
 
 	if (this->cpuCount==0) return false;
 
-	mask = 1;
-	mask <<= length;
-	mask -= 1;
+	mask = -1;
+	mask >>= (32 - length);
 	mask <<= base;
 
 	value=value<<base;
