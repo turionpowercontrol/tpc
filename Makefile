@@ -4,7 +4,7 @@ PREFIX=/usr
 ARCH=$(shell uname -m)
 
 PROJECT=TurionPowerControl
-PROJ_CXXFLAGS=-O2 $(CXXFLAGS)
+PROJ_CXXFLAGS=-O2 $(CXXFLAGS) $(shell getconf LFS_CFLAGS)
 PROJ_LDFLAGS=$(LDFLAGS)
 
 OBJROOT=obj

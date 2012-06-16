@@ -1425,7 +1425,7 @@ DWORD K10Processor::getSlamTime (void) {
 	pciRegObject = new PCIRegObject();
 
 	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3,
-			0xd4, getNodeMask())) {
+			0xd8, getNodeMask())) {
 		printf("K10Processor.cpp::getSlamTime unable to read PCI register\n");
 		free(pciRegObject);
 		return 0;
@@ -1456,7 +1456,7 @@ void K10Processor::setSlamTime (DWORD slmTime) {
 
 	pciRegObject = new PCIRegObject();
 
-	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3, 0xd4,
+	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3, 0xd8,
 			getNodeMask())) {
 		printf("K10Processor::setSlamTime -  unable to read PCI Register\n");
 		free(pciRegObject);
@@ -1467,7 +1467,7 @@ void K10Processor::setSlamTime (DWORD slmTime) {
 	 * voltage slamtime is stored in PCI register with
 	 * device PCI_DEV_NORTHBRIDGE
 	 * function PC_FUNC_MISC_CONTROL_3
-	 * register 0xd4
+	 * register 0xd8
 	 * bits from 0 to 2
 	 */
 
