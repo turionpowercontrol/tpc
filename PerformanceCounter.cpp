@@ -100,8 +100,6 @@ bool PerformanceCounter::program()
 		free(pCounterMSRObject);
 		return false;
 	}
-	else
-		return -2;
 
 	//Programs the bits of the performance counter register according with specifications
 	pCounterMSRObject->setBits(8, 8, this->unitMask);
@@ -148,8 +146,6 @@ bool PerformanceCounter::fetch(DWORD cpuIndex)
 		free(pCounterMSRObject);
 		return false;
 	}
-	else
-		return -2;
 
 	this->unitMask=pCounterMSRObject->getBits(cpuIndex, 8, 8);
 	this->countUserMode=pCounterMSRObject->getBits(cpuIndex, 16, 1);
@@ -187,7 +183,7 @@ unsigned int PerformanceCounter::findAvailableSlot ()
 	for (slot = 0; slot < this->maxslots; slot++)
 	{
 		//Loads the current status of the MS registers for all the cpus in the mask.
-		if (!pCounterMSRObject->readMSR(getPESRReg(this->slot), this->cpuMask))
+		if (!pCounterMSRObject->readMSR(getPESRReg(slot), this->cpuMask))
 		{
 			free(pCounterMSRObject);
 			return -2;
@@ -201,7 +197,7 @@ unsigned int PerformanceCounter::findAvailableSlot ()
 			//If the counter slot is enabled, we check the parameters. If we find that parameters are
 			//exactly the same as those programmed in the class object, we proceed to the next
 			//cpu in the mask. If parameters are not the same, we break the cycle and proceed to the next slot
-			if (pCounterMSRObject->getBits(cpuIndex, 22, 1 != 0))
+			if (pCounterMSRObject->getBits(cpuIndex, 22, 1) != 0)
 			{
 				if ((pCounterMSRObject->getBits(cpuIndex, 8, 8) != this->unitMask) ||
 					(pCounterMSRObject->getBits(cpuIndex, 16, 1) != this->countUserMode) ||
@@ -250,7 +246,7 @@ unsigned int PerformanceCounter::findFreeSlot ()
 	for (slot = 0; slot < this->maxslots; slot++)
 	{
 		//Loads the current status of the MS registers for all the cpus in the mask.
-		if (!pCounterMSRObject->readMSR(getPESRReg(this->slot), this->cpuMask))
+		if (!pCounterMSRObject->readMSR(getPESRReg(slot), this->cpuMask))
 		{
 			free(pCounterMSRObject);
 			return -2;
@@ -262,7 +258,7 @@ unsigned int PerformanceCounter::findFreeSlot ()
 		{
 			//If the counter slot is disabled, we proceed to the next cpu in the mask
 			//If the counter slos is enabled, we stop the cycle and declare the slot unfree
-			if (pCounterMSRObject->getBits(cpuIndex, 22, 1 != 0))
+			if (pCounterMSRObject->getBits(cpuIndex, 22, 1) != 0)
 			{
 				valid=false;
 				break;

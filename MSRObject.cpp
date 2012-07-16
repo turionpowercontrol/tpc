@@ -213,6 +213,7 @@ bool MSRObject::setBits (unsigned int base, unsigned int length, uint64_t value)
 	mask >>= (64 - length);
 	mask <<= base;
 
+
 	//Bitshifts the value parameter to the right position
 	//and then cut it to prevent overlapping on other bits
 	value=value<<base;
