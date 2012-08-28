@@ -3345,9 +3345,9 @@ void K10Processor::showDramTimings() {
 
 			} else {
 
-				printf ("- controller unactive -\n");
+				printf ("DCT%d: - controller inactive -\n", dct_index);
 			}
-
+                        printf("\n");
 		}
 
 		printf("\n");
