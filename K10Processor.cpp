@@ -3295,6 +3295,7 @@ void K10Processor::showDramTimings() {
 		for (dct_index = 0; dct_index < 2; dct_index++) {
 
 			if (getDramValid(dct_index)) {
+				int i;
 
 				ddrTypeDDR3=getDDR3Mode (dct_index);
 				ddrFrequency=getDramFrequency(dct_index)*2;
@@ -3322,6 +3323,25 @@ void K10Processor::showDramTimings() {
 						"TrwtWB=%u TrwtTO=%u Twtr=%u Twrrd=%u Twrwr=%u Trdrd=%u Tref=%u Trfc0=%u Trfc1=%u Trfc2=%u Trfc3=%u MaxRdLatency=%u\n",
 						TrwtWB, TrwtTO, Twtr, Twrrd, Twrwr, Trdrd, Tref, Trfc0,
 						Trfc1, Trfc2, Trfc3, MaxRdLatency);
+
+				for (i = 0; i < 8; i++) {
+					unsigned int val;
+					PCIRegObject *csbaseaddr = new PCIRegObject();
+					csbaseaddr->readPCIReg(PCI_DEV_NORTHBRIDGE,
+                                                PCI_FUNC_DRAM_CONTROLLER, 0x100 * dct_index + 0x40 + 4 * i, 1 << node_index);
+					val = csbaseaddr->getBits(0, 0, 32);
+					if ((i & 1) == 0) {
+					        printf("LDIMM%d=", i >> 1);
+                                        }
+					printf("%s", (val & 4) ? "FAILED" : (val & 1) ? "OK" : "EMPTY");
+					if ((i & 1) == 0) {
+					        printf("/");
+					} else {
+					        printf(" ");
+					}
+					delete csbaseaddr;
+				}
+				printf("\n");
 
 			} else {
 
