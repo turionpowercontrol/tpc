@@ -789,7 +789,7 @@ void K10Processor::setNBVid (PState ps, DWORD nbvid) {
 
 	msrObject=new MSRObject ();
 
-	if ((nbvid<maxVID()) || (nbvid>minVID())) {
+	if (nbvid > 127) {
 		printf ("K10Processor.cpp::setNBVid - Northbridge VID Allowed range 0-127\n");
 		return;
 	}
