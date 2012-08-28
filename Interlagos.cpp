@@ -1330,41 +1330,23 @@ void Interlagos::setBoost(bool boost)
 		printf("Boost Lock Disabled.  Unlocked processor\n");
 		printf("Fid, Did, Vid, NodeTdp, NumBoostStates and CStateBoost can be edited\n");
 	}
-	
-	boostSrc = boostControl->getBits(0, 0, 2);
-	
-	if (boostSrc == boost && boost == true)
+
+	boostControl->setBits(0, 2, boost); //Boost
+	boostControl->setBits(7, 1, boost); //APM
+
+	if (!boostControl->writePCIReg())
 	{
-		printf("Boost already enabled");
+		printf("Interlagos::enableBoost unable to write PCI Reg\n");
+		free(boostControl);
 		return;
 	}
-	else if (boostSrc == boost && boost == false)
-	{
-		printf("Boost already disabled");
-		return;
-	}
+
+	if (boost)
+		printf ("Boost enabled\nAPM enabled\n");
 	else
-	{
-		boostControl->setBits(0, 2, boost); //Boost
-		boostControl->setBits(7, 1, boost); //APM
-		
-		if (!boostControl->writePCIReg())
-		{
-			printf("Interlagos::enableBoost unable to write PCI Reg\n");
-			return;
-		}
-		
-		if (boost)
-			printf ("Boost enabled\nAPM enabled\n");
-		else
-			printf ("Boost disabled\nAPM disabled\n");
-		
-		return;
-	}
-	
+		printf ("Boost disabled\nAPM disabled\n");
+
 	free(boostControl);
-	
-	return;
 }
 
 DWORD Interlagos::getTDP(void)
