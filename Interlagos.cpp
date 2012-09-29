@@ -3,11 +3,13 @@
 #include "Signal.h"
 
 #ifdef _WIN32
+	#define CLEAR "cls"
 	#include <windows.h>
 	#include "OlsApi.h"
 #endif
 
 #ifdef __linux
+	#define CLEAR "clear"
 	#include "cpuPrimitives.h"
 	#include <string.h>
 #endif
@@ -23,9 +25,7 @@ Interlagos::Interlagos ()
 {
 	DWORD eax,ebx,ecx,edx;
 	PCIRegObject *pciReg60;
-	PCIRegObject *pciReg160;
 	bool pciReg60Success;
-	bool pciReg160Success;
 	DWORD nodes;
 	DWORD cores;
 	
@@ -73,13 +73,11 @@ Interlagos::Interlagos ()
 	// different operating systems have different APIs for doing similiar, but below steps are OS agnostic.
 
 	pciReg60 = new PCIRegObject();
-	pciReg160 = new PCIRegObject();
 
-	//Are the 0x60 and 0x160 registers valid for Interlagos...they should be, the same board is used for MagnyCours and Interlagos
+	//Are the 0x60 register is valid for Interlagos...they should be, the same board is used for MagnyCours and Interlagos
 	pciReg60Success = pciReg60->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_HT_CONFIG, 0x60, getNodeMask(0));
-	pciReg160Success = pciReg160->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_HT_CONFIG, 0x160, getNodeMask(0));
 
-	if (pciReg60Success && pciReg160Success)
+	if (pciReg60Success)
 	{
 		nodes = pciReg60->getBits(0, 4, 3) + 1;
 	}
@@ -90,7 +88,6 @@ Interlagos::Interlagos ()
 	}
 
 	free (pciReg60);
-	free (pciReg160);
 
 	//Check how many physical cores are present - CPUID Function 8000_0008 reg ECX
 	if (Cpuid(0x80000008, &eax, &ebx, &ecx, &edx) != TRUE)
@@ -99,7 +96,7 @@ Interlagos::Interlagos ()
 		return;
 	}
 
-	cores = ((ecx & 0xff) + 1) / 2; /* cores per node */
+	cores = ((ecx & 0xff) + 1) / 2;
 	
 	/*
 	 * Normally we assume that nodes per package is always 1 (one physical processor = one package), but
@@ -2964,80 +2961,106 @@ void Interlagos::getCurrentStatus (struct procStatus *pStatus, DWORD core)
 
 void Interlagos::checkMode()
 {
-	DWORD i,pstate,vid,fid,did;
-	DWORD eaxMsr,edxMsr;
+	DWORD a, b, c, i, j, k, pstate, vid, fid, did;
+	DWORD eaxMsr, edxMsr;
 	DWORD timestamp;
-	DWORD states[2][7];
+	DWORD states[processorNodes][processorCores][getPowerStates()];
+	DWORD savedstates[processorNodes][processorCores][getPowerStates()];
 	DWORD minTemp,maxTemp,temp;
 	DWORD oTimeStamp;
 	float curVcore;
 	DWORD maxPState;
 	unsigned int cid;
 
-	printf ("Monitoring...\n");
+	maxPState = getMaximumPState().getPState();
 
-	maxPState=getMaximumPState().getPState();
-
-	for (i = 0; i < 7; i++)
+	for (i = 0; i < processorNodes; i++)
 	{
-		states[0][i]=0;
-		states[1][i]=0;
+		for (j = 0; j < processorCores; j++)
+		{
+			for (k = 0; k < getPowerStates(); k++)
+			{
+				states[i][j][k] = 0;
+				savedstates[i][j][k] = 0;
+			}
+		}
 	}
 
-	minTemp=getTctlRegister();
-	maxTemp=minTemp;
-	oTimeStamp=GetTickCount ();
+	minTemp = getTctlRegister();
+	maxTemp = minTemp;
+	oTimeStamp = GetTickCount();
 
 	while(1)
 	{
-		timestamp=GetTickCount ();
+		system(CLEAR);
+		timestamp = GetTickCount ();
 
-		printf (" \rTs:%d - ",timestamp);
-		for (i = 0; i < processorCores; i++)
+		printf ("\nTs:%d - ",timestamp);
+		for (i = 0; i < processorNodes; i++)
 		{
-			/*RdmsrPx (0xc0010063,&eaxMsr,&edxMsr,i+1);
-			pstate=eaxMsr & 0x7;*/
-
-			RdmsrPx (0xc0010071,&eaxMsr,&edxMsr,(PROCESSORMASK)1<<i);
-			pstate=(eaxMsr>>16) & 0x7;
-			vid=(eaxMsr>>9) & 0x7f;
-			curVcore=(float)((124-vid)*0.0125);
-			fid=eaxMsr & 0x3f;
-			did=(eaxMsr >> 6) & 0x7;
-
-			states[i][pstate]++;
-
-			printf ("c%d:ps%d - ",i,pstate);
-			if (pstate>maxPState)
-				printf ("\n * Detected pstate %d on core %d\n",pstate,i);
-		}
-
-		temp=getTctlRegister();
-
-		if (temp<minTemp) minTemp=temp;
-		if (temp>maxTemp) maxTemp=temp;
-
-		printf ("Tctl: %d",temp);
-
-		if ((timestamp-oTimeStamp)>30000)
-		{
-			oTimeStamp=timestamp;
-
-			printf ("\n\tps0\tps1\tps2\tps3\tps4\tps5\tps6\n\n");
-			for (cid=0;cid<processorCores;cid++)
+			setNode(i);
+			printf("\nNode %d\t", i);
+			
+			for (j = 0; j < processorCores; j++)
 			{
-				printf ("Core%d:",cid);
-				
-				for (i=0;i<7;i++)
-					printf ("\t%d",states[cid][i]);
-				
-				printf ("\n");
+				RdmsrPx (0xc0010071, &eaxMsr, &edxMsr, (PROCESSORMASK)1<<i);
+				pstate = (eaxMsr >> 16) & 0x7;
+				vid = (eaxMsr >> 9) & 0x7f;
+				curVcore = (float)((124 - vid) * 0.0125);
+				fid = eaxMsr & 0x3f;
+				did = (eaxMsr >> 6) & 0x7;
+
+				states[i][j][pstate]++;
+
+				printf ("c%d:ps%d - ", j, pstate);
 			}
-
-			printf ("\n\nCurTctl:%d\t MinTctl:%d\t MaxTctl:%d\n",temp,minTemp,maxTemp);
+			
+			temp = getTctlRegister();
+			
+			printf("Tctl: %d", temp);
+			
+			if (temp < minTemp)
+				minTemp = temp;
+			if (temp > maxTemp)
+				maxTemp = temp;
 		}
-
-		Sleep (50);
+		
+		if ((timestamp - oTimeStamp) > 30000)
+		{
+			oTimeStamp = timestamp;
+			
+			for (a = 0; a < processorNodes; a++)
+			{
+				for (b = 0; b < processorCores; b++)
+				{
+					for (c = 0; c < getPowerStates(); c++)
+					{
+						savedstates[a][b][c] = states[a][b][c];
+					}
+				}
+			}
+		}
+		
+		if (timestamp > 30000)
+		{
+			for (a = 0; a < processorNodes; a++)
+			{
+				printf("\nNode%d", a);
+				for (b = 0; b < processorCores; b++)
+				{
+					printf("\n\tCore%d: ", b);
+					for (c = 0; c < getPowerStates(); c++)
+					{
+						printf("\t%d", savedstates[a][b][c]);
+					}
+				}
+			}
+			printf ("\nMinTctl:%d\t MaxTctl:%d\n\n", minTemp, maxTemp);
+		}
+		
+		fflush(NULL);
+	
+		Sleep(50);
 	}
 	return;
 }

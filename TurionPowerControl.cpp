@@ -773,11 +773,7 @@ int main (int argc,const char **argv) {
 	
 	Scaler *scaler;
 	
-<<<<<<< .mine
-	printf ("Turion Power States Optimization and Control - by blackshard - v0.43\n\n");
-=======
-	printf ("Turion Power States Optimization and Control - by blackshard - v0.424\n\n");
->>>>>>> .r55
+	printf ("Turion Power States Optimization and Control - by blackshard - v0.431\n\n");
 
 	if (argc<2) {
 		printUsage(argv[0]);
@@ -1198,8 +1194,8 @@ int main (int argc,const char **argv) {
 		}
 
 		//Get Performance counter value about a specific performance counter
-		if (strcmp((const char*)argv[argvStep],"-pcgetvalue")==0) {
-
+		if (strcmp((const char*)argv[argvStep],"-pcgetvalue")==0)
+		{
 			if (argv[argvStep+1]==NULL) {
 				printf ("Wrong -pcgetvalue option\n");
 				return 1;

@@ -15,6 +15,8 @@
 #include "MSRObject.h"
 #include "Signal.h"
 
+#include <unistd.h>
+
 void Processor::K10PerformanceCounters::perfMonitorCPUUsage(class Processor *p)
 {
 	PerformanceCounter *perfCounter;
@@ -92,21 +94,26 @@ void Processor::K10PerformanceCounters::perfMonitorCPUUsage(class Processor *p)
 		 */
 
 		if (!perfCounter->takeSnapshot())
+		{
 			throw "unable to retrieve performance counter data";
+			return;
+		}
 
 		if (!tscCounter->readMSR(TIME_STAMP_COUNTER_REG, cpuMask))
+		{
 			throw "unable to retrieve time stamp counter";
+			return;
+		}
 
 		cpuIndex = 0;
 		for (nodeId = 0; nodeId < p->getProcessorNodes(); nodeId++)
 		{
-			for (coreId = 0x0; coreId < p->getProcessorCores(); coreId++)
+			for (coreId = 0; coreId < p->getProcessorCores(); coreId++)
 			{
 				prevPerfCounters[cpuIndex] = perfCounter->getCounter(cpuIndex);
 				prevTSCCounters[cpuIndex] = tscCounter->getBits(cpuIndex, 0, 64);
 				cpuIndex++;
 			}
-			printf("\n");
 		}
 
 		Signal::activateSignalHandler(SIGINT);
@@ -115,10 +122,16 @@ void Processor::K10PerformanceCounters::perfMonitorCPUUsage(class Processor *p)
 		while (!Signal::getSignalStatus())
 		{
 			if (!perfCounter->takeSnapshot())
+			{
 				throw "unable to retrieve performance counter data";
+				return;
+			}
 
 			if (!tscCounter->readMSR(TIME_STAMP_COUNTER_REG, cpuMask))
+			{
 				throw "unable to retrieve time stamp counter";
+				return;
+			}
 
 			cpuIndex = 0;
 
@@ -137,7 +150,6 @@ void Processor::K10PerformanceCounters::perfMonitorCPUUsage(class Processor *p)
  					prevTSCCounters[cpuIndex] = tscCounter->getBits(cpuIndex, 0, 64);
 
 					cpuIndex++;
-
 				}
 			}
 			Sleep(1000);

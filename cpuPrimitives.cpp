@@ -296,8 +296,9 @@ void Sleep (DWORD ms) {
 	return;
 }
 
-int GetTickCount () {
+int GetTickCount ()
+{
 	static unsigned int cycle=0;
-	cycle+=100;
+	cycle += 100;
 	return cycle;
 }	

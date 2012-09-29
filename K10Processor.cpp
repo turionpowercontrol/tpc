@@ -3,11 +3,13 @@
 #include "Signal.h"
 
 #ifdef _WIN32
+	#define CLEAR "cls"
 	#include <windows.h>
 	#include "OlsApi.h"
 #endif
 
 #ifdef __linux
+	#define CLEAR "clear"
 	#include "cpuPrimitives.h"
 	#include <string.h>
 #endif
@@ -2729,83 +2731,109 @@ return;
 
 }
 
-void K10Processor::checkMode () {
-
-	DWORD i,pstate,vid,fid,did;
-	DWORD eaxMsr,edxMsr;
+void K10Processor::checkMode ()
+{
+	DWORD a, b, c, i, j, k, pstate, vid, fid, did;
+	DWORD eaxMsr, edxMsr;
 	DWORD timestamp;
-	DWORD states[2][5];
+	DWORD states[processorNodes][processorCores][getPowerStates()];
+	DWORD savedstates[processorNodes][processorCores][getPowerStates()];
 	DWORD minTemp,maxTemp,temp;
 	DWORD oTimeStamp;
 	float curVcore;
 	DWORD maxPState;
 	unsigned int cid;
 
-	printf ("Monitoring...\n");
+	maxPState = getMaximumPState().getPState();
 
-	maxPState=getMaximumPState().getPState();
-
-	for (i=0;i<5;i++) {
-		states[0][i]=0;
-		states[1][i]=0;
-	}
-
-	minTemp=getTctlRegister();
-	maxTemp=minTemp;
-	oTimeStamp=GetTickCount ();
-
-	while (1) {
-
-		timestamp=GetTickCount ();
-
-		printf (" \rTs:%d - ",timestamp);
-		for (i=0;i<processorCores;i++) {
-
-			/*RdmsrPx (0xc0010063,&eaxMsr,&edxMsr,i+1);
-			pstate=eaxMsr & 0x7;*/
-
-			RdmsrPx (0xc0010071,&eaxMsr,&edxMsr,(PROCESSORMASK)1<<i);
-			pstate=(eaxMsr>>16) & 0x7;
-			vid=(eaxMsr>>9) & 0x7f;
-			curVcore=(float)((124-vid)*0.0125);
-			fid=eaxMsr & 0x3f;
-			did=(eaxMsr >> 6) & 0x7;
-
-			states[i][pstate]++;
-
-			printf ("c%d:ps%d - ",i,pstate);
-			if (pstate>maxPState)
-				printf ("\n * Detected pstate %d on core %d\n",pstate,i);
-		}
-
-		temp=getTctlRegister();
-
-		if (temp<minTemp) minTemp=temp;
-		if (temp>maxTemp) maxTemp=temp;
-
-		printf ("Tctl: %d",temp);
-
-		if ((timestamp-oTimeStamp)>30000) {
-			oTimeStamp=timestamp;
-
-
-			printf ("\n\tps0\tps1\tps2\tps3\tps4\n\n");
-			for (cid=0;cid<processorCores;cid++) {
-			printf ("Core%d:",cid);
-				for (i=0;i<5;i++)
-					printf ("\t%d",states[cid][i]);
-
-			printf ("\n");
+	for (i = 0; i < processorNodes; i++)
+	{
+		for (j = 0; j < processorCores; j++)
+		{
+			for (k = 0; k < getPowerStates(); k++)
+			{
+				states[i][j][k] = 0;
+				savedstates[i][j][k] = 0;
 			}
-
-			printf ("\n\nCurTctl:%d\t MinTctl:%d\t MaxTctl:%d\n",temp,minTemp,maxTemp);
-
 		}
-
-
-		Sleep (50);
 	}
 
+	minTemp = getTctlRegister();
+	maxTemp = minTemp;
+	oTimeStamp = GetTickCount();
+
+	while(1)
+	{
+		system(CLEAR);
+		timestamp = GetTickCount ();
+
+		printf ("\nTs:%d - ",timestamp);
+		for (i = 0; i < processorNodes; i++)
+		{
+			setNode(i);
+			printf("\nNode %d\t", i);
+			
+			for (j = 0; j < processorCores; j++)
+			{
+				RdmsrPx (0xc0010071, &eaxMsr, &edxMsr, (PROCESSORMASK)1<<i);
+				pstate = (eaxMsr >> 16) & 0x7;
+				vid = (eaxMsr >> 9) & 0x7f;
+				curVcore = (float)((124 - vid) * 0.0125);
+				fid = eaxMsr & 0x3f;
+				did = (eaxMsr >> 6) & 0x7;
+
+				states[i][j][pstate]++;
+
+				printf ("c%d:ps%d - ", j, pstate);
+			}
+			
+			temp = getTctlRegister();
+			
+			printf("Tctl: %d", temp);
+			
+			if (temp < minTemp)
+				minTemp = temp;
+			if (temp > maxTemp)
+				maxTemp = temp;
+		}
+		
+		if ((timestamp - oTimeStamp) > 30000)
+		{
+			oTimeStamp = timestamp;
+			
+			for (a = 0; a < processorNodes; a++)
+			{
+				for (b = 0; b < processorCores; b++)
+				{
+					for (c = 0; c < getPowerStates(); c++)
+					{
+						savedstates[a][b][c] = states[a][b][c];
+					}
+				}
+			}
+		}
+		
+		if (timestamp > 30000)
+		{
+			for (a = 0; a < processorNodes; a++)
+			{
+				printf("\nNode%d", a);
+				for (b = 0; b < processorCores; b++)
+				{
+					printf("\n\tCore%d: ", b);
+					for (c = 0; c < getPowerStates(); c++)
+					{
+						printf("\t%d", savedstates[a][b][c]);
+					}
+				}
+			}
+			printf ("\nMinTctl:%d\t MaxTctl:%d\n\n", minTemp, maxTemp);
+		}
+		
+		fflush(NULL);
+	
+		Sleep(50);
+	}
 	return;
 }
 
