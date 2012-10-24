@@ -3331,13 +3331,13 @@ void K10Processor::showDramTimings() {
                                                 PCI_FUNC_DRAM_CONTROLLER, 0x100 * dct_index + 0x40 + 4 * i, 1 << node_index);
 					val = csbaseaddr->getBits(0, 0, 32);
 					if ((i & 1) == 0) {
-					        printf("LDIMM%d=", i >> 1);
-                                        }
+						printf("LDIMM%d=", i >> 1);
+					}
 					printf("%s", (val & 4) ? "FAILED" : (val & 1) ? "OK" : "EMPTY");
 					if ((i & 1) == 0) {
-					        printf("/");
+						printf("/");
 					} else {
-					        printf(" ");
+						printf(" ");
 					}
 					delete csbaseaddr;
 				}
@@ -3347,7 +3347,7 @@ void K10Processor::showDramTimings() {
 
 				printf ("DCT%d: - controller inactive -\n", dct_index);
 			}
-                        printf("\n");
+			printf("\n");
 		}
 
 		printf("\n");
