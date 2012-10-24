@@ -298,7 +298,16 @@ void Sleep (DWORD ms) {
 
 int GetTickCount ()
 {
-	static unsigned int cycle=0;
-	cycle += 100;
-	return cycle;
+#ifndef CLOCK_MONOTONIC_HR
+#define CLOCK_MONOTONIC_HR CLOCK_MONOTONIC
+#endif
+	struct timespec tp;
+
+	if (clock_gettime(CLOCK_MONOTONIC_HR, &tp))
+		return -1;
+
+	tp.tv_sec *= 1000;
+	tp.tv_nsec /= 1000000;
+	tp.tv_sec += tp.tv_nsec;
+	return tp.tv_sec;
 }	
