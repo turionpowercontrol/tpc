@@ -35,7 +35,7 @@ all: $(OBJDIR) $(PROJECT)
 i386:
 	$(MAKE) CXXFLAGS="-m32 -D_FILE_OFFSET_BITS=64" LDFLAGS="-m32" ARCH=i386
 
-install: $(PROJECT)
+install:
 	install -ps $(PROJECT) $(PREFIX)/bin
 
 uninstall:
