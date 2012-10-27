@@ -5,7 +5,8 @@ ARCH=$(shell uname -m)
 
 PROJECT=TurionPowerControl
 PROJ_CXXFLAGS=-O2 $(CXXFLAGS) $(shell getconf LFS_CFLAGS)
-PROJ_LDFLAGS=$(LDFLAGS) -lrt
+PROJ_LDFLAGS=$(LDFLAGS)
+PROJ_LIBS=$(LIBS) -lrt
 
 OBJROOT=obj
 OBJDIR=$(OBJROOT)/$(ARCH)
@@ -42,7 +43,7 @@ uninstall:
 	$(RM) $(PREFIX)/bin/$(PROJECT)
 
 $(PROJECT): $(OBJECTS)
-	$(CXX) $(PROJ_LDFLAGS) -o $@ $(OBJECTS)
+	$(CXX) $(PROJ_LDFLAGS) -o $@ $(OBJECTS) $(PROJ_LIBS)
 
 $(OBJDIR)/%.o: %.cpp
 	$(CXX) $(PROJ_CXXFLAGS) -MMD -MF $(<:%.cpp=$(OBJDIR)/.%.d) -MT $(<:%.cpp=$(OBJDIR)/%.o) -c -o $@ $<
