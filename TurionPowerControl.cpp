@@ -344,7 +344,7 @@ void processorTempStatus(Processor *p) {
 }
 
 void printUsage (const char *name) {
-	printf ("Usage: %s [options]\n", name);
+	printf ("\nUsage: %s [options]\n", name);
 	printf ("Options:\n\n");
 	printf ("\t ----- Various information about processor states\n\n");
 	printf (" -l\n\tLists power states\n\n");
