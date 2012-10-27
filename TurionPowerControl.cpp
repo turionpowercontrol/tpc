@@ -31,6 +31,10 @@
 #include "config.h"
 #include "scaler.h"
 
+#ifndef _SOURCE_VERSION
+#include "version.h"
+#endif
+
 #ifdef _WIN32
 int initWinRing0 () {
 
@@ -773,7 +777,7 @@ int main (int argc,const char **argv) {
 	
 	Scaler *scaler;
 	
-	printf ("Turion Power States Optimization and Control - by blackshard - v0.43\n\n");
+	printf ("TurionPowerControl %s (Turion Power States Optimization and Control - by blackshard)\n", _SOURCE_VERSION);
 
 	if (argc<2) {
 		printUsage(argv[0]);
