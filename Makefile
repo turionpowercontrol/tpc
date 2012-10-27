@@ -6,7 +6,7 @@ ARCH=$(shell uname -m)
 PROJECT=TurionPowerControl
 PROJ_CXXFLAGS=-O2 $(CXXFLAGS) $(shell getconf LFS_CFLAGS)
 PROJ_LDFLAGS=$(LDFLAGS)
-PROJ_LIBS=$(LIBS) -lrt
+PROJ_LIBS=$(LIBS) -lrt -ltinfo
 
 OBJROOT=obj
 OBJDIR=$(OBJROOT)/$(ARCH)
@@ -26,7 +26,8 @@ SOURCES=TurionPowerControl.cpp \
 	Processor.cpp \
 	K10PerformanceCounters.cpp \
 	scaler.cpp \
-	Signal.cpp
+	Signal.cpp \
+	sysdep-linux.cpp
 
 OBJECTS=$(SOURCES:%.cpp=$(OBJDIR)/%.o)
 DEPS=$(SOURCES:%.cpp=$(OBJDIR)/.%.d)
