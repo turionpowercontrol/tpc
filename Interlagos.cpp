@@ -18,6 +18,8 @@
 #include "MSRObject.h"
 #include "PerformanceCounter.h"
 
+#include "sysdep.h"
+
 //Interlagos class constructor
 Interlagos::Interlagos ()
 {
@@ -2946,78 +2948,113 @@ void Interlagos::getCurrentStatus (struct procStatus *pStatus, DWORD core)
 
 void Interlagos::checkMode()
 {
-	DWORD i,pstate,vid,fid,did;
-	DWORD eaxMsr,edxMsr;
+	DWORD a, b, c, i, j, k, pstate, vid, fid, did;
+	DWORD eaxMsr, edxMsr;
 	DWORD timestamp;
-	DWORD states[2][7];
-	DWORD minTemp,maxTemp,temp;
-	DWORD oTimeStamp;
+	DWORD states[processorNodes][processorCores][getPowerStates()];
+	DWORD savedstates[processorNodes][processorCores][getPowerStates()];
+	DWORD minTemp, maxTemp, temp, savedMinTemp, savedMaxTemp;
+	DWORD oTimeStamp, iTimeStamp;
 	float curVcore;
 	DWORD maxPState;
 	unsigned int cid;
 
-	printf ("Monitoring...\n");
-
 	maxPState=getMaximumPState().getPState();
 
-	for (i = 0; i < 7; i++)
+	for (i = 0; i < processorNodes; i++)
 	{
-		states[0][i]=0;
-		states[1][i]=0;
+		for (j = 0; j < processorCores; j++)
+		{
+			for (k = 0; k < getPowerStates(); k++)
+			{
+				states[i][j][k] = 0;
+				savedstates[i][j][k] = 0;
+			}
+		}
 	}
 
 	minTemp=getTctlRegister();
 	maxTemp=minTemp;
-	oTimeStamp=GetTickCount ();
+	iTimeStamp = GetTickCount();
+	oTimeStamp = iTimeStamp;
 
 	while(1)
 	{
+	        ClearScreen(CLEARSCREEN_FLAG_SMART);
+
 		timestamp=GetTickCount ();
 
-		printf (" \rTs:%d - ",timestamp);
-		for (i = 0; i < processorCores; i++)
+		printf ("\nTs:%u - ",timestamp);
+		for (i = 0; i < processorNodes; i++)
 		{
-			/*RdmsrPx (0xc0010063,&eaxMsr,&edxMsr,i+1);
-			pstate=eaxMsr & 0x7;*/
+			setNode(i);
+			printf("\nNode %d\t", i);
+			
+			for (j = 0; j < processorCores; j++)
+			{
+				RdmsrPx (0xc0010071, &eaxMsr, &edxMsr, (PROCESSORMASK)1<<i);
+				pstate = (eaxMsr >> 16) & 0x7;
+				vid = (eaxMsr >> 9) & 0x7f;
+				curVcore = (float)((124 - vid) * 0.0125);
+				fid = eaxMsr & 0x3f;
+				did = (eaxMsr >> 6) & 0x7;
 
-			RdmsrPx (0xc0010071,&eaxMsr,&edxMsr,(PROCESSORMASK)1<<i);
-			pstate=(eaxMsr>>16) & 0x7;
-			vid=(eaxMsr>>9) & 0x7f;
-			curVcore=(float)((124-vid)*0.0125);
-			fid=eaxMsr & 0x3f;
-			did=(eaxMsr >> 6) & 0x7;
+				states[i][j][pstate]++;
 
-			states[i][pstate]++;
+				printf ("c%d:ps%d - ", j, pstate);
+			}
 
-			printf ("c%d:ps%d - ",i,pstate);
-			if (pstate>maxPState)
-				printf ("\n * Detected pstate %d on core %d\n",pstate,i);
+			temp=getTctlRegister();
+
+			if (temp<minTemp) minTemp=temp;
+			if (temp>maxTemp) maxTemp=temp;
+
+			printf ("Tctl: %d",temp);
 		}
-
-		temp=getTctlRegister();
-
-		if (temp<minTemp) minTemp=temp;
-		if (temp>maxTemp) maxTemp=temp;
-
-		printf ("Tctl: %d",temp);
 
 		if ((timestamp-oTimeStamp)>30000)
 		{
 			oTimeStamp=timestamp;
 
-			printf ("\n\tps0\tps1\tps2\tps3\tps4\tps5\tps6\n\n");
-			for (cid=0;cid<processorCores;cid++)
+			for (a = 0; a < processorNodes; a++)
 			{
-				printf ("Core%d:",cid);
-				
-				for (i=0;i<7;i++)
-					printf ("\t%d",states[cid][i]);
-				
-				printf ("\n");
+				for (b = 0; b < processorCores; b++)
+				{
+					for (c = 0; c < getPowerStates(); c++)
+					{
+						savedstates[a][b][c] = states[a][b][c];
+						states[a][b][c] = 0;
+					}
+				}
 			}
-
-			printf ("\n\nCurTctl:%d\t MinTctl:%d\t MaxTctl:%d\n",temp,minTemp,maxTemp);
+			savedMinTemp = minTemp;
+			savedMaxTemp = maxTemp;
+			minTemp = getTctlRegister();
+			maxTemp = minTemp;
 		}
+		fflush(stdout);
+
+		if ((timestamp - iTimeStamp) > 30000)
+		{
+			for (a = 0; a < processorNodes; a++)
+			{
+				printf("\nNode%d", a);
+				for (b = 0; b < processorCores; b++)
+				{
+				        if ((b & 1) == 0)
+				                printf("\n");
+                                        else
+                                                printf("      ");
+					printf(" C%d:", b);
+					for (c = 0; c < getPowerStates(); c++)
+					{
+						printf("%6d", savedstates[a][b][c]);
+					}
+				}
+			}
+			printf ("\nMinTctl:%d\t MaxTctl:%d\n\n", savedMinTemp, savedMaxTemp);
+		}
+		fflush(stdout);
 
 		Sleep (50);
 	}
