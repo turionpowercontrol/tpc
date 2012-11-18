@@ -1,5 +1,6 @@
 
 #include <windows.h>
+#include "sysdep.h"
 
 void ClearScreen(unsigned int flags)
 {
