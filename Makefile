@@ -32,9 +32,12 @@ SOURCES=TurionPowerControl.cpp \
 OBJECTS=$(SOURCES:%.cpp=$(OBJDIR)/%.o)
 DEPS=$(SOURCES:%.cpp=$(OBJDIR)/.%.d)
 
-all: $(OBJDIR) $(PROJECT)
+GENERATED=version.h
 
-version.h:
+all: $(OBJDIR) version.h $(PROJECT)
+	@echo Build completed.
+
+version.h: FORCE
 	${shell BRANCH=$$(svn info | sed -nr '/URL:/{s=(.*/)([^/]*$$)=\2=;p}') ; REV=$$(svnversion) ; [ "$$BRANCH" != "" -a "$$REV" != "" ] && A=\"$$BRANCH-r$$REV\" || A=\"export\" ;  if [ "$$A" != "$$(cat version.h 2> /dev/null | cut -f 3 -d \ )" ]; then echo \#define _SOURCE_VERSION $$A > version.h ; fi}
 	@true
 
@@ -61,9 +64,10 @@ clean:
 	
 distclean: clean
 	$(RM) -r $(OBJROOT)
+	$(RM) -r $(GENERATED)
 	$(RM) core core.[0-9]
 	$(RM) *~ DEADJOE *.orig *.rej *.i *.r[0-9]* *.mine
 
-.PHONY: clean distclean all install uninstall i386 version.h
+.PHONY: clean distclean all install uninstall i386 FORCE
 
 -include $(DEPS)
