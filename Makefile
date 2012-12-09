@@ -6,7 +6,7 @@ ARCH=$(shell uname -m)
 PROJECT=TurionPowerControl
 PROJ_CXXFLAGS=-O2 $(CXXFLAGS) $(shell getconf LFS_CFLAGS)
 PROJ_LDFLAGS=$(LDFLAGS)
-PROJ_LIBS=$(LIBS) -lrt -ltinfo
+PROJ_LIBS=$(LIBS) -lrt -lncurses
 
 OBJROOT=obj
 OBJDIR=$(OBJROOT)/$(ARCH)
