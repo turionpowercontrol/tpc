@@ -3068,8 +3068,8 @@ void Interlagos::checkMode()
 bool Interlagos::getDramValid (DWORD device)
 {
 	PCIRegObject *dramConfigurationHighRegister = new PCIRegObject();
-
 	bool reg1;
+	DWORD ret;
 
 	dramConfigurationHighRegister = new PCIRegObject();
 
@@ -3085,11 +3085,13 @@ bool Interlagos::getDramValid (DWORD device)
 	if (!reg1)
 	{
 		printf("Interlagos::getDramValid - unable to read PCI registers\n");
-		free(dramConfigurationHighRegister);
+		delete dramConfigurationHighRegister;
 		return false;
 	}
 
-	return dramConfigurationHighRegister->getBits(0, 7, 1);
+	ret = dramConfigurationHighRegister->getBits(0, 7, 1);
+	delete dramConfigurationHighRegister;
+	return ret;
 }
 
 /*
