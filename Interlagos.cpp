@@ -3065,24 +3065,41 @@ void Interlagos::checkMode()
 /***************** PRIVATE METHODS ********************/
 
 
+bool Interlagos::setDramController(DWORD device)
+{
+	PCIRegObject *dctConfigurationSelect;
+	
+	dctConfigurationSelect = new PCIRegObject();
+
+	if (!dctConfigurationSelect->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_ADDRESS_MAP, 0x10C, getNodeMask())) {
+		fprintf(stderr, "Interlagos::setDramController -- readPCIReg failed\n");
+		delete dctConfigurationSelect;
+		return false;
+	}
+	dctConfigurationSelect->setBits(0, 1, device);
+	dctConfigurationSelect->setBits(4, 2, 0); /* NB P-state 0 */
+	if (!dctConfigurationSelect->writePCIReg()) {
+		fprintf(stderr, "Interlagos::setDramController -- writePCIReg failed\n");
+		delete dctConfigurationSelect;
+		return false;
+	}
+	delete dctConfigurationSelect;
+	return true;
+}
+
 bool Interlagos::getDramValid (DWORD device)
 {
 	PCIRegObject *dramConfigurationHighRegister;
 	bool reg1;
 	DWORD ret;
 
+	if (!setDramController(device)) {
+		return false;
+	}
+
 	dramConfigurationHighRegister = new PCIRegObject();
 
-	if (device==0)
-	{
-		reg1=dramConfigurationHighRegister->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_DRAM_CONTROLLER, 0x94, getNodeMask());
-	}
-	else
-	{
-		reg1=dramConfigurationHighRegister->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_DRAM_CONTROLLER, 0x194, getNodeMask());
-	}
-
-	if (!reg1)
+	if (!dramConfigurationHighRegister->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_DRAM_CONTROLLER, 0x94, getNodeMask()))
 	{
 		printf("Interlagos::getDramValid - unable to read PCI registers\n");
 		delete dramConfigurationHighRegister;
@@ -3110,18 +3127,13 @@ int Interlagos::getDramFrequency (DWORD device, DWORD *T_mode)
 	bool reg1;
 	DWORD regValue;
 
+	if (!setDramController(device)) {
+		return 0;
+	}
+
 	dramConfigurationHighRegister = new PCIRegObject ();
 
-	if (device == 0)
-	{
-		reg1=dramConfigurationHighRegister->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_DRAM_CONTROLLER, 0x94, getNodeMask());
-	}
-	else
-	{
-		reg1=dramConfigurationHighRegister->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_DRAM_CONTROLLER, 0x194, getNodeMask());
-	}
-
-	if (!reg1)
+	if (!dramConfigurationHighRegister->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_DRAM_CONTROLLER, 0x94, getNodeMask()))
 	{
 		printf("Interlagos::getDRAMFrequency - unable to read PCI registers\n");
 		delete dramConfigurationHighRegister;
@@ -3173,6 +3185,10 @@ void Interlagos::getDramTiming(DWORD device, /* 0 or 1   DCT0 or DCT1 */
 	bool reg0, reg1, reg2, reg3, reg4, reg5, reg6, reg10;
 	bool dramnbpstate, reghigh;
 
+	if (!setDramController(device)) {
+		return;
+	}
+
 	PCIRegObject *dramTimingHigh = new PCIRegObject();
 	PCIRegObject *dramTiming0 = new PCIRegObject();
 	PCIRegObject *dramTiming1 = new PCIRegObject();
@@ -3186,14 +3202,8 @@ void Interlagos::getDramTiming(DWORD device, /* 0 or 1   DCT0 or DCT1 */
 
 	//Single configuration register for DRAM, unlike K10
 	//
-	if (device == 0)
-	{
-		reghigh = dramTimingHigh->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_DRAM_CONTROLLER, 0x8C, getNodeMask());
-	}
-	else
-	{
-		reghigh = dramTimingHigh->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_DRAM_CONTROLLER, 0x18C, getNodeMask());
-	}
+	reghigh = dramTimingHigh->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_DRAM_CONTROLLER, 0x8C, getNodeMask());
+
 	reg0 = dramTiming0->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_DRAM_CONTROLLER, 0x200, getNodeMask());
 	reg1 = dramTiming1->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_DRAM_CONTROLLER, 0x204, getNodeMask());
 	reg2 = dramTiming2->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_DRAM_CONTROLLER, 0x208, getNodeMask());
