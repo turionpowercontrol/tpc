@@ -3230,6 +3230,7 @@ void Interlagos::getDramTiming(DWORD device, /* 0 or 1   DCT0 or DCT1 */
 	*Trtp = dramTiming1->getBits(0, 24, 4);
 	*Trrd = dramTiming1->getBits(0, 8, 4);
 	*Trc = dramTiming1->getBits(0, 0, 6);
+	*Tfaw = dramTiming1->getBits(0, 16, 6);
 	
 	*Trfc0 = dramTiming2->getBits(0, 0, 3);
 	*Trfc1 = dramTiming2->getBits(0, 8, 3);
