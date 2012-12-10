@@ -3447,12 +3447,31 @@ void Interlagos::showDramTimings()
 						TrwtWB, TrwtTO, Twtr, Twrrd, Twrwrsdsc, Trdrdsdsc, Tref, Trfc0,
 						Trfc1, Trfc2, Trfc3, MaxRdLatency);
 
+				for (int i = 0; i < 8; i++) {
+					unsigned int val;
+					PCIRegObject *csbaseaddr = new PCIRegObject();
+					setDramController(dct_index);
+					csbaseaddr->readPCIReg(PCI_DEV_NORTHBRIDGE,
+                                                PCI_FUNC_DRAM_CONTROLLER, 0x40 + 4 * i, 1 << node_index);
+					val = csbaseaddr->getBits(0, 0, 32);
+					if ((i & 1) == 0) {
+						printf("LDIMM%d=", i >> 1);
+					}
+					printf("%s", (val & 4) ? "FAILED" : (val & 1) ? "OK" : "EMPTY");
+					if ((i & 1) == 0) {
+						printf("/");
+					} else {
+						printf(" ");
+					}
+					delete csbaseaddr;
+				}
+				printf("\n");
 			}
 			else
 			{
-				printf ("- controller inactive -\n");
+				printf ("DCT%d: - controller inactive -\n", dct_index);
 			}
-
+			printf("\n");
 		}
 
 		printf("\n");
