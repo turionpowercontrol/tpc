@@ -9,6 +9,7 @@ private:
 
 	void printRoute(DWORD);
 
+	bool setDramController(DWORD device);
 	int getDramFrequency(DWORD device, DWORD *T_mode);
 	bool getDramValid(DWORD device);
 
