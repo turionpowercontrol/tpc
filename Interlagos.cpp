@@ -3106,13 +3106,11 @@ bool Interlagos::getDramValid (DWORD device)
  */
 int Interlagos::getDramFrequency (DWORD device, DWORD *T_mode)
 {
-	PCIRegObject *dramConfigurationHighRegister = new PCIRegObject();
-
+	PCIRegObject *dramConfigurationHighRegister;
 	bool reg1;
-
 	DWORD regValue;
 
-	dramConfigurationHighRegister=new PCIRegObject ();
+	dramConfigurationHighRegister = new PCIRegObject ();
 
 	if (device == 0)
 	{
