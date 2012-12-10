@@ -3067,7 +3067,7 @@ void Interlagos::checkMode()
 
 bool Interlagos::getDramValid (DWORD device)
 {
-	PCIRegObject *dramConfigurationHighRegister = new PCIRegObject();
+	PCIRegObject *dramConfigurationHighRegister;
 	bool reg1;
 	DWORD ret;
 
