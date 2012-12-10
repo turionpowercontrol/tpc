@@ -61,7 +61,7 @@ $(OBJDIR):
 
 clean:
 	$(RM) $(OBJECTS) $(PROJECT)
-	
+
 distclean: clean
 	$(RM) -r $(OBJROOT)
 	$(RM) -r $(GENERATED)
