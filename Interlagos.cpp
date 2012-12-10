@@ -3065,17 +3065,6 @@ void Interlagos::checkMode()
 /***************** PRIVATE METHODS ********************/
 
 
-/*
- * dram bank is valid
- * 04h = 667
- * 06h = 800
- * 0Ah = 1066
- * 0Eh = 1333
- * 12h = 1600
- * 16h = 1866
- * 1Ah = 2133
- * 1Eh = 2400
- */
 bool Interlagos::getDramValid (DWORD device)
 {
 	PCIRegObject *dramConfigurationHighRegister = new PCIRegObject();
@@ -3100,9 +3089,19 @@ bool Interlagos::getDramValid (DWORD device)
 		return false;
 	}
 
-	return dramConfigurationHighRegister->getBits(0, 0, 5);
+	return dramConfigurationHighRegister->getBits(0, 7, 1);
 }
 
+/*
+ * 04h = 667
+ * 06h = 800
+ * 0Ah = 1066
+ * 0Eh = 1333
+ * 12h = 1600
+ * 16h = 1866
+ * 1Ah = 2133
+ * 1Eh = 2400
+ */
 int Interlagos::getDramFrequency (DWORD device, DWORD *T_mode)
 {
 	PCIRegObject *dramConfigurationHighRegister = new PCIRegObject();
