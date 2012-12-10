@@ -45,10 +45,10 @@ i386:
 	$(MAKE) CXXFLAGS="-m32 -D_FILE_OFFSET_BITS=64" LDFLAGS="-m32" ARCH=i386
 
 install:
-	install -ps $(PROJECT) $(PREFIX)/bin
+	install -ps $(PROJECT) $(DESTDIR)$(PREFIX)/bin
 
 uninstall:
-	$(RM) $(PREFIX)/bin/$(PROJECT)
+	$(RM) $(DESTDIR)$(PREFIX)/bin/$(PROJECT)
 
 $(PROJECT): $(OBJECTS)
 	$(CXX) $(PROJ_LDFLAGS) -o $@ $(OBJECTS) $(PROJ_LIBS)
