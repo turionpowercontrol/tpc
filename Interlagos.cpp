@@ -3126,8 +3126,8 @@ int Interlagos::getDramFrequency (DWORD device, DWORD *T_mode)
 	if (!reg1)
 	{
 		printf("Interlagos::getDRAMFrequency - unable to read PCI registers\n");
-		free(dramConfigurationHighRegister);
-		return false;
+		delete dramConfigurationHighRegister;
+		return 0;
 	}
 	
 	if (dramConfigurationHighRegister->getBits(0, 20, 1))
@@ -3140,6 +3140,7 @@ int Interlagos::getDramFrequency (DWORD device, DWORD *T_mode)
 	}
 	
 	regValue = dramConfigurationHighRegister->getBits(0, 0, 5);
+	delete dramConfigurationHighRegister;
 	
 	switch (regValue)
 	{
