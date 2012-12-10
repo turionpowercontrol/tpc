@@ -3204,7 +3204,7 @@ void Interlagos::getDramTiming(DWORD device, /* 0 or 1   DCT0 or DCT1 */
 	reg6 = dramTiming6->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_DRAM_CONTROLLER, 0x21C, getNodeMask());
 	reg10 = dramTiming10->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_DRAM_CONTROLLER, 0x22C, getNodeMask());
 
-	if (!(reg0 && reg1 && reg2 && reg3 && reg4 && reg5 && reg6 && reg10 && dramnbpstate))
+	if (!(reghigh && reg0 && reg1 && reg2 && reg3 && reg4 && reg5 && reg6 && reg10 && dramnbpstate))
 	{
 		printf("Interlagos::getDRAMTiming - unable to read PCI register\n");
 		free(dramTimingHigh);
