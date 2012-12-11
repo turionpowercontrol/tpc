@@ -56,7 +56,7 @@ K10Processor::K10Processor () {
 	int pkgType=(ebx >> 28);
 
 	boostSupported = 0;
-	if (Cpuid(0x8000007, &eax, &ebx, &ecx, &edx)) {
+	if (Cpuid(0x80000007, &eax, &ebx, &ecx, &edx)) {
 		boostSupported = (edx >> 9) & 1;
 	}
 
