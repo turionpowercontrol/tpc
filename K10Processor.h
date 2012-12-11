@@ -27,6 +27,8 @@ private:
 			DWORD *Trdrd, DWORD *Tref, DWORD *Trfc0, DWORD *Trfc1,
 			DWORD *Trfc2, DWORD *Trfc3, DWORD *MaxRdLatency);
 
+	int boostSupported;
+
 public:
 
 	K10Processor ();
@@ -86,6 +88,10 @@ public:
 
 	DWORD startupPState ();
 	DWORD maxCPUFrequency ();
+	DWORD getNumBoostStates(void);
+	void setNumBoostStates(DWORD);
+	DWORD getBoost(void);
+	void setBoost(bool);
 
 	//Virtual method to modify DRAM timings -- Needs testing, only for DDR3 at the moment
 	DWORD setDramTiming(

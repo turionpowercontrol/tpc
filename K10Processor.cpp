@@ -55,6 +55,11 @@ K10Processor::K10Processor () {
 	int string2=(brandId & 0xf);
 	int pkgType=(ebx >> 28);
 
+	boostSupported = 0;
+	if (Cpuid(0x8000007, &eax, &ebx, &ecx, &edx)) {
+		boostSupported = (edx >> 9) & 1;
+	}
+
 	//Sets processor Specs
 	setSpecFamilyBase (familyBase);
 	setSpecModel (model);
@@ -66,7 +71,7 @@ K10Processor::K10Processor () {
 	setSpecString1 (string1);
 	setSpecString2 (string2);
 	setSpecPkgType (pkgType);
-	setBoostStates (0);
+	setBoostStates(getNumBoostStates());
 	setMaxSlots(4);
 
     // determine the number of nodes, and number of processors.
@@ -1184,6 +1189,152 @@ DWORD K10Processor::maxCPUFrequency() {
 
 	return maxCPUFid * 100;
 
+}
+
+DWORD K10Processor::getNumBoostStates(void)
+{	
+	PCIRegObject *boostControl;
+	DWORD numBoostStates;
+
+	if (!boostSupported)
+		return 0;
+
+	boostControl = new PCIRegObject();
+
+	if (!boostControl->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_LINK_CONTROL, 0x15C, getNodeMask()))
+	{
+		printf("K10Processor::getNumBoostStates unable to read boost control register\n");
+		delete boostControl;
+		return 0;
+	}
+
+	numBoostStates = boostControl->getBits(0, 2, 1);
+
+	delete boostControl;
+
+	return numBoostStates;
+}
+
+void K10Processor::setNumBoostStates(DWORD numBoostStates)
+{
+	PCIRegObject *boostControl;
+
+	if (!boostSupported)
+		return;
+
+	boostControl = new PCIRegObject();
+
+	if (!boostControl->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_LINK_CONTROL, 0x15C, getNodeMask()))
+	{
+		printf("K10Processor::getNumBoostStates unable to read boost control register\n");
+		delete boostControl;
+		return;
+	}
+	
+	if (boostControl->getBits(0, 31, 1))
+	{
+		printf("Boost Lock Enabled. Cannot edit NumBoostStates\n");
+		delete boostControl;
+		return;
+	}
+
+	if (boostControl->getBits(0, 0, 2))
+	{
+		printf("Disable boost before changing the number of boost states\n");
+		delete boostControl;
+		return;
+	}
+
+	boostControl->setBits(2, 1, numBoostStates);
+
+	if (!boostControl->writePCIReg())
+	{
+		printf("K10Processor::setNumBoostStates unable to write PCI Reg\n");
+		delete boostControl;
+		return;
+	}
+
+	setBoostStates(numBoostStates);
+
+	printf("Number of boosted states set to %d\n", numBoostStates);
+
+	delete boostControl; 
+}
+
+/*
+ * Specifies whether CPB is enabled or disabled
+ */
+DWORD K10Processor::getBoost(void)
+{
+	PCIRegObject *boostControl;
+	DWORD boostSrc;
+
+	if (!boostSupported)
+		return -1;
+
+	boostControl = new PCIRegObject();
+
+	if (!boostControl->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_LINK_CONTROL, 0x15C, getNodeMask()))
+	{
+		printf("K10Processor::getBoost unable to read boost control register\n");
+		delete boostControl;
+		return -1;
+	}
+
+	boostSrc = boostControl->getBits(0, 0, 2);
+
+	delete boostControl;	
+	
+	if (boostSrc == 1)
+		return 1;
+	else if (boostSrc == 0)
+		return 0;
+	else
+		return -1;
+}
+
+void K10Processor::setBoost(bool boost)
+{	
+	PCIRegObject *boostControl;
+	DWORD boostSrc;
+
+	if (!boostSupported)
+		return;
+
+	boostControl = new PCIRegObject();
+
+	if (!boostControl->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_LINK_CONTROL, 0x15C, getNodeMask()))
+	{
+		printf("K10Processor::enableBoost unable to read boost control register\n");
+		delete boostControl;
+		return;
+	}
+	
+	if (boostControl->getBits(0, 31, 1))
+	{
+		printf("Boost Lock Enabled. NumBoostStates and CStateCnt are read-only.\n");
+		delete boostControl;
+		return;
+	}
+
+	printf("Boost Lock Disabled. Unlocked processor.\n");
+	printf("NumBoostStates and CStateCnt can be modified.\n");
+
+	boostControl->setBits(0, 2, boost);
+
+	if (!boostControl->writePCIReg())
+	{
+		printf("K10Processor::enableBoost unable to write PCI Reg\n");
+		delete boostControl;
+		return;
+	}
+
+	if (boost)
+		printf ("Boost enabled\n");
+	else
+		printf ("Boost disabled\n");
+
+	delete boostControl;
 }
 
 //DRAM Timings tweaking ----------------
