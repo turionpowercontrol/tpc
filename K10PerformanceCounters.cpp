@@ -9,13 +9,13 @@
  *      Author: paolo
  */
 
+#include <unistd.h>
+
 #include "Processor.h"
 #include "PerformanceCounter.h"
 #include "PCIRegObject.h"
 #include "MSRObject.h"
 #include "Signal.h"
-
-#include <unistd.h>
 
 void Processor::K10PerformanceCounters::perfMonitorCPUUsage(class Processor *p)
 {
