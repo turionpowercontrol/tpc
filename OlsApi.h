@@ -266,7 +266,7 @@ WINAPI HltTx(
 // HltPx
 //-----------------------------------------------------------------------------
 BOOL // TRUE: success, FALSE: failure
-WINAPI HltTx(
+WINAPI HltPx(
 	DWORD_PTR processAffinityMask
 );
 
