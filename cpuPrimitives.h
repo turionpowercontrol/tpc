@@ -14,8 +14,6 @@
 #define TRUE true
 #define FALSE false
 
-#define strcpy_s strcpy
-
 bool Cpuid (DWORD fn, DWORD *eax, DWORD *ebx, DWORD *ecx, DWORD *edx);
 bool ReadPciConfigDwordEx (DWORD devfunc, DWORD reg, DWORD *res);
 

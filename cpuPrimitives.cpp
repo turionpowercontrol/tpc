@@ -12,8 +12,6 @@
 #define TRUE true
 #define FALSE false
 
-#define strcpy_s strcpy
-
 bool Cpuid (DWORD fn, DWORD *eax, DWORD *ebx, DWORD *ecx, DWORD *edx) {
 
 	char cpuid_filename[128];

@@ -234,8 +234,10 @@ void Processor::convertFreqtoFD(DWORD, int *, int *) {
 }
 
 void Processor::setProcessorStrId (const char *strId) {
-	if (strlen(strId)>64) printf ("Warning: processor string Id Exceeds 64 bytes!\n");
-	strcpy_s (processorStrId,strId);
+	if (strlen(strId) > sizeof(processorStrId) - 1)
+		printf ("Warning: processor string Id Exceeds %d bytes!\n", sizeof(processorStrId) - 1);
+	strncpy(processorStrId, strId, sizeof(processorStrId));
+	processorStrId[sizeof(processorStrId) - 1] = '\0';
 }
 
 void Processor::setPowerStates (DWORD pstates) {
