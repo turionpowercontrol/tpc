@@ -10,6 +10,10 @@
 
 #pragma once
 
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
+
 /******************************************************************************
 **
 ** DLL Information
@@ -578,3 +582,6 @@ WINAPI WritePhysicalMemory(
 	DWORD unitSize		// Unit Size (BYTE, WORD, DWORD)
 );
 #endif
+#ifdef __cplusplus
+}
+#endif /* __cplusplus */
