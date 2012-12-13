@@ -1313,12 +1313,12 @@ void K10Processor::setBoost(bool boost)
 	if (boostControl->getBits(0, 31, 1))
 	{
 		printf("Boost Lock Enabled. NumBoostStates and CStateCnt are read-only.\n");
-		delete boostControl;
-		return;
 	}
-
-	printf("Boost Lock Disabled. Unlocked processor.\n");
-	printf("NumBoostStates and CStateCnt can be modified.\n");
+	else
+	{
+		printf("Boost Lock Disabled. Unlocked processor.\n");
+		printf("NumBoostStates and CStateCnt can be modified.\n");
+	}
 
 	boostControl->setBits(0, 2, boost);
 
