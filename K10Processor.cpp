@@ -1225,7 +1225,7 @@ void K10Processor::setNumBoostStates(DWORD numBoostStates)
 
 	if (!boostControl->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_LINK_CONTROL, 0x15C, getNodeMask()))
 	{
-		printf("K10Processor::getNumBoostStates unable to read boost control register\n");
+		printf("K10Processor::setNumBoostStates unable to read boost control register\n");
 		delete boostControl;
 		return;
 	}
@@ -1303,7 +1303,7 @@ void K10Processor::setBoost(bool boost)
 
 	if (!boostControl->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_LINK_CONTROL, 0x15C, getNodeMask()))
 	{
-		printf("K10Processor::enableBoost unable to read boost control register\n");
+		printf("K10Processor::setBoost unable to read boost control register\n");
 		delete boostControl;
 		return;
 	}
