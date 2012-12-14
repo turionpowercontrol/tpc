@@ -43,6 +43,10 @@ K10Processor::K10Processor () {
 	int familyExtended = ((eax & 0xff00000) >> 20)+familyBase;
 	int modelExtended = ((eax & 0xf0000) >> 12)+model; /* family 10h: modelExtended is valid */
 
+	boostSupported = 0;
+	if (modelExtended == 10) /* revision E */
+		boostSupported = 1;
+
 	//Check Brand ID and Package type - CPUID Function 8000_0001 reg EBX
 	if (Cpuid(0x80000001,&eax,&ebx,&ecx,&edx)!=TRUE) {
 		printf ("K10Processor::K10Processor - Fatal error during querying for Cpuid(0x80000001) instruction.\n");
@@ -54,11 +58,6 @@ K10Processor::K10Processor () {
 	int string1=(brandId >> 11) & 0xf;
 	int string2=(brandId & 0xf);
 	int pkgType=(ebx >> 28);
-
-	boostSupported = 0;
-	if (Cpuid(0x80000007, &eax, &ebx, &ecx, &edx)) {
-		boostSupported = (edx >> 9) & 1;
-	}
 
 	//Sets processor Specs
 	setSpecFamilyBase (familyBase);
