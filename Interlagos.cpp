@@ -68,6 +68,7 @@ Interlagos::Interlagos ()
 	setSpecString1 (string1);
 	setSpecString2 (string2);
 	setSpecPkgType (pkgType);
+	setNode(0);
 	setBoostStates (getNumBoostStates());
 	setMaxSlots (6);
 
