@@ -1296,7 +1296,6 @@ DWORD K10Processor::getBoost(void)
 void K10Processor::setBoost(bool boost)
 {	
 	PCIRegObject *boostControl;
-	DWORD boostSrc;
 
 	if (!boostSupported)
 		return;
