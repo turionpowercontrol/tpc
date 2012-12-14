@@ -2992,7 +2992,7 @@ void Interlagos::checkMode()
 			
 			for (j = 0; j < processorCores; j++)
 			{
-				RdmsrPx (0xc0010071, &eaxMsr, &edxMsr, (PROCESSORMASK)1<<i);
+				RdmsrPx (0xc0010071, &eaxMsr, &edxMsr, (PROCESSORMASK)1 << (i * processorCores + j));
 				pstate = (eaxMsr >> 16) & 0x7;
 				vid = (eaxMsr >> 9) & 0x7f;
 				curVcore = (float)((124 - vid) * 0.0125);
