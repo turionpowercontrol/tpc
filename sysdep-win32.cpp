@@ -20,7 +20,7 @@ void ClearScreen(unsigned int flags)
 		return;
 	}
 	if (flags & CLEARSCREEN_FLAG_SMART) {
-		len = csbi.dwCursorPosition.X * csbi.dwCursorPosition.Y;
+		len = csbi.dwSize.X * (csbi.dwCursorPosition.Y + 1);
 	} else {
 		len = csbi.dwSize.X * csbi.dwSize.Y;
 	}
