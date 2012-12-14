@@ -1285,7 +1285,7 @@ DWORD K10Processor::getBoost(void)
 
 	delete boostControl;	
 	
-	if (boostSrc == 1)
+	if (boostSrc == 3)
 		return 1;
 	else if (boostSrc == 0)
 		return 0;
@@ -1320,7 +1320,7 @@ void K10Processor::setBoost(bool boost)
 		printf("NumBoostStates and CStateCnt can be modified.\n");
 	}
 
-	boostControl->setBits(0, 2, boost);
+	boostControl->setBits(0, 2, boost ? 3 : 0);
 
 	if (!boostControl->writePCIReg())
 	{
