@@ -70,8 +70,6 @@ K10Processor::K10Processor () {
 	setSpecString1 (string1);
 	setSpecString2 (string2);
 	setSpecPkgType (pkgType);
-	setNode(0);
-	setBoostStates(getNumBoostStates());
 	setMaxSlots(4);
 
     // determine the number of nodes, and number of processors.
@@ -139,6 +137,8 @@ K10Processor::K10Processor () {
 
 	setProcessorCores(cores/nodes_per_package);
 	setProcessorNodes(nodes);
+	setNode(0);
+	setBoostStates(getNumBoostStates());
 	setPowerStates(5);
 	setProcessorIdentifier(PROCESSOR_10H_FAMILY);
 	setProcessorStrId("Family 10h Processor");

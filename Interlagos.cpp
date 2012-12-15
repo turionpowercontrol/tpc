@@ -68,8 +68,6 @@ Interlagos::Interlagos ()
 	setSpecString1 (string1);
 	setSpecString2 (string2);
 	setSpecPkgType (pkgType);
-	setNode(0);
-	setBoostStates (getNumBoostStates());
 	setMaxSlots (6);
 
 	// determine the number of nodes, and number of processors.
@@ -131,6 +129,8 @@ Interlagos::Interlagos ()
 	
 	setProcessorNodes(nodes);
 	setProcessorCores(cores);
+	setNode(0);
+	setBoostStates (getNumBoostStates());
 	setPowerStates(7);
 	setProcessorIdentifier(PROCESSOR_15H_FAMILY);
 	setProcessorStrId("Family 15h (Bulldozer/Interlagos/Valencia) Processor");
