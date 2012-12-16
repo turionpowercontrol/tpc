@@ -777,7 +777,7 @@ int main (int argc,const char **argv) {
 	Scaler *scaler;
 	
 	printf ("TurionPowerControl %s (%s)\n", _VERSION, _SOURCE_VERSION);
-	printf ("Turion Power States Optimization and Control - by blackshard)\n");
+	printf ("Turion Power States Optimization and Control - by blackshard\n");
 
 	if (argc<2) {
 		printUsage(argv[0]);
