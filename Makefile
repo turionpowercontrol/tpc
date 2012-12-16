@@ -32,13 +32,13 @@ SOURCES=TurionPowerControl.cpp \
 OBJECTS=$(SOURCES:%.cpp=$(OBJDIR)/%.o)
 DEPS=$(SOURCES:%.cpp=$(OBJDIR)/.%.d)
 
-GENERATED=version.h
+GENERATED=source_version.h
 
-all: $(OBJDIR) version.h $(PROJECT)
+all: $(OBJDIR) source_version.h $(PROJECT)
 	@echo Build completed.
 
-version.h: FORCE
-	${shell BRANCH=$$(svn info | sed -nr '/URL:/{s=(.*/)([^/]*$$)=\2=;p}') ; REV=$$(svnversion) ; [ "$$BRANCH" != "" -a "$$REV" != "" ] && A=\"$$BRANCH-r$$REV\" || A=\"export\" ;  if [ "$$A" != "$$(cat version.h 2> /dev/null | cut -f 3 -d \ )" ]; then echo \#define _SOURCE_VERSION $$A > version.h ; fi}
+source_version.h: FORCE
+	${shell BRANCH=$$(svn info | sed -nr '/URL:/{s=(.*/)([^/]*$$)=\2=;p}') ; REV=$$(svnversion) ; [ "$$BRANCH" != "" -a "$$REV" != "" ] && A=\"$$BRANCH-r$$REV\" || A=\"export\" ;  if [ "$$A" != "$$(cat source_version.h 2> /dev/null | cut -f 3 -d \ )" ]; then echo \#define _SOURCE_VERSION $$A > source_version.h  ; fi}
 	@true
 
 i386:
