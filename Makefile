@@ -46,9 +46,11 @@ i386:
 
 install:
 	install -ps $(PROJECT) $(DESTDIR)$(PREFIX)/bin
+	ln -sf $(PROJECT) $(DESTDIR)$(PREFIX)/bin/tpc
 
 uninstall:
 	$(RM) $(DESTDIR)$(PREFIX)/bin/$(PROJECT)
+	$(RM) $(DESTDIR)$(PREFIX)/bin/tpc
 
 $(PROJECT): $(OBJECTS)
 	$(CXX) $(PROJ_LDFLAGS) -o $@ $(OBJECTS) $(PROJ_LIBS)
