@@ -380,8 +380,8 @@ void Interlagos::convertFreqtoFD(DWORD freq, int *oFid, int *oDid)
 
 	} while (fid < 0);
 
-	if (fid > 31)
-		fid = 31;
+	if (fid > 63)
+		fid = 63;
 
 	//Actually we don't need to reculate DID, since we guessed a
 	//valid one due to the fact that the argument is positive.
@@ -443,9 +443,9 @@ void Interlagos::setFID(PState ps, float floatFid)
 
 	fid=(unsigned int)floatFid;
 
-	if (fid > 31)
+	if (fid > 63)
 	{
-		printf("Interlagos.cpp: FID Allowed range 0-31\n");
+		printf("Interlagos.cpp: FID Allowed range 0-63\n");
 		return;
 	}
 
