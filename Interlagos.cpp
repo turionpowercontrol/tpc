@@ -483,9 +483,9 @@ void Interlagos::setDID(PState ps, float floatDid)
 
 	did=(unsigned int)floatDid;
 
-	if (did >= 4)
+	if (did > 4)
 	{
-		printf("Interlagos.cpp: DID Allowed range 0-3\n");
+		printf("Interlagos.cpp: DID Allowed range 0-4\n");
 		return;
 	}
 

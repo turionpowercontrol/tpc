@@ -454,8 +454,8 @@ void K10Processor::setDID(PState ps, float floatDid) {
 
 	did=(unsigned int)floatDid;
 
-	if (did >= 4) {
-		printf("K10Processor.cpp: DID Allowed range 0-3\n");
+	if (did > 4) {
+		printf("K10Processor.cpp: DID Allowed range 0-4\n");
 		return;
 	}
 
