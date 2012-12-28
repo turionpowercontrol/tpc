@@ -361,6 +361,10 @@ void Griffin::setVID (PState ps, DWORD vid) {
 
 	MSRObject *msrObject;
 
+	if (ps.getPState() >= powerStates) {
+		printf("Griffin.cpp: PState allowed range: 0-%d\n", powerStates - 1);
+		return;
+	}
 	if ((vid<maxVID()) || (vid>minVID())) {
 		printf ("Griffin.cpp::setVID - VID Allowed range %d-%d\n", maxVID(), minVID());
 		return;
@@ -396,6 +400,11 @@ void Griffin::setFID (PState ps, float floatFid) {
 	unsigned int fid;
 
 	MSRObject *msrObject;
+
+	if (ps.getPState() >= powerStates) {
+		printf("Griffin.cpp: PState allowed range: 0-%d\n", powerStates - 1);
+		return;
+	}
 
 	fid=(unsigned int) floatFid;
 
@@ -433,6 +442,11 @@ void Griffin::setDID(PState ps, float floatDid) {
 
 	unsigned int did;
 	MSRObject *msrObject;
+
+	if (ps.getPState() >= powerStates) {
+		printf("Griffin.cpp: PState allowed range: 0-%d\n", powerStates - 1);
+		return;
+	}
 
 	did=(unsigned int)floatDid;
 
@@ -647,6 +661,11 @@ void Griffin::pStateDisable (PState ps) {
 
 	MSRObject *msrObject;
 
+	if (ps.getPState() >= powerStates) {
+		printf("Griffin.cpp: PState allowed range: 0-%d\n", powerStates - 1);
+		return;
+	}
+
 	msrObject=new MSRObject();
 
 	if (!msrObject->readMSR(BASE_ZM_PSTATEMSR+ps.getPState(), getMask ())) {
@@ -673,6 +692,11 @@ void Griffin::pStateDisable (PState ps) {
 void Griffin::pStateEnable (PState ps) {
 
 	MSRObject *msrObject;
+
+	if (ps.getPState() >= powerStates) {
+		printf("Griffin.cpp: PState allowed range: 0-%d\n", powerStates - 1);
+		return;
+	}
 
 	msrObject = new MSRObject();
 
@@ -723,6 +747,11 @@ bool Griffin::pStateEnabled(PState ps) {
 void Griffin::setMaximumPState (PState ps) {
 
 	PCIRegObject *pciRegObject;
+
+	if (ps.getPState() >= powerStates) {
+		printf("Griffin.cpp: PState allowed range: 0-%d\n", powerStates - 1);
+		return;
+	}
 
 	pciRegObject=new PCIRegObject ();
 
@@ -844,6 +873,11 @@ DWORD Griffin::getNBVid(void) {
 void Griffin::forcePState (PState ps) {
 
 	MSRObject *msrObject;
+
+	if (ps.getPState() >= powerStates) {
+		printf("Griffin.cpp: PState allowed range: 0-%d\n", powerStates - 1);
+		return;
+	}
 
 	msrObject=new MSRObject();
 

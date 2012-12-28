@@ -16,13 +16,7 @@
 
 
 PState::PState (DWORD ps) {
-	if ((ps>=0) && (ps<=7))
-		pstate=ps;
-	else
-	{
-		printf ("PState.cpp: Wrong pstate %d, assuming default PState 0\n",ps);
-		pstate=0;
-	}
+	pstate=ps;
 }
 
 DWORD PState::getPState () {
@@ -30,13 +24,7 @@ DWORD PState::getPState () {
 }
 
 void PState::setPState (DWORD ps) {
-	if ((ps>=0) && (ps<=7))
-		pstate=ps;
-	else
-	{
-		printf ("PState.cpp: Wrong pstate %d, assuming default PState 0\n",ps);
-		pstate=0;
-	}
+	pstate=ps;
 }
 
 void Processor::setCore (DWORD core) {

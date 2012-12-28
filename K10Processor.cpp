@@ -379,6 +379,10 @@ void K10Processor::setVID (PState ps, DWORD vid) {
 
 	MSRObject *msrObject;
 
+	if (ps.getPState() >= powerStates) {
+		printf("K10Processor.cpp: PState allowed range: 0-%d\n", powerStates - 1);
+		return;
+	}
 	if ((vid>minVID()) || (vid<maxVID())) {
 		printf ("K10Processor.cpp: VID Allowed range %d-%d\n", minVID(), maxVID());
 		return;
@@ -414,6 +418,11 @@ void K10Processor::setFID(PState ps, float floatFid) {
 	unsigned int fid;
 
 	MSRObject *msrObject;
+
+	if (ps.getPState() >= powerStates) {
+		printf("K10Processor.cpp: PState allowed range: 0-%d\n", powerStates - 1);
+		return;
+	}
 
 	fid=(unsigned int)floatFid;
 
@@ -451,6 +460,11 @@ void K10Processor::setDID(PState ps, float floatDid) {
 
 	unsigned int did;
 	MSRObject *msrObject;
+
+	if (ps.getPState() >= powerStates) {
+		printf("K10Processor.cpp: PState allowed range: 0-%d\n", powerStates - 1);
+		return;
+	}
 
 	did=(unsigned int)floatDid;
 
@@ -653,6 +667,11 @@ void K10Processor::pStateDisable (PState ps) {
 
 	MSRObject *msrObject;
 
+	if (ps.getPState() >= powerStates) {
+		printf("K10Processor.cpp: PState allowed range: 0-%d\n", powerStates - 1);
+		return;
+	}
+
 	msrObject=new MSRObject();
 
 	if (!msrObject->readMSR(BASE_K10_PSTATEMSR+ps.getPState(), getMask ())) {
@@ -679,6 +698,11 @@ void K10Processor::pStateDisable (PState ps) {
 void K10Processor::pStateEnable (PState ps) {
 
 	MSRObject *msrObject;
+
+	if (ps.getPState() >= powerStates) {
+		printf("K10Processor.cpp: PState allowed range: 0-%d\n", powerStates - 1);
+		return;
+	}
 
 	msrObject=new MSRObject();
 
@@ -732,6 +756,11 @@ bool K10Processor::pStateEnabled(PState ps) {
 void K10Processor::setMaximumPState (PState ps) {
 
 	PCIRegObject *pciRegObject;
+
+	if (ps.getPState() >= powerStates) {
+		printf("K10Processor.cpp: PState allowed range: 0-%d\n", powerStates - 1);
+		return;
+	}
 
 	pciRegObject=new PCIRegObject ();
 
@@ -794,6 +823,10 @@ void K10Processor::setNBVid (PState ps, DWORD nbvid) {
 
 	MSRObject *msrObject;
 
+	if (ps.getPState() >= powerStates) {
+		printf("K10Processor.cpp: PState allowed range: 0-%d\n", powerStates - 1);
+		return;
+	}
 	if (nbvid > 127) {
 		printf ("K10Processor.cpp::setNBVid - Northbridge VID Allowed range 0-127\n");
 		return;
@@ -836,6 +869,10 @@ void K10Processor::setNBDid (PState ps, DWORD nbdid) {
 
 	msrObject=new MSRObject ();
 
+	if (ps.getPState() >= powerStates) {
+		printf("K10Processor.cpp: PState allowed range: 0-%d\n", powerStates - 1);
+		return;
+	}
 	if ((nbdid!=0) && (nbdid!=1)) {
 		printf ("Northbridge DID must be 0 or 1\n");
 		return;
@@ -896,6 +933,11 @@ DWORD K10Processor::getMaxNBFrequency() {
 void K10Processor::forcePState (PState ps) {
 
 	MSRObject *msrObject;
+
+	if (ps.getPState() >= powerStates) {
+		printf("K10Processor.cpp: PState allowed range: 0-%d\n", powerStates - 1);
+		return;
+	}
 
 	msrObject=new MSRObject();
 
