@@ -794,12 +794,12 @@ void K10Processor::setNBVid (PState ps, DWORD nbvid) {
 
 	MSRObject *msrObject;
 
-	msrObject=new MSRObject ();
-
 	if (nbvid > 127) {
 		printf ("K10Processor.cpp::setNBVid - Northbridge VID Allowed range 0-127\n");
 		return;
 	}
+
+	msrObject = new MSRObject();
 
 	/*
 	 * Northbridge VID for a specific pstate must be set for all cores
