@@ -1129,13 +1129,13 @@ int main (int argc,const char **argv) {
 
 			processor->setPsiEnabled (true);
 		}
-		
+
 		//Disables PSI_L bit for current nodes
 		if (strcmp(argv[argvStep], "-psidisable") == 0) {
 
 			processor->setPsiEnabled (false);
 		}
-		
+
 		//Set PSI_L bit threshold for current nodes
 		if (strcmp(argv[argvStep], "-psithreshold") == 0) {
 
