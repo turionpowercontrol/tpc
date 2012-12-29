@@ -481,7 +481,6 @@ static bool requireInteger (int argc, const char **argv, int offset, int *output
 //Equal as above, but with unsigned integer values
 static bool requireUnsignedInteger (int argc, const char **argv, int offset, unsigned int *output) {
 
-	bool ret;
 	int value;
 
 	if (requireInteger(argc, argv, offset, &value))
