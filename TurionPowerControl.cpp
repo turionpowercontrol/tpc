@@ -817,19 +817,20 @@ int main (int argc,const char **argv) {
 		//printf ("Parsing argument %d %s\n",argvStep,argv[argvStep]);
 
 		//List power states action
-		if (strcmp((const char *)argv[argvStep],"-l")==0) {
+		if (strcmp(argv[argvStep], "-l") == 0) {
+
 			processorStatus (processor);
 		}
 
 		//Set the current operational node
-		if (strcmp((const char *) argv[argvStep], "-node") == 0) {
+		if (strcmp(argv[argvStep], "-node") == 0) {
 
 			if ((argv[argvStep + 1] == NULL)) {
 				printf("Wrong -node setting\n");
 				return 1;
 			}
 
-			if (strcmp((const char *) argv[argvStep+1], "all")==0) {
+			if (strcmp(argv[argvStep+1], "all") == 0) {
 				currentNode=processor->ALL_NODES;
 			} else {
 				unsigned int thisNode;
@@ -844,14 +845,14 @@ int main (int argc,const char **argv) {
 		}
 
 		//Set the current operational core
-		if (strcmp((const char *) argv[argvStep], "-core") == 0) {
+		if (strcmp(argv[argvStep], "-core") == 0) {
 
 			if ((argv[argvStep + 1] == NULL)) {
 				printf("Wrong -node setting\n");
 				return 1;
 			}
 
-			if (strcmp((const char *) argv[argvStep+1], "all")==0) {
+			if (strcmp(argv[argvStep+1], "all") == 0) {
 				currentCore=processor->ALL_CORES;
 			} else {
 				unsigned int thisCore;
@@ -865,8 +866,8 @@ int main (int argc,const char **argv) {
 			argvStep++;
 		}
 
-		if (strcmp((const char *)argv[argvStep],"-nbvid")==0) {
-			
+		if (strcmp(argv[argvStep], "-nbvid") == 0) {
+
 			if (processor->getProcessorIdentifier()==PROCESSOR_10H_FAMILY) {
 				if ((argv[argvStep+1]==NULL) || (argv[argvStep+2]==NULL)) {
 					printf ("Wrong -nbvid option, Family 10h processor requires 2 parameters (pstate, nbvid).\n");
@@ -887,11 +888,10 @@ int main (int argc,const char **argv) {
 				argvStep=argvStep+1;
 
 			}
-			
 		}
 
-		if (strcmp((const char *)argv[argvStep],"-nbdid")==0) {
-			
+		if (strcmp(argv[argvStep], "-nbdid") == 0) {
+
 			if ((argv[argvStep+1]==NULL) || (argv[argvStep+2]==NULL)) {
 				printf ("Wrong -nbdid option.\n");
 				return 1;
@@ -899,11 +899,11 @@ int main (int argc,const char **argv) {
 
 			processor->setNBDid (arg2i(argv,argvStep+1),arg2i(argv,argvStep+2));
 			argvStep=argvStep+2;
-			
 		}
 
 
-		if (strcmp((const char *)argv[argvStep], "-nbfid") == 0) {
+		if (strcmp(argv[argvStep], "-nbfid") == 0) {
+
 			if (argv[argvStep + 1] == NULL) {
 				printf ("ERROR: -nbfid requires a parameter (fidId).\n");
 				return 1;
@@ -915,13 +915,13 @@ int main (int argc,const char **argv) {
 
 
 		//Enables a specified PState for current cores and current nodes
-		if (strcmp((const char *)argv[argvStep],"-en")==0) {
-			
+		if (strcmp(argv[argvStep], "-en") == 0) {
+
 			if (argv[argvStep+1]==NULL) {
 				printf ("Wrong -en option\n");
 				return 1;
 			}
-			
+
 			ps.setPState (arg2i(argv,argvStep+1));
 			processor->pStateEnable (ps.getPState());
 
@@ -929,13 +929,13 @@ int main (int argc,const char **argv) {
 		}
 
 		//Disables a specified PState for current cores and current nodes
-		if (strcmp((const char *)argv[argvStep],"-di")==0) {
-			
+		if (strcmp(argv[argvStep], "-di") == 0) {
+
 			if (argv[argvStep+1]==NULL) {
 				printf ("Wrong -di option\n");
 				return 1;
 			}
-			
+
 			ps.setPState (arg2i(argv,argvStep+1));
 			processor->pStateDisable (ps.getPState());
 
@@ -943,34 +943,34 @@ int main (int argc,const char **argv) {
 		}
 
 		//Set maximum PState for current nodes
-		if (strcmp((const char *)argv[argvStep],"-psmax")==0) {
-			
+		if (strcmp(argv[argvStep], "-psmax") == 0) {
+
 			if ((argv[argvStep+1]==NULL)) {
 				printf ("Wrong -psmax option\n");
 				return 1;
 			}
-			
+
 			ps.setPState (arg2i(argv,argvStep+1));
 			processor->setMaximumPState (ps);
 			argvStep++;
 		}
 
 		//Force transition to a pstate for current cores and current nodes
-		if (strcmp((const char *)argv[argvStep],"-fo")==0) {
-			
+		if (strcmp(argv[argvStep], "-fo") == 0) {
+
 			if (argv[argvStep+1]==NULL) {
 				printf ("Wrong -fo option\n");
 				return 1;
 			}
-			
+
 			ps.setPState (arg2i(argv,argvStep+1));
 			processor->forcePState (ps.getPState());
 
 			argvStep++;
 		}
 		
-		if (strcmp((const char *)argv[argvStep],"-bst")==0)
-		{
+		if (strcmp(argv[argvStep], "-bst") == 0) {
+
 			if (argv[argvStep + 1]==NULL)
 			{
 				printf ("Wrong -bst option\n");
@@ -982,122 +982,121 @@ int main (int argc,const char **argv) {
 		}
 
 		//Show temperature table
-		if (strcmp((const char *)argv[argvStep],"-temp")==0) {
-			
+		if (strcmp(argv[argvStep], "-temp") == 0) {
+
 			processorTempStatus(processor);
-		
 		}
 
 		//Set vsSlamTime for current nodes
-		if (strcmp((const char *)argv[argvStep],"-slamtime")==0) {
-			
+		if (strcmp(argv[argvStep], "-slamtime") == 0) {
+
 			if ((argv[argvStep+1]==NULL)) {
 				printf ("Wrong -slamtime option\n");
 				return 1;
 			}
-			
+
 			processor->setSlamTime (arg2i(argv,argvStep+1));
 			argvStep++;
 		}
 
 		//Set vsAltVIDSlamTime for current nodes
-		if (strcmp((const char *)argv[argvStep],"-altvidslamtime")==0) {
-			
+		if (strcmp(argv[argvStep], "-altvidslamtime") == 0) {
+
 			if ((argv[argvStep+1]==NULL)) {
 				printf ("Wrong -altvidslamtime option\n");
 				return 1;
 			}
-			
+
 			processor->setAltVidSlamTime (arg2i(argv,argvStep+1));
 			argvStep++;
 		}
 
 		//Set Ramp time for StepUpTime for current nodes
-		if (strcmp((const char *)argv[argvStep],"-rampuptime")==0) {
-			
+		if (strcmp(argv[argvStep], "-rampuptime") == 0) {
+
 			if ((argv[argvStep+1]==NULL)) {
 				printf ("Wrong -rampuptime option\n");
 				return 1;
 			}
-			
+
 			processor->setStepUpRampTime (arg2i(argv,argvStep+1));
 			argvStep++;
 		}
 
 		//Set Ramp time for StepDownTime for current nodes
-		if (strcmp((const char *)argv[argvStep],"-rampdowntime")==0) {
-			
+		if (strcmp(argv[argvStep], "-rampdowntime") == 0) {
+
 			if ((argv[argvStep+1]==NULL)) {
 				printf ("Wrong -rampdowntime option\n");
 				return 1;
 			}
-			
+
 			processor->setStepDownRampTime (arg2i(argv,argvStep+1));
 			argvStep++;
 		}
 		
-		if (strcmp((const char *)argv[argvStep],"-gettdp")==0)
-		{
+		if (strcmp(argv[argvStep], "-gettdp") == 0) {
+
 			processor->getTDP();
 		}
 
 		//Show information about per-family specifications
-		if (strcmp((const char *) argv[argvStep], "-spec") == 0) {
+		if (strcmp(argv[argvStep], "-spec") == 0) {
 
 			processor->showFamilySpecs();
 		}
 
 		//Show information about DRAM timing register
-		if (strcmp((const char *) argv[argvStep], "-dram") == 0) {
+		if (strcmp(argv[argvStep], "-dram") == 0) {
 
 			processor->showDramTimings();
 		}
 
 		//Show information about HTC registers status
-		if (strcmp((const char *)argv[argvStep],"-htc")==0) {
-			
+		if (strcmp(argv[argvStep], "-htc") == 0) {
+
 			processor->showHTC();
 		}
 		
 		//Enables HTC Features for current nodes
-		if (strcmp((const char *)argv[argvStep],"-htcenable")==0) {
-			
+		if (strcmp(argv[argvStep], "-htcenable") == 0) {
+
 			processor->HTCEnable();
 		}
 
 		//Disables HTC Features for current nodes
-		if (strcmp((const char *)argv[argvStep],"-htcdisable")==0) {
-			
+		if (strcmp(argv[argvStep], "-htcdisable") == 0) {
+
 			processor->HTCDisable();
 		}
 
 		//Set HTC temperature limit for current nodes
-		if (strcmp((const char *)argv[argvStep],"-htctemplimit")==0) {
-			
+		if (strcmp(argv[argvStep], "-htctemplimit") == 0) {
+
 			if ((argv[argvStep+1]==NULL)) {
 				printf ("Wrong -htctemplimit option\n");
 				return 1;
 			}
-			
+
 			processor->HTCsetTempLimit(arg2i(argv,argvStep+1));
 			argvStep++;
 		}
 
 		//Set HTC hysteresis limit for current nodes
-		if (strcmp((const char *)argv[argvStep],"-htchystlimit")==0) {
-			
+		if (strcmp(argv[argvStep], "-htchystlimit") == 0) {
+
 			if ((argv[argvStep+1]==NULL)) {
 				printf ("Wrong -htchystlimit option\n");
 				return 1;
 			}
-			
+
 			processor->HTCsetHystLimit(arg2i(argv,argvStep+1));
 			argvStep++;
 		}
 
 		//Set AltVID for current nodes
-		if (strcmp((const char *)argv[argvStep],"-altvid")==0) {
-			
+		if (strcmp(argv[argvStep], "-altvid") == 0) {
+
 			if ((argv[argvStep+1]==NULL)) {
 				printf ("Wrong -altvid option\n");
 				return 1;
@@ -1108,14 +1107,14 @@ int main (int argc,const char **argv) {
 		}
 
 		//Show information about Hypertransport registers
-		if (strcmp((const char *)argv[argvStep],"-htstatus")==0) {
-			
+		if (strcmp(argv[argvStep], "-htstatus") == 0) {
+
 			processor->showHTLink();
 		}
 
 		//Set Hypertransport Link frequency for current nodes
-		if (strcmp((const char *)argv[argvStep],"-htset")==0) {
-			
+		if (strcmp(argv[argvStep], "-htset") == 0) {
+
 			if ((argv[argvStep+1]==NULL) || (argv[argvStep+2]==NULL)) {
 				printf ("Wrong -htset option\n");
 				return 1;
@@ -1126,70 +1125,68 @@ int main (int argc,const char **argv) {
 		}
 		
 		//Enables PSI_L bit for current nodes
-		if (strcmp((const char *)argv[argvStep],"-psienable")==0) {
-			
+		if (strcmp(argv[argvStep], "-psienable") == 0) {
+
 			processor->setPsiEnabled (true);
 		}
 		
 		//Disables PSI_L bit for current nodes
-		if (strcmp((const char *)argv[argvStep],"-psidisable")==0) {
-			
+		if (strcmp(argv[argvStep], "-psidisable") == 0) {
+
 			processor->setPsiEnabled (false);
 		}
 		
 		//Set PSI_L bit threshold for current nodes
-		if (strcmp((const char *)argv[argvStep],"-psithreshold")==0) {
-			
+		if (strcmp(argv[argvStep], "-psithreshold") == 0) {
+
 			if ((argv[argvStep+1]==NULL)) {
 				printf ("Wrong -psithreshold option\n");
 				return 1;
 			}
-			
+
 			processor->setPsiThreshold(arg2i(argv,argvStep+1));
 			argvStep++;
 		}
 
 		//Set C1E enabled on current nodes and current cores
-		if (strcmp((const char *)argv[argvStep],"-c1eenable")==0) {
-			
-			processor->setC1EStatus(true);
+		if (strcmp(argv[argvStep], "-c1eenable") == 0) {
 
+			processor->setC1EStatus(true);
 		}
 		
 		//Set C1E disabled on current nodes and current cores
-		if (strcmp((const char *)argv[argvStep],"-c1edisable")==0) {
+		if (strcmp(argv[argvStep], "-c1edisable") == 0) {
 
 			processor->setC1EStatus(false);
-			
 		}
 		
 		//Set Boost state to enabled for supported processors
-		if (strcmp((const char *)argv[argvStep],"-boostenable")==0)
-		{	
+		if (strcmp(argv[argvStep], "-boostenable") == 0) {	
+
 			processor->setBoost(true);
 		}
 		
 		//Set Boost state to disabled for supported processors
-		if (strcmp((const char *)argv[argvStep],"-boostdisable")==0)
-		{
+		if (strcmp(argv[argvStep], "-boostdisable") == 0) {
+
 			processor->setBoost(false);
 		}
 
 		//Goes in temperature monitoring
-		if (strcmp((const char *)argv[argvStep],"-mtemp")==0) {
-			
+		if (strcmp(argv[argvStep], "-mtemp") == 0) {
+
 			processorTempMonitoring(processor);
 		}
 
 		//Goes into Check Mode and controls very fastly if a transition to a wrong pstate happens
-		if (strcmp((const char *)argv[argvStep],"-CM")==0)
-		{
+		if (strcmp(argv[argvStep], "-CM") == 0) {
+
 			processor->checkMode ();
 		}
 
 		//Allow cyclic parameter auto recall
-		if (strcmp((const char*)argv[argvStep],"-autorecall")==0) {
-		
+		if (strcmp(argv[argvStep], "-autorecall") == 0) {
+
 			if (autoRecall==false) {
 				autoRecall=true;
 				autoRecallTimer=60;
@@ -1197,14 +1194,13 @@ int main (int argc,const char **argv) {
 		}
 
 		//Get general info about Performance counters
-		if (strcmp((const char*)argv[argvStep],"-pcgetinfo")==0) {
+		if (strcmp(argv[argvStep], "-pcgetinfo") == 0) {
 
 			processor->perfCounterGetInfo ();
-
 		}
 
 		//Get Performance counter value about a specific performance counter
-		if (strcmp((const char*)argv[argvStep],"-pcgetvalue")==0) {
+		if (strcmp(argv[argvStep], "-pcgetvalue") == 0) {
 
 			if (argv[argvStep+1]==NULL) {
 				printf ("Wrong -pcgetvalue option\n");
@@ -1213,11 +1209,10 @@ int main (int argc,const char **argv) {
 
 			processor->perfCounterGetValue (atoi(argv[argvStep+1]));
 			argvStep++;
-
 		}
 
 		//Costantly monitors Performance counter value about a specific performance counter
-		if (strcmp((const char*)argv[argvStep],"-pcmonitor")==0) {
+		if (strcmp(argv[argvStep], "-pcmonitor") == 0) {
 
 			if ((argv[argvStep+1]==NULL) || (argv[argvStep+2]==NULL)) {
 				printf ("Wrong -pcmonitor option\n");
@@ -1226,35 +1221,31 @@ int main (int argc,const char **argv) {
 
 			//processor->perfCounterMonitor (atoi(argv[argvStep+1]), atoi (argv[argvStep+2]));
 			argvStep+=2;
-
 		}
 
 		//Handle -set switch. That is a user friendly way to set up a pstate or a pstate/core
 		//with frequency value and voltage value.
-		if (strcmp((const char*)argv[argvStep],"-set")==0) {
+		if (strcmp(argv[argvStep], "-set") == 0) {
 
 			argvStep=parseSetCommand (processor,argc,argv,argvStep+1)-1;
 
 			printf ("*** -set parsing completed\n");
-
 		}
 
 		//Costantly monitors CPU Usage 
-		if (strcmp((const char*)argv[argvStep],"-perf-cpuusage")==0) {
+		if (strcmp(argv[argvStep], "-perf-cpuusage") == 0) {
 
 			processor->perfMonitorCPUUsage ();
-
 		}
 		
 		//Costantly monitors FPU Usage
-		if (strcmp((const char*)argv[argvStep],"-perf-fpuusage")==0) {
+		if (strcmp(argv[argvStep], "-perf-fpuusage") == 0) {
 
 			processor->perfMonitorFPUUsage ();
-
 		}
 
 		//Constantly monitors Data Cache Misaligned Accesses
-		if (strcmp((const char*)argv[argvStep],"-perf-dcma")==0) {
+		if (strcmp(argv[argvStep], "-perf-dcma") == 0) {
 
 			processor->perfMonitorDCMA();
 
@@ -1263,32 +1254,30 @@ int main (int argc,const char **argv) {
 
 
 		//Open a configuration file
-		if (strcmp((const char*)argv[argvStep],"-cfgfile")==0) {
-		
+		if (strcmp(argv[argvStep], "-cfgfile") == 0) {
+
 			cfgInstance=new CfgManager (processor, scaler);
-			
+
 			if (cfgInstance->openCfgFile ((char *)argv[argvStep+1])) {
 				printf ("Error: invalid configuration file\n");
 				free (cfgInstance);
 				break;
 			}
-			
+
 			errorLine=cfgInstance->parseCfgFile ();
-			
+
 			if (errorLine!=0) {
 				printf ("Error: invalid configuration identifier at row %d\n",errorLine);
 				free (cfgInstance);
 				break;
 			}
-		
+
 			free (cfgInstance); 
-			
+
 			argvStep++;
-			
-		
 		}
 		
-		if (strcmp((const char *)argv[argvStep],"-scaler")==0) {
+		if (strcmp(argv[argvStep], "-scaler") == 0) {
 
 			printf ("Scaler is not active in this version.\n");
 			scaler->beginScaling ();
