@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "TurionPowerControl.h"
 
 //This program is supposed to compile with GCC under Linux x86/x86-64 platforms
 //and with Microsoft Visual C++ 2005/2008 under Windows x86/x86-64 platforms
