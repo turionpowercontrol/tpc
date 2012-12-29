@@ -1153,19 +1153,19 @@ int main (int argc,const char **argv) {
 
 			processor->setC1EStatus(true);
 		}
-		
+
 		//Set C1E disabled on current nodes and current cores
 		if (strcmp(argv[argvStep], "-c1edisable") == 0) {
 
 			processor->setC1EStatus(false);
 		}
-		
+
 		//Set Boost state to enabled for supported processors
 		if (strcmp(argv[argvStep], "-boostenable") == 0) {	
 
 			processor->setBoost(true);
 		}
-		
+
 		//Set Boost state to disabled for supported processors
 		if (strcmp(argv[argvStep], "-boostdisable") == 0) {
 
@@ -1237,7 +1237,7 @@ int main (int argc,const char **argv) {
 
 			processor->perfMonitorCPUUsage ();
 		}
-		
+
 		//Costantly monitors FPU Usage
 		if (strcmp(argv[argvStep], "-perf-fpuusage") == 0) {
 
@@ -1248,7 +1248,6 @@ int main (int argc,const char **argv) {
 		if (strcmp(argv[argvStep], "-perf-dcma") == 0) {
 
 			processor->perfMonitorDCMA();
-
 		}
 
 
@@ -1276,7 +1275,7 @@ int main (int argc,const char **argv) {
 
 			argvStep++;
 		}
-		
+
 		if (strcmp(argv[argvStep], "-scaler") == 0) {
 
 			printf ("Scaler is not active in this version.\n");
