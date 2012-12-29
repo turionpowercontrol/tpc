@@ -521,6 +521,7 @@ void print_stat (Processor *p, PState ps, const char *what, float value) {
 		if (p->getCore()==p->ALL_CORES) printf ("all cores "); else printf ("core: %d ",p->getCore());
 		printf ("pstate %d - ", ps.getPState());
 		printf ("set %s to %0.4f", what, value);
+		printf ("\n");
 		return;
 }
 
@@ -750,9 +751,6 @@ int parseSetCommand (Processor *p, int argc, const char **argv, int argcOffset) 
 			printf ("Unexpected command: %s",currentCommand);
 			argcOffset++;
 		}
-
-		printf ("\n");
-
 	} while (true);
 
 	return argcOffset;
@@ -777,7 +775,7 @@ int main (int argc,const char **argv) {
 	Scaler *scaler;
 	
 	printf ("TurionPowerControl %s (%s)\n", _VERSION, _SOURCE_VERSION);
-	printf ("Turion Power States Optimization and Control - by blackshard\n");
+	printf ("Turion Power States Optimization and Control - by blackshard\n\n");
 
 	if (argc<2) {
 		printUsage(argv[0]);

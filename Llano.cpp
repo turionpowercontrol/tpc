@@ -2041,7 +2041,7 @@ void Llano::getDramTimingLow(
 
 void Llano::showHTLink() {
 
-	printf("\nHypertransport Status:\n");
+	printf("Hypertransport Status:\n");
 	printf("This processor has no Hypertransport Links\n");
 
 }
@@ -2051,7 +2051,7 @@ void Llano::showHTC() {
 	int i;
 	int nodes = getProcessorNodes();
 
-	printf("\nHardware Thermal Control Status:\n\n");
+	printf("Hardware Thermal Control Status:\n\n");
 
 	if (HTCisCapable() != true) {
 		printf("Processor is not HTC Capable\n");
@@ -2112,7 +2112,7 @@ void Llano::showDramTimings() {
 	DWORD Trfc1, MaxRdLatency;
 	DWORD ddrFrequency;
 
-	printf("\nDRAM Configuration Status\n\n");
+	printf("DRAM Configuration Status\n\n");
 
 	for (node_index = 0; node_index < nodes; node_index++) {
 

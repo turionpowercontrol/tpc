@@ -3374,7 +3374,7 @@ void K10Processor::showHTLink() {
 	int nodes = getProcessorNodes();
 	int i;
 
-	printf("\nHypertransport Status:\n");
+	printf("Hypertransport Status:\n");
 
 	for (i = 0; i < nodes; i++) {
 
@@ -3452,7 +3452,7 @@ void K10Processor::showHTC() {
 	int i;
 	int nodes = getProcessorNodes();
 
-	printf("\nHardware Thermal Control Status:\n\n");
+	printf("Hardware Thermal Control Status:\n\n");
 
 	if (HTCisCapable() != true) {
 		printf("Processor is not HTC Capable\n");
@@ -3513,7 +3513,7 @@ void K10Processor::showDramTimings() {
 	bool ddrTypeDDR3;
 	DWORD ddrFrequency;
 
-	printf ("\nDRAM Configuration Status\n\n");
+	printf ("DRAM Configuration Status\n\n");
 
 	for (node_index = 0; node_index < nodes; node_index++) {
 
