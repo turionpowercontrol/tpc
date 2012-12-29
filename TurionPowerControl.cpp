@@ -1181,22 +1181,22 @@ int main (int argc,const char **argv) {
 		//Goes into Check Mode and controls very fastly if a transition to a wrong pstate happens
 		if (strcmp(argv[argvStep], "-CM") == 0) {
 
-			processor->checkMode ();
+			processor->checkMode();
 		}
 
 		//Allow cyclic parameter auto recall
 		if (strcmp(argv[argvStep], "-autorecall") == 0) {
 
-			if (autoRecall==false) {
-				autoRecall=true;
-				autoRecallTimer=60;
+			if (autoRecall == false) {
+				autoRecall = true;
+				autoRecallTimer = 60;
 			}
 		}
 
 		//Get general info about Performance counters
 		if (strcmp(argv[argvStep], "-pcgetinfo") == 0) {
 
-			processor->perfCounterGetInfo ();
+			processor->perfCounterGetInfo();
 		}
 
 		//Get Performance counter value about a specific performance counter
@@ -1227,7 +1227,7 @@ int main (int argc,const char **argv) {
 		//with frequency value and voltage value.
 		if (strcmp(argv[argvStep], "-set") == 0) {
 
-			argvStep=parseSetCommand (processor,argc,argv,argvStep+1)-1;
+			argvStep = parseSetCommand(processor, argc, argv, argvStep + 1) - 1;
 
 			printf ("*** -set parsing completed\n");
 		}
