@@ -101,11 +101,6 @@ int closeWinRing0 () {
 #endif
 
 
-//Converts an argument to integer
-int arg2i (const char **argV,int arg) {
-	return atoi(argV[arg]);
-}
-
 //Checks for all modules available and returns the right Processor object
 //for current system. If there isn't a valid module, returns null
 Processor *getSupportedProcessor () {
@@ -824,159 +819,239 @@ int main (int argc,const char **argv) {
 		//Set the current operational node
 		if (strcmp(argv[argvStep], "-node") == 0) {
 
-			if ((argv[argvStep + 1] == NULL)) {
-				printf("Wrong -node setting\n");
+			unsigned int thisNode;
+			const char *arg = argv[argvStep + 1];
+
+			if (arg == NULL) {
+				printf("-node requires an argument\n");
 				return 1;
 			}
-
-			if (strcmp(argv[argvStep+1], "all") == 0) {
-				currentNode=processor->ALL_NODES;
+			if (strcmp(arg, "all") != 0) {
+				if (requireUnsignedInteger(argc, argv, argvStep + 1, &thisNode)) {
+					printf("Invalid -node -- %s\n", arg);
+					return 1;
+				}
+				if (thisNode >= processor->getProcessorNodes()) {
+					printf("Node must be in 0-%u range\n", processor->getProcessorNodes() - 1);
+					return 1;
+				}
+				currentNode = thisNode;
 			} else {
-				unsigned int thisNode;
-				thisNode=arg2i(argv, argvStep + 1);
-				if ((thisNode>=0) && (thisNode<processor->getProcessorNodes()))
-					currentNode=thisNode;
-				else
-					printf ("Node must be between 0 and %d\n", (processor->getProcessorNodes()-1));
+				currentNode = processor->ALL_NODES;
 			}
-
 			argvStep++;
 		}
 
 		//Set the current operational core
 		if (strcmp(argv[argvStep], "-core") == 0) {
 
-			if ((argv[argvStep + 1] == NULL)) {
-				printf("Wrong -node setting\n");
+			unsigned int thisCore;
+			const char *arg = argv[argvStep + 1];
+
+			if (arg == NULL) {
+				printf("ERROR: -core requires an argument\n");
 				return 1;
 			}
-
-			if (strcmp(argv[argvStep+1], "all") == 0) {
-				currentCore=processor->ALL_CORES;
+			if (strcmp(arg, "all") != 0) {
+				if (requireUnsignedInteger(argc, argv, argvStep + 1, &thisCore)) {
+					printf("ERROR: invalid -core -- %s\n", arg);
+					return 1;
+				}
+				if (thisCore >= processor->getProcessorCores()) {
+					printf("ERROR: core must be in 0-%u range\n", processor->getProcessorCores() - 1);
+					return 1;
+				}
+				currentCore = thisCore;
 			} else {
-				unsigned int thisCore;
-				thisCore=arg2i(argv, argvStep + 1);
-				if ((thisCore>=0) && (thisCore<processor->getProcessorCores()))
-					currentCore=thisCore;
-				else
-					printf ("Core must be between 0 and %d\n", (processor->getProcessorCores()-1));
+				currentCore = processor->ALL_CORES;
 			}
-
 			argvStep++;
 		}
 
 		if (strcmp(argv[argvStep], "-nbvid") == 0) {
 
-			if (processor->getProcessorIdentifier()==PROCESSOR_10H_FAMILY) {
-				if ((argv[argvStep+1]==NULL) || (argv[argvStep+2]==NULL)) {
-					printf ("Wrong -nbvid option, Family 10h processor requires 2 parameters (pstate, nbvid).\n");
+			if (processor->getProcessorIdentifier() == PROCESSOR_10H_FAMILY) {
+				unsigned int pstate;
+				unsigned int nbvid;
+
+				if ((argv[argvStep + 1] == NULL) || (argv[argvStep + 2] == NULL)) {
+					printf("ERROR: -nbvid requires two arguments on family 10h processor (pstate, nbvid), e.g. -nbvid 0 40\n");
 					return 1;
 				}
-
-				processor->setNBVid (arg2i(argv,argvStep+1),arg2i(argv,argvStep+2));
-				argvStep=argvStep+2;
-
+				if (requireUnsignedInteger(argc, argv, argvStep + 1, &pstate)) { 
+					printf("ERROR: invalid P-state -- %s\n", argv[argvStep + 1]);
+					return 1;
+				}
+				if (pstate >= processor->getPowerStates()) {
+					printf("ERROR: P-state must be in 0-%u range\n", processor->getPowerStates() - 1);
+					return 1;
+				}
+				if (requireUnsignedInteger(argc, argv, argvStep + 2, &nbvid)) { 
+					printf("ERROR: invalid NBVid -- %s\n", argv[argvStep + 2]);
+					return 1;
+				}
+				processor->setNBVid (pstate, nbvid);
+				argvStep = argvStep + 2;
 			} else {
+				unsigned int nbvid;
 
-				if ((argv[argvStep+1]==NULL)) {
-					printf ("Wrong -nbvid option, Family 11h processor requires 1 parameter (nbdid).\n");
+				if (argv[argvStep + 1] == NULL) {
+					printf ("ERROR: -nbvid requires an argument\n");
 					return 1;
 				}
-
-				processor->setNBVid (arg2i(argv,argvStep+1));
-				argvStep=argvStep+1;
-
+				if (requireUnsignedInteger(argc, argv, argvStep + 1, &nbvid)) { 
+					printf("ERROR: invalid NBVid -- %s\n", argv[argvStep + 1]);
+					return 1;
+				}
+				processor->setNBVid (nbvid);
+				argvStep = argvStep + 1;
 			}
 		}
 
 		if (strcmp(argv[argvStep], "-nbdid") == 0) {
 
-			if ((argv[argvStep+1]==NULL) || (argv[argvStep+2]==NULL)) {
-				printf ("Wrong -nbdid option.\n");
+			if (processor->getProcessorIdentifier() == PROCESSOR_10H_FAMILY) {
+				unsigned int pstate;
+				unsigned int nbdid;
+
+				if ((argv[argvStep + 1] == NULL) || (argv[argvStep + 2] == NULL)) {
+					printf("ERROR: -nbdid requires two arguments on family 10h processor (pstate, nbdid), e.g. -nbdid 0 1\n");
+					return 1;
+				}
+				if (requireUnsignedInteger(argc, argv, argvStep + 1, &pstate)) { 
+					printf("ERROR: invalid P-state -- %s\n", argv[argvStep + 1]);
+					return 1;
+				}
+				if (pstate >= processor->getPowerStates()) {
+					printf("ERROR: P-state must be in 0-%u range\n", processor->getPowerStates() - 1);
+					return 1;
+				}
+				if (requireUnsignedInteger(argc, argv, argvStep + 2, &nbdid)) { 
+					printf("ERROR: invalid NBDid -- %s\n", argv[argvStep + 2]);
+					return 1;
+				}
+				processor->setNBDid (pstate, nbdid);
+				argvStep = argvStep + 2;
+			} else {
+				printf("ERROR: -nbdid is only supported on family 10h processors\n");
 				return 1;
 			}
-
-			processor->setNBDid (arg2i(argv,argvStep+1),arg2i(argv,argvStep+2));
-			argvStep=argvStep+2;
+			argvStep = argvStep + 2;
 		}
-
 
 		if (strcmp(argv[argvStep], "-nbfid") == 0) {
 
+			unsigned int nbfid;
+
 			if (argv[argvStep + 1] == NULL) {
-				printf ("ERROR: -nbfid requires a parameter (fidId).\n");
+				printf ("ERROR: -nbfid requires an argument\n");
 				return 1;
 			}
-
-			processor->setNBFid(arg2i(argv,argvStep+1));
+			if (requireUnsignedInteger(argc, argv, argvStep + 1, &nbfid)) { 
+				printf("ERROR: invalid NBFid -- %s\n", argv[argvStep + 1]);
+				return 1;
+			}
+			processor->setNBFid(nbfid);
 			argvStep += 1;
 		}
-
 
 		//Enables a specified PState for current cores and current nodes
 		if (strcmp(argv[argvStep], "-en") == 0) {
 
-			if (argv[argvStep+1]==NULL) {
-				printf ("Wrong -en option\n");
+			unsigned int pstate;
+
+			if (argv[argvStep + 1] == NULL) {
+				printf ("ERROR: -en requires an argument\n");
 				return 1;
 			}
-
-			ps.setPState (arg2i(argv,argvStep+1));
-			processor->pStateEnable (ps.getPState());
-
+			if (requireUnsignedInteger(argc, argv, argvStep + 1, &pstate)) { 
+				printf("ERROR: invalid P-state -- %s\n", argv[argvStep + 1]);
+				return 1;
+			}
+			if (pstate >= processor->getPowerStates()) {
+				printf("ERROR: P-state must be in 0-%u range\n", processor->getPowerStates() - 1);
+				return 1;
+			}
+			processor->pStateEnable(pstate);
 			argvStep++;
 		}
 
 		//Disables a specified PState for current cores and current nodes
 		if (strcmp(argv[argvStep], "-di") == 0) {
 
-			if (argv[argvStep+1]==NULL) {
-				printf ("Wrong -di option\n");
+			unsigned int pstate;
+
+			if (argv[argvStep + 1] == NULL) {
+				printf ("ERROR: -di requires an argument\n");
 				return 1;
 			}
-
-			ps.setPState (arg2i(argv,argvStep+1));
-			processor->pStateDisable (ps.getPState());
-
+			if (requireUnsignedInteger(argc, argv, argvStep + 1, &pstate)) { 
+				printf("ERROR: invalid P-state -- %s\n", argv[argvStep + 1]);
+				return 1;
+			}
+			if (pstate >= processor->getPowerStates()) {
+				printf("ERROR: P-state must be in 0-%u range\n", processor->getPowerStates() - 1);
+				return 1;
+			}
+			processor->pStateDisable(pstate);
 			argvStep++;
 		}
 
 		//Set maximum PState for current nodes
 		if (strcmp(argv[argvStep], "-psmax") == 0) {
 
-			if ((argv[argvStep+1]==NULL)) {
-				printf ("Wrong -psmax option\n");
+			unsigned int pstate;
+
+			if (argv[argvStep + 1] == NULL) {
+				printf ("ERROR: -psmax requires an argument\n");
 				return 1;
 			}
-
-			ps.setPState (arg2i(argv,argvStep+1));
-			processor->setMaximumPState (ps);
+			if (requireUnsignedInteger(argc, argv, argvStep + 1, &pstate)) { 
+				printf("ERROR: invalid P-state -- %s\n", argv[argvStep + 1]);
+				return 1;
+			}
+			if (pstate >= processor->getPowerStates()) {
+				printf("ERROR: P-state must be in 0-%u range\n", processor->getPowerStates() - 1);
+				return 1;
+			}
+			processor->setMaximumPState(pstate);
 			argvStep++;
 		}
 
 		//Force transition to a pstate for current cores and current nodes
 		if (strcmp(argv[argvStep], "-fo") == 0) {
 
-			if (argv[argvStep+1]==NULL) {
-				printf ("Wrong -fo option\n");
+			unsigned int pstate;
+
+			if (argv[argvStep + 1] == NULL) {
+				printf ("ERROR: -fo requires an argument\n");
 				return 1;
 			}
-
-			ps.setPState (arg2i(argv,argvStep+1));
-			processor->forcePState (ps.getPState());
-
+			if (requireUnsignedInteger(argc, argv, argvStep + 1, &pstate)) { 
+				printf("ERROR: invalid P-state -- %s\n", argv[argvStep + 1]);
+				return 1;
+			}
+			if (pstate >= processor->getPowerStates() - processor->getBoostStates()) {
+				printf("ERROR: P-state (software P-state) must be in 0-%u range\n", processor->getPowerStates() - processor->getBoostStates() - 1);
+				return 1;
+			}
+			processor->forcePState(pstate);
 			argvStep++;
 		}
-		
+
 		if (strcmp(argv[argvStep], "-bst") == 0) {
 
-			if (argv[argvStep + 1]==NULL)
-			{
-				printf ("Wrong -bst option\n");
+			unsigned int numBoostStates;
+
+			if (argv[argvStep + 1] == NULL) {
+				printf ("ERROR: -bst requires an argument\n");
 				return 1;
 			}
-			
-			processor->setNumBoostStates(arg2i(argv,argvStep+1));
+			if (requireUnsignedInteger(argc, argv, argvStep + 1, &numBoostStates)) { 
+				printf("ERROR: invalid numBoostStates -- %s\n", argv[argvStep + 1]);
+				return 1;
+			}
+			processor->setNumBoostStates(numBoostStates);
 			argvStep++;
 		}
 
@@ -989,51 +1064,71 @@ int main (int argc,const char **argv) {
 		//Set vsSlamTime for current nodes
 		if (strcmp(argv[argvStep], "-slamtime") == 0) {
 
-			if ((argv[argvStep+1]==NULL)) {
-				printf ("Wrong -slamtime option\n");
+			unsigned int slamtime;
+
+			if (argv[argvStep + 1] == NULL) {
+				printf ("ERROR: -slamtime requires an argument\n");
 				return 1;
 			}
-
-			processor->setSlamTime (arg2i(argv,argvStep+1));
+			if (requireUnsignedInteger(argc, argv, argvStep + 1, &slamtime)) { 
+				printf("ERROR: invalid slamtime -- %s\n", argv[argvStep + 1]);
+				return 1;
+			}
+			processor->setSlamTime(slamtime);
 			argvStep++;
 		}
 
 		//Set vsAltVIDSlamTime for current nodes
 		if (strcmp(argv[argvStep], "-altvidslamtime") == 0) {
 
-			if ((argv[argvStep+1]==NULL)) {
-				printf ("Wrong -altvidslamtime option\n");
+			unsigned int altvidslamtime;
+
+			if (argv[argvStep + 1] == NULL) {
+				printf ("ERROR: -altvidslamtime requires an argument\n");
 				return 1;
 			}
-
-			processor->setAltVidSlamTime (arg2i(argv,argvStep+1));
+			if (requireUnsignedInteger(argc, argv, argvStep + 1, &altvidslamtime)) { 
+				printf("ERROR: invalid altvidslamtime -- %s\n", argv[argvStep + 1]);
+				return 1;
+			}
+			processor->setAltVidSlamTime(altvidslamtime);
 			argvStep++;
 		}
 
 		//Set Ramp time for StepUpTime for current nodes
 		if (strcmp(argv[argvStep], "-rampuptime") == 0) {
 
-			if ((argv[argvStep+1]==NULL)) {
-				printf ("Wrong -rampuptime option\n");
+			unsigned int rampuptime;
+
+			if (argv[argvStep + 1] == NULL) {
+				printf ("ERROR: -rampuptime requires an argument\n");
 				return 1;
 			}
-
-			processor->setStepUpRampTime (arg2i(argv,argvStep+1));
+			if (requireUnsignedInteger(argc, argv, argvStep + 1, &rampuptime)) { 
+				printf("ERROR: invalid rampuptime -- %s\n", argv[argvStep + 1]);
+				return 1;
+			}
+			processor->setStepUpRampTime(rampuptime);
 			argvStep++;
 		}
 
 		//Set Ramp time for StepDownTime for current nodes
 		if (strcmp(argv[argvStep], "-rampdowntime") == 0) {
 
-			if ((argv[argvStep+1]==NULL)) {
-				printf ("Wrong -rampdowntime option\n");
+			unsigned int rampdowntime;
+
+			if (argv[argvStep + 1] == NULL) {
+				printf ("ERROR: -rampdowntime requires an argument\n");
 				return 1;
 			}
-
-			processor->setStepDownRampTime (arg2i(argv,argvStep+1));
+			if (requireUnsignedInteger(argc, argv, argvStep + 1, &rampdowntime)) { 
+				printf("ERROR: invalid rampdowntime -- %s\n", argv[argvStep + 1]);
+				return 1;
+			}
+			processor->setStepDownRampTime(rampdowntime);
 			argvStep++;
 		}
-		
+
 		if (strcmp(argv[argvStep], "-gettdp") == 0) {
 
 			processor->getTDP();
@@ -1072,36 +1167,51 @@ int main (int argc,const char **argv) {
 		//Set HTC temperature limit for current nodes
 		if (strcmp(argv[argvStep], "-htctemplimit") == 0) {
 
-			if ((argv[argvStep+1]==NULL)) {
-				printf ("Wrong -htctemplimit option\n");
+			unsigned int htctemplimit;
+
+			if (argv[argvStep + 1] == NULL) {
+				printf("ERROR: -htctemplimit requires an argument\n");
 				return 1;
 			}
-
-			processor->HTCsetTempLimit(arg2i(argv,argvStep+1));
+			if (requireUnsignedInteger(argc, argv, argvStep + 1, &htctemplimit)) { 
+				printf("ERROR: invalid htctemplimit -- %s\n", argv[argvStep + 1]);
+				return 1;
+			}
+			processor->HTCsetTempLimit(htctemplimit);
 			argvStep++;
 		}
 
 		//Set HTC hysteresis limit for current nodes
 		if (strcmp(argv[argvStep], "-htchystlimit") == 0) {
 
-			if ((argv[argvStep+1]==NULL)) {
-				printf ("Wrong -htchystlimit option\n");
+			unsigned int htchystlimit;
+
+			if (argv[argvStep + 1] == NULL) {
+				printf("ERROR: -htchystlimit requires an argument\n");
 				return 1;
 			}
-
-			processor->HTCsetHystLimit(arg2i(argv,argvStep+1));
+			if (requireUnsignedInteger(argc, argv, argvStep + 1, &htchystlimit)) { 
+				printf("ERROR: invalid htchystlimit -- %s\n", argv[argvStep + 1]);
+				return 1;
+			}
+			processor->HTCsetHystLimit(htchystlimit);
 			argvStep++;
 		}
 
 		//Set AltVID for current nodes
 		if (strcmp(argv[argvStep], "-altvid") == 0) {
 
-			if ((argv[argvStep+1]==NULL)) {
-				printf ("Wrong -altvid option\n");
+			unsigned int altvid;
+
+			if (argv[argvStep + 1] == NULL) {
+				printf("ERROR: -altvid requires an argument\n");
 				return 1;
 			}
-			
-			processor->setAltVid(arg2i(argv,argvStep+1));
+			if (requireUnsignedInteger(argc, argv, argvStep + 1, &altvid)) { 
+				printf("ERROR: invalid altvid -- %s\n", argv[argvStep + 1]);
+				return 1;
+			}
+			processor->setAltVid(altvid);
 			argvStep++;
 		}
 
@@ -1114,15 +1224,25 @@ int main (int argc,const char **argv) {
 		//Set Hypertransport Link frequency for current nodes
 		if (strcmp(argv[argvStep], "-htset") == 0) {
 
-			if ((argv[argvStep+1]==NULL) || (argv[argvStep+2]==NULL)) {
-				printf ("Wrong -htset option\n");
+			unsigned int reg;
+			unsigned int value;
+
+			if ((argv[argvStep + 1] == NULL) || (argv[argvStep + 2] == NULL)) {
+				printf("ERROR: -htset requires two arguments (register, value)\n");
 				return 1;
 			}
-			
-			processor->setHTLinkSpeed(arg2i(argv,argvStep+1),arg2i(argv,argvStep+2));
-			argvStep+=2;
+			if (requireUnsignedInteger(argc, argv, argvStep + 1, &reg)) { 
+				printf("ERROR: invalid register -- %s\n", argv[argvStep + 1]);
+				return 1;
+			}
+			if (requireUnsignedInteger(argc, argv, argvStep + 2, &value)) { 
+				printf("ERROR: invalid value -- %s\n", argv[argvStep + 2]);
+				return 1;
+			}
+			processor->setHTLinkSpeed(reg, value);
+			argvStep += 2;
 		}
-		
+
 		//Enables PSI_L bit for current nodes
 		if (strcmp(argv[argvStep], "-psienable") == 0) {
 
@@ -1138,12 +1258,17 @@ int main (int argc,const char **argv) {
 		//Set PSI_L bit threshold for current nodes
 		if (strcmp(argv[argvStep], "-psithreshold") == 0) {
 
-			if ((argv[argvStep+1]==NULL)) {
-				printf ("Wrong -psithreshold option\n");
+			unsigned int psithreshold;
+
+			if (argv[argvStep + 1] == NULL) {
+				printf("ERROR: -psithreshold requires an argument\n");
 				return 1;
 			}
-
-			processor->setPsiThreshold(arg2i(argv,argvStep+1));
+			if (requireUnsignedInteger(argc, argv, argvStep + 1, &psithreshold)) { 
+				printf("ERROR: invalid psithreshold -- %s\n", argv[argvStep + 1]);
+				return 1;
+			}
+			processor->setPsiThreshold(psithreshold);
 			argvStep++;
 		}
 
@@ -1201,25 +1326,25 @@ int main (int argc,const char **argv) {
 		//Get Performance counter value about a specific performance counter
 		if (strcmp(argv[argvStep], "-pcgetvalue") == 0) {
 
-			if (argv[argvStep+1]==NULL) {
-				printf ("Wrong -pcgetvalue option\n");
+			unsigned int counter;
+
+			if (argv[argvStep + 1] == NULL) {
+				printf("ERROR: -pcgetvalue requires an argument\n");
 				return 1;
 			}
-
-			processor->perfCounterGetValue (atoi(argv[argvStep+1]));
+			if (requireUnsignedInteger(argc, argv, argvStep + 1, &counter)) { 
+				printf("ERROR: invalid counter -- %s\n", argv[argvStep + 1]);
+				return 1;
+			}
+			processor->perfCounterGetValue(counter);
 			argvStep++;
+
 		}
 
 		//Costantly monitors Performance counter value about a specific performance counter
 		if (strcmp(argv[argvStep], "-pcmonitor") == 0) {
-
-			if ((argv[argvStep+1]==NULL) || (argv[argvStep+2]==NULL)) {
-				printf ("Wrong -pcmonitor option\n");
-				return 1;
-			}
-
-			//processor->perfCounterMonitor (atoi(argv[argvStep+1]), atoi (argv[argvStep+2]));
-			argvStep+=2;
+			printf("ERROR: -pcmonitor is currently not implemented\n");
+			return 1;
 		}
 
 		//Handle -set switch. That is a user friendly way to set up a pstate or a pstate/core
