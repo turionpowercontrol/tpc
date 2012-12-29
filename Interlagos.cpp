@@ -1349,8 +1349,7 @@ DWORD Interlagos::getBoost(void)
 void Interlagos::setBoost(bool boost)
 {	
 	PCIRegObject *boostControl = new PCIRegObject();
-	DWORD boostSrc;
-	
+
 	if (!boostControl->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_LINK_CONTROL, 0x15C, getNodeMask()))
 	{
 		printf("Interlagos::enableBoost unable to read boost control register\n");
@@ -2992,7 +2991,6 @@ void Interlagos::checkMode()
 	DWORD oTimeStamp, iTimeStamp;
 	float curVcore;
 	DWORD maxPState;
-	unsigned int cid;
 
 	maxPState=getMaximumPState().getPState();
 
@@ -3125,7 +3123,6 @@ bool Interlagos::setDramController(DWORD device)
 bool Interlagos::getDramValid (DWORD device)
 {
 	PCIRegObject *dramConfigurationHighRegister;
-	bool reg1;
 	DWORD ret;
 
 	if (!setDramController(device)) {
@@ -3159,7 +3156,6 @@ bool Interlagos::getDramValid (DWORD device)
 int Interlagos::getDramFrequency (DWORD device, DWORD *T_mode)
 {
 	PCIRegObject *dramConfigurationHighRegister;
-	bool reg1;
 	DWORD regValue;
 
 	if (!setDramController(device)) {
@@ -3452,7 +3448,6 @@ void Interlagos::showDramTimings()
 	DWORD Tcl, Trcd, Trp, Trtp, Tras, Trc, Twr, Trrd, Tcwl, T_mode;
 	DWORD Tfaw, TrwtWB, TrwtTO, Twtr, Twrrd, Twrwrsdsc, Trdrdsdsc, Tref, Trfc0;
 	DWORD Trfc1, Trfc2, Trfc3, MaxRdLatency;
-	bool ddrTypeDDR3;
 	DWORD ddrFrequency;
 
 	printf ("\nDRAM Configuration Status\n\n");

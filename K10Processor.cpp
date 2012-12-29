@@ -2934,7 +2934,6 @@ void K10Processor::checkMode () {
 	DWORD oTimeStamp, iTimeStamp;
 	float curVcore;
 	DWORD maxPState;
-	unsigned int cid;
 
 	maxPState=getMaximumPState().getPState();
 
