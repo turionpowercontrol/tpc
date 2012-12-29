@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <limits.h>
 
 //This program is supposed to compile with GCC under Linux x86/x86-64 platforms
 //and with Microsoft Visual C++ 2005/2008 under Windows x86/x86-64 platforms
@@ -447,45 +448,51 @@ void printUsage (const char *name) {
 //means no error)
 //Instead, if there is an error (no valid integer, a string where there 
 //should be a value, ...) , the function returns true.
-bool requireInteger (int argc, const char **argv, int offset, int *output) {
+static bool requireInteger (int argc, const char **argv, int offset, int *output) {
 
 	const char *argument;
-	int value;
+	long value;
+	char *end;
 
-	if (offset>=argc) return true;
+	if (offset >= argc)
+		return true;
 
-	argument=argv[offset];
+	argument = argv[offset];
 
-	value=atoi (argument);
+	if (argument[0] == '\0')
+		return true;
 
-	if (value==0)
-		if (strcmp(argument,"0")!=0) return true;
+	value = strtol(argument, &end, 0);
 
-	*output=value;
+	if (end[0] != '\0')
+		return true;
+
+	if (value < INT_MIN)
+		return true;
+
+	if (value > INT_MAX)
+		return true;
+
+	*output = value;
 
 	return false;
-
 }
 
 //Equal as above, but with unsigned integer values
-bool requireUnsignedInteger (int argc, const char **argv, int offset, unsigned int *output) {
+static bool requireUnsignedInteger (int argc, const char **argv, int offset, unsigned int *output) {
 
-	const char *argument;
-	unsigned int value;
+	bool ret;
+	int value;
 
-	if (offset>=argc) return true;
+	if (requireInteger(argc, argv, offset, &value))
+		return true;
 
-	argument=argv[offset];
+	if (value < 0)
+		return true;
 
-	value=(unsigned int) atoi (argument);
-
-	if (value==0)
-		if (strcmp(argument,"0")!=0) return true;
-
-	*output=value;
+	*output = value;
 
 	return false;
-
 }
 
 
