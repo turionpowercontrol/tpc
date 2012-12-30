@@ -555,8 +555,8 @@ int parseSetCommand (Processor *p, int argc, const char **argv, int argcOffset) 
 		/*
 		 * Following section will alter operating pstate. By default, pstate 0 is set
 		 */
-		if ((strcmp (currentCommand,"pstate")==0) ||
-			strcmp (currentCommand,"ps")==0) {
+		if (strcmp (currentCommand, "pstate") == 0 ||
+			strcmp (currentCommand, "ps") == 0) {
 
 			argcOffset++;
 
@@ -570,11 +570,11 @@ int parseSetCommand (Processor *p, int argc, const char **argv, int argcOffset) 
 		/*
 		 * Following section will alter operating core. Default setting is core=all
 		 */
-		} else if (strcmp(currentCommand,"core")==0) {
+		} else if (strcmp(currentCommand, "core") == 0) {
 
 			argcOffset++;
 
-			if (strcmp ((const char*)argv[argcOffset],"all")==0) {
+			if (strcmp ((const char*)argv[argcOffset], "all") == 0) {
 				p->setCore(p->ALL_CORES);
 				argcOffset++;
 			}
@@ -615,9 +615,9 @@ int parseSetCommand (Processor *p, int argc, const char **argv, int argcOffset) 
 		/*
 		 * Following section will set a new frequency for selected pstate/core/node
 		 */
-		} else if ((strcmp(currentCommand,"freq")==0) || 
-			(strcmp(currentCommand,"f")==0) || 
-			(strcmp(currentCommand,"frequency")==0)) {
+		} else if (strcmp(currentCommand, "freq") == 0 || 
+			strcmp(currentCommand, "f") == 0 || 
+			strcmp(currentCommand, "frequency") == 0) {
 
 			argcOffset++;
 
@@ -637,10 +637,10 @@ int parseSetCommand (Processor *p, int argc, const char **argv, int argcOffset) 
 		/*
 		 * Following section will set a new core voltage for operating pstate/core/node
 		 */
-		} else if ((strcmp(currentCommand,"vcore")==0) || 
-			(strcmp(currentCommand,"vc")==0) ||
-			(strcmp(currentCommand,"voltage")==0)) {
-			
+		} else if (strcmp(currentCommand, "vcore") == 0 || 
+			strcmp(currentCommand, "vc") == 0 ||
+			strcmp(currentCommand, "voltage") == 0) {
+
 			argcOffset++;
 
 			if (!requireFloat(argc,argv,argcOffset,&voltage)) {
@@ -660,10 +660,10 @@ int parseSetCommand (Processor *p, int argc, const char **argv, int argcOffset) 
 		 * Following section will set a new northbirdge voltage for operating
 		 * core on operating node
 		 */
-		} else if ((strcmp(currentCommand,"nbvoltage")==0) || 
-			(strcmp(currentCommand,"nbv")==0) ||
-			(strcmp(currentCommand,"nbvolt")==0)) {
-			
+		} else if (strcmp(currentCommand, "nbvoltage") == 0 || 
+			strcmp(currentCommand, "nbv") == 0 ||
+			strcmp(currentCommand, "nbvolt") == 0) {
+
 			argcOffset++;
 
 			if (!requireFloat(argc,argv,argcOffset,&nbvoltage)) {
