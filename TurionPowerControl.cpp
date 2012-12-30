@@ -529,10 +529,6 @@ void print_stat (Processor *p, PState ps, const char *what, float value) {
 int parseSetCommand (Processor *p, int argc, const char **argv, int argcOffset) {
 
 	PState ps(0);
-	unsigned int core=-1; //if core is set to -1, we will assume that the command is for all
-		//the cores.
-	unsigned int node=-1; //if node is set to -1, we will assume that the command is for all
-		//the nodes in the system
 	const char *currentCommand;
 
 	unsigned int frequency;
@@ -584,6 +580,8 @@ int parseSetCommand (Processor *p, int argc, const char **argv, int argcOffset) 
 			}
 			else
 			{
+				unsigned int core;
+
 				if (!requireUnsignedInteger(argc,argv,argcOffset,&core)) {
 					p->setCore (core);
 					argcOffset++;
@@ -604,6 +602,8 @@ int parseSetCommand (Processor *p, int argc, const char **argv, int argcOffset) 
 				p->setNode(p->ALL_CORES);
 				argcOffset++;
 			} else {
+				unsigned int node;
+
 				if (!requireUnsignedInteger(argc, argv, argcOffset, &node)) {
 					p->setNode(node);
 					argcOffset++;
