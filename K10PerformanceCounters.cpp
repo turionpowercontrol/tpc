@@ -9,8 +9,6 @@
  *      Author: paolo
  */
 
-#include <unistd.h>
-
 #include "Processor.h"
 #include "PerformanceCounter.h"
 #include "PCIRegObject.h"
