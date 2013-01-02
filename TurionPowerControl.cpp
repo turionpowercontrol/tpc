@@ -534,13 +534,6 @@ int parseSetCommand (Processor *p, int argc, const char **argv, int argcOffset) 
 	PState ps(0);
 	const char *currentCommand;
 
-	unsigned int frequency;
-	float fid, did;
-	unsigned int vid;
-	float voltage;
-	float nbvoltage;
-	unsigned int tempInt;
-
 	p->setCore(p->ALL_CORES);
 	p->setNode(p->ALL_NODES);
 
@@ -561,206 +554,268 @@ int parseSetCommand (Processor *p, int argc, const char **argv, int argcOffset) 
 		if (strcmp (currentCommand, "pstate") == 0 ||
 			strcmp (currentCommand, "ps") == 0) {
 
+			unsigned int pstate;
+
 			argcOffset++;
 
-			if (!requireUnsignedInteger(argc,argv,argcOffset,&tempInt)) {
-				ps.setPState (atoi(argv[argcOffset]));
-				argcOffset++;
-			} else {
-				printf (" pstate: expecting a valid integer\n");
+			if (argv[argcOffset] == NULL) {
+				printf("ERROR: %s requires an argument\n", currentCommand);
+				return -1;
 			}
+			if (requireUnsignedInteger(argc, argv, argcOffset, &pstate)) {
+				printf("ERROR: invalid pstate -- %s\n", argv[argcOffset]);
+				return -1;
+			}
+			if (pstate >= p->getPowerStates()) {
+				printf("ERROR: pstate must be in 0-%u range\n", p->getPowerStates() - 1);
+				return -1;
+			}
+			ps.setPState(pstate);
+			argcOffset++;
+			continue;
+		}
 
 		/*
 		 * Following section will alter operating core. Default setting is core=all
 		 */
-		} else if (strcmp(currentCommand, "core") == 0) {
+		if (strcmp(currentCommand, "core") == 0) {
+
+			unsigned int core;
 
 			argcOffset++;
 
-			if (strcmp ((const char*)argv[argcOffset], "all") == 0) {
-				p->setCore(p->ALL_CORES);
-				argcOffset++;
+			if (argv[argcOffset] == NULL) {
+				printf("ERROR: %s requires an argument\n", currentCommand);
+				return -1;
 			}
-			else
-			{
-				unsigned int core;
-
-				if (!requireUnsignedInteger(argc,argv,argcOffset,&core)) {
-					p->setCore (core);
-					argcOffset++;
+			if (strcmp(argv[argcOffset], "all") != 0) {
+				if (requireUnsignedInteger(argc, argv, argcOffset, &core)) {
+					printf("ERROR: invalid core -- %s\n", argv[argcOffset]);
+					return -1;
 				}
-				else
-					printf ("core: expecting a valid integer or value 'all'\n");
-
+				if (core >= p->getProcessorCores()) {
+					printf("ERROR: core must be in 0-%u range\n", p->getProcessorCores() - 1);
+					return -1;
+				}
+				p->setCore(core);
+			} else {
+				p->setCore(p->ALL_CORES);
 			}
+			argcOffset++;
+			continue;
+		}
 
 		/*
 		 * Following section will alter operating node. Default setting is node=all
 		 */
-		} else if (strcmp(currentCommand, "node") == 0) {
+		if (strcmp(currentCommand, "node") == 0) {
+
+			unsigned int node;
 
 			argcOffset++;
 
-			if (strcmp((const char*) argv[argcOffset], "all") == 0) {
-				p->setNode(p->ALL_CORES);
-				argcOffset++;
-			} else {
-				unsigned int node;
-
-				if (!requireUnsignedInteger(argc, argv, argcOffset, &node)) {
-					p->setNode(node);
-					argcOffset++;
-				} else
-					printf("node: expecting a valid integer or value 'all'\n");
-
+			if (argv[argcOffset] == NULL) {
+				printf("ERROR: %s requires an argument\n", currentCommand);
+				return -1;
 			}
+			if (strcmp(argv[argcOffset], "all") != 0) {
+				if (requireUnsignedInteger(argc, argv, argcOffset, &node)) {
+					printf("ERROR: invalid node -- %s\n", argv[argcOffset]);
+					return -1;
+				}
+				if (node >= p->getProcessorNodes()) {
+					printf("ERROR: node must be in 0-%u range\n", p->getProcessorNodes() - 1);
+					return -1;
+				}
+				p->setNode(node);
+			} else {
+				p->setNode(p->ALL_NODES);
+			}
+			argcOffset++;
+			continue;
+		}
 
 		/*
 		 * Following section will set a new frequency for selected pstate/core/node
 		 */
-		} else if (strcmp(currentCommand, "freq") == 0 || 
+		if (strcmp(currentCommand, "freq") == 0 || 
 			strcmp(currentCommand, "f") == 0 || 
 			strcmp(currentCommand, "frequency") == 0) {
 
+			unsigned int frequency;
+
 			argcOffset++;
 
-			if (!requireUnsignedInteger(argc,argv,argcOffset, &frequency)) {
-
-				argcOffset++;
-				print_stat (p,ps,"frequency",frequency);
-				p->setFrequency(ps, frequency);
-				if (p->getFrequency(ps)!=frequency) printf (" (rounded to %d)",p->getFrequency(ps));
-				printf("\n");
-
-			} else {
-				
-				printf ("frequency: expecting a valid integer\n");
-
+			if (argv[argcOffset] == NULL) {
+				printf("ERROR: %s requires an argument\n", currentCommand);
+				return -1;
 			}
-			
+			if (requireUnsignedInteger(argc, argv, argcOffset, &frequency)) {
+				printf("ERROR: invalid frequency -- %s\n", argv[argcOffset]);
+				return -1;
+			}
+			print_stat(p,ps, "frequency", frequency);
+			p->setFrequency(ps, frequency);
+			if (p->getFrequency(ps) != frequency)
+				printf(" (rounded to %d)", p->getFrequency(ps));
+			printf("\n");
+			argcOffset++;
+			continue;
+		}
+
 		/*
 		 * Following section will set a new core voltage for operating pstate/core/node
 		 */
-		} else if (strcmp(currentCommand, "vcore") == 0 || 
+		if (strcmp(currentCommand, "vcore") == 0 || 
 			strcmp(currentCommand, "vc") == 0 ||
 			strcmp(currentCommand, "voltage") == 0) {
 
+			float voltage;
+
 			argcOffset++;
 
-			if (!requireFloat(argc,argv,argcOffset,&voltage)) {
-
-				argcOffset++;
-				print_stat (p,ps,"core voltage",voltage);
-				p->setVCore (ps, voltage);
-				if (p->getVCore(ps)!=voltage) printf (" (rounded to %0.4fV)",p->getVCore(ps));
-				printf("\n");
-
-			} else {
-	
-				printf ("vcore: expecting a valid float\n");
-
+			if (argv[argcOffset] == NULL) {
+				printf("ERROR: %s requires an argument\n", currentCommand);
+				return -1;
 			}
+			if (requireFloat(argc, argv, argcOffset, &voltage)) {
+				printf("ERROR: invalid vcore -- %s\n", argv[argcOffset]);
+				return -1;
+			}
+			print_stat(p,ps, "core voltage", voltage);
+			p->setVCore(ps, voltage);
+			if (p->getVCore(ps) != voltage)
+				printf(" (rounded to %0.4fV)", p->getVCore(ps));
+			printf("\n");
+			argcOffset++;
+			continue;
+		}
 
 		/*
 		 * Following section will set a new northbirdge voltage for operating
 		 * core on operating node
 		 */
-		} else if (strcmp(currentCommand, "nbvoltage") == 0 || 
+		if (strcmp(currentCommand, "nbvoltage") == 0 || 
 			strcmp(currentCommand, "nbv") == 0 ||
 			strcmp(currentCommand, "nbvolt") == 0) {
 
+			float nbvoltage;
+
 			argcOffset++;
 
-			if (!requireFloat(argc,argv,argcOffset,&nbvoltage)) {
-
-				argcOffset++;
-
-				//Since family 10h and family 11h differs on northbridge voltage handling, we have to make a difference
-				//here. On family 10h changing northbridge voltage changes just to the pstate the user is manipulating
-				//instead on family 11h it changes the northbridge voltage independently of the pstate the user is
-				//manipulating
-				if (p->getProcessorIdentifier()==PROCESSOR_10H_FAMILY) {
-
-					print_stat (p,ps,"nbvoltage",nbvoltage);
-					p->setNBVid (ps, p->convertVcoretoVID(nbvoltage));
-					if (p->convertVIDtoVcore(p->getNBVid(ps,0))!=nbvoltage) printf (" (rounded to %0.4fV)",p->convertVIDtoVcore(p->getNBVid(ps,0)));
-					printf("\n");
-
-				} else if ((p->getProcessorIdentifier()==TURION_ULTRA_ZM_FAMILY) ||
-						(p->getProcessorIdentifier()==TURION_X2_RM_FAMILY) ||
-						(p->getProcessorIdentifier()==ATHLON_X2_QL_FAMILY) ||
-						(p->getProcessorIdentifier()==SEMPRON_SI_FAMILY)) {
-
-					print_stat (p,ps,"nbvoltage",nbvoltage);
-					p->setNBVid (p->convertVcoretoVID(nbvoltage));
-					if (p->convertVIDtoVcore(p->getNBVid())!=nbvoltage) printf (" (rounded to %0.4fV)",p->convertVIDtoVcore(p->getNBVid()));
-					printf("\n");
-				}
-
-			} else {
-	
-				printf ("vcore: expecting a valid float\n");
-
+			if (argv[argcOffset] == NULL) {
+				printf("ERROR: %s requires an argument\n", currentCommand);
+				return -1;
+			}
+			if (requireFloat(argc, argv, argcOffset, &nbvoltage)) {
+				printf("ERROR: invald nbvoltage -- %s\n", argv[argcOffset]);
+				return -1;
 			}
 
-		} else if (strcmp(currentCommand, "fid") == 0) {
+			//Since family 10h and family 11h differs on northbridge voltage handling, we have to make a difference
+			//here. On family 10h changing northbridge voltage changes just to the pstate the user is manipulating
+			//instead on family 11h it changes the northbridge voltage independently of the pstate the user is
+			//manipulating
+			if (p->getProcessorIdentifier() == PROCESSOR_10H_FAMILY) {
 
-			argcOffset++;
-
-			if (!requireFloat(argc, argv, argcOffset, &fid)) {
-
-				argcOffset++;
-				print_stat(p, ps, "FID", fid);
-				p->setFID(ps, fid);
-				if (p->getFID(ps)!=fid) printf (" (rounded to %0.0f)", p->getFID(ps));
+				print_stat(p,ps, "nbvoltage", nbvoltage);
+				p->setNBVid(ps, p->convertVcoretoVID(nbvoltage));
+				if (p->convertVIDtoVcore(p->getNBVid(ps, 0)) != nbvoltage)
+					printf(" (rounded to %0.4fV)", p->convertVIDtoVcore(p->getNBVid(ps, 0)));
 				printf("\n");
-
-			} else {
-
-				printf("fid: expecting a valid float\n");
-
-			}
-
-		} else if (strcmp(currentCommand, "did") == 0) {
-
-			argcOffset++;
-
-			if (!requireFloat(argc, argv, argcOffset, &did)) {
-
 				argcOffset++;
-				print_stat(p, ps, "DID", did);
-				p->setDID(ps, did);
-				if (p->getDID(ps)!=did) printf (" (rounded to %0.2f)", p->getDID(ps));
-				printf("\n");
-
-			} else {
-
-				printf("did: expecting a valid float\n");
-
+				continue;
 			}
 
-		} else if (strcmp(currentCommand, "vid") == 0) {
+			if (p->getProcessorIdentifier() == TURION_ULTRA_ZM_FAMILY ||
+				p->getProcessorIdentifier() == TURION_X2_RM_FAMILY ||
+				p->getProcessorIdentifier() == ATHLON_X2_QL_FAMILY ||
+				p->getProcessorIdentifier() == SEMPRON_SI_FAMILY) {
 
-			argcOffset++;
-
-			if (!requireUnsignedInteger(argc, argv, argcOffset, &vid)) {
-
+				print_stat(p,ps, "nbvoltage", nbvoltage);
+				p->setNBVid(p->convertVcoretoVID(nbvoltage));
+				if (p->convertVIDtoVcore(p->getNBVid()) != nbvoltage)
+					printf (" (rounded to %0.4fV)", p->convertVIDtoVcore(p->getNBVid()));
+				printf("\n");
 				argcOffset++;
-				print_stat(p, ps, "VID", vid);
-				p->setVID(ps, vid);
-				if (p->getVID(ps)!=vid) printf (" (rounded to %d)", p->getVID(ps));
-				printf("\n");
-
-			} else {
-
-				printf("vid: expecting a valid float\n");
-
+				continue;
 			}
-
-		} else {
-			printf ("Unexpected command: %s",currentCommand);
-			argcOffset++;
+			printf("ERROR: %s -- not supported\n", currentCommand);
+			return -1;
 		}
+
+		if (strcmp(currentCommand, "fid") == 0) {
+
+			float fid;
+
+			argcOffset++;
+
+			if (argv[argcOffset] == NULL) {
+				printf("ERROR: %s requires an argument\n", currentCommand);
+				return -1;
+			}
+			if (requireFloat(argc, argv, argcOffset, &fid)) {
+				printf("ERROR: invald fid -- %s\n", argv[argcOffset]);
+				return -1;
+			}
+			print_stat(p, ps, "FID", fid);
+			p->setFID(ps, fid);
+			if (p->getFID(ps) != fid)
+				printf (" (rounded to %0.0f)", p->getFID(ps));
+			printf("\n");
+			argcOffset++;
+			continue;
+		}
+
+		if (strcmp(currentCommand, "did") == 0) {
+
+			float did;
+
+			argcOffset++;
+
+			if (argv[argcOffset] == NULL) {
+				printf("ERROR: %s requires an argument\n", currentCommand);
+				return -1;
+			}
+			if (requireFloat(argc, argv, argcOffset, &did)) {
+				printf("ERROR: invald did -- %s\n", argv[argcOffset]);
+				return -1;
+			}
+			print_stat(p, ps, "DID", did);
+			p->setDID(ps, did);
+			if (p->getDID(ps) != did)
+				printf (" (rounded to %0.2f)", p->getDID(ps));
+			printf("\n");
+			argcOffset++;
+			continue;
+		}
+
+		if (strcmp(currentCommand, "vid") == 0) {
+
+			unsigned int vid;
+
+			argcOffset++;
+
+			if (argv[argcOffset] == NULL) {
+				printf("ERROR: %s requires an argument\n", currentCommand);
+				return -1;
+			}
+			if (requireUnsignedInteger(argc, argv, argcOffset, &vid)) {
+				printf("ERROR: invalid frequency -- %s\n", argv[argcOffset]);
+				return -1;
+			}
+			print_stat(p, ps, "VID", vid);
+			p->setVID(ps, vid);
+			if (p->getVID(ps) != vid)
+				printf (" (rounded to %d)", p->getVID(ps));
+			printf("\n");
+			argcOffset++;
+			continue;
+		}
+
+		printf("ERROR: unknown set sub-command -- %s\n", currentCommand);
+		return -1;
+
 	} while (true);
 
 	return argcOffset;
@@ -1359,9 +1414,11 @@ int main (int argc,const char **argv) {
 		//with frequency value and voltage value.
 		if (strcmp(argv[argvStep], "-set") == 0) {
 
-			argvStep = parseSetCommand(processor, argc, argv, argvStep + 1) - 1;
+			if ((argvStep = parseSetCommand(processor, argc, argv, argvStep + 1)) == -1)
+				return 1;
 
 			printf ("*** -set parsing completed\n");
+			argvStep--;
 		}
 
 		//Costantly monitors CPU Usage 
