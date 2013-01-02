@@ -263,10 +263,6 @@ void Llano::setVID(PState ps, DWORD vid) {
 
 	MSRObject *msrObject;
 
-	if (ps.getPState() >= powerStates) {
-		printf("Llano.cpp: PState allowed range: 0-%d\n", powerStates - 1);
-		return;
-	}
 	if ((vid > minVID()) || (vid < maxVID())) {
 		printf("Llano.cpp: VID Allowed range %d-%d\n", minVID(), maxVID());
 		return;
@@ -304,11 +300,6 @@ void Llano::setFID(PState ps, float floatFid) {
 
 	MSRObject *msrObject;
 
-	if (ps.getPState() >= powerStates) {
-		printf("Llano.cpp: PState allowed range: 0-%d\n", powerStates - 1);
-		return;
-	}
-
 	fid = (unsigned int) round(floatFid);
 
 	if (fid > 31) {
@@ -345,11 +336,6 @@ void Llano::setDID(PState ps, float divisor) {
 
 	unsigned int did;
 	MSRObject *msrObject;
-
-	if (ps.getPState() >= powerStates) {
-		printf("Llano.cpp: PState allowed range: 0-%d\n", powerStates - 1);
-		return;
-	}
 
 	did = roundDivisorToDid(divisor);
 
@@ -534,11 +520,6 @@ void Llano::pStateDisable(PState ps) {
 
 	MSRObject *msrObject;
 
-	if (ps.getPState() >= powerStates) {
-		printf("Llano.cpp: PState allowed range: 0-%d\n", powerStates - 1);
-		return;
-	}
-
 	msrObject = new MSRObject();
 
 	if (!msrObject->readMSR(BASE_12H_PSTATEMSR + ps.getPState(), getMask())) {
@@ -565,11 +546,6 @@ void Llano::pStateDisable(PState ps) {
 void Llano::pStateEnable(PState ps) {
 
 	MSRObject *msrObject;
-
-	if (ps.getPState() >= powerStates) {
-		printf("Llano.cpp: PState allowed range: 0-%d\n", powerStates - 1);
-		return;
-	}
 
 	msrObject = new MSRObject();
 
@@ -623,11 +599,6 @@ bool Llano::pStateEnabled(PState ps) {
 void Llano::setMaximumPState(PState ps) {
 
 	PCIRegObject *pciRegObject;
-
-	if (ps.getPState() >= powerStates) {
-		printf("Llano.cpp: PState allowed range: 0-%d\n", powerStates - 1);
-		return;
-	}
 
 	pciRegObject = new PCIRegObject();
 
@@ -691,11 +662,6 @@ PState Llano::getMaximumPState() {
 void Llano::forcePState(PState ps) {
 
 	MSRObject *msrObject;
-
-	if (ps.getPState() >= powerStates) {
-		printf("Llano.cpp: PState allowed range: 0-%d\n", powerStates - 1);
-		return;
-	}
 
 	msrObject = new MSRObject();
 

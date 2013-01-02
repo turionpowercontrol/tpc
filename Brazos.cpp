@@ -215,10 +215,6 @@ void Brazos::setVID (PState ps, DWORD vid) {
 		printf ("Brazos.cpp: VID Allowed range %d-%d\n", minVID(), maxVID());
 		return;
 	}
-	if (ps.getPState() >= powerStates) {
-		printf("Brazos.cpp: PState allowed range: 0-%d\n", powerStates - 1);
-		return;
-	}
 
 	msrObject=new MSRObject();
 
@@ -254,10 +250,6 @@ void Brazos::setDID(PState ps, float did) {
 	MSRObject *msrObject;
 	int didMSD, didLSD;
 
-	if (ps.getPState() >= powerStates) {
-		printf("Brazos.cpp: PState allowed range: 0-%d\n", powerStates - 1);
-		return;
-	}
 	if ((did < 1) || (did > 26.5)) {
 		printf("Brazos.cpp: DID Allowed range any value between 1.00 - 26.50 \n");
 		return;
@@ -420,11 +412,6 @@ void Brazos::pStateDisable (PState ps) {
 
 	MSRObject *msrObject;
 
-	if (ps.getPState() >= powerStates) {
-		printf("Brazos.cpp: PState allowed range: 0-%d\n", powerStates - 1);
-		return;
-	}
-
 	msrObject=new MSRObject();
 
 	if (!msrObject->readMSR(BASE_14H_PSTATEMSR+ps.getPState(), getMask ())) {
@@ -451,11 +438,6 @@ void Brazos::pStateDisable (PState ps) {
 void Brazos::pStateEnable (PState ps) {
 
 	MSRObject *msrObject;
-
-	if (ps.getPState() >= powerStates) {
-		printf("Brazos.cpp: PState allowed range: 0-%d\n", powerStates - 1);
-		return;
-	}
 
 	msrObject=new MSRObject();
 
@@ -509,11 +491,6 @@ bool Brazos::pStateEnabled(PState ps) {
 void Brazos::setMaximumPState (PState ps) {
 
 	PCIRegObject *pciRegObject;
-
-	if (ps.getPState() >= powerStates) {
-		printf("Brazos.cpp: PState allowed range: 0-%d\n", powerStates - 1);
-		return;
-	}
 
 	pciRegObject=new PCIRegObject ();
 
@@ -575,11 +552,6 @@ PState Brazos::getMaximumPState () {
 void Brazos::forcePState (PState ps) {
 
 	MSRObject *msrObject;
-
-	if (ps.getPState() >= powerStates) {
-		printf("Brazos.cpp: PState allowed range: 0-%d\n", powerStates - 1);
-		return;
-	}
 
 	msrObject=new MSRObject();
 

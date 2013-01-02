@@ -403,10 +403,6 @@ void Interlagos::setVID (PState ps, DWORD vid)
 
 	MSRObject *msrObject;
 
-	if (ps.getPState() >= powerStates) {
-		printf("Interlagos.cpp: PState allowed range: 0-%d\n", powerStates - 1);
-		return;
-	}
 	if ((vid > minVID()) || (vid < maxVID()))
 	{
 		printf ("Interlagos.cpp: VID Allowed range %d-%d\n", minVID(), maxVID());
@@ -444,11 +440,6 @@ void Interlagos::setFID(PState ps, float floatFid)
 	unsigned int fid;
 
 	MSRObject *msrObject;
-
-	if (ps.getPState() >= powerStates) {
-		printf("Interlagos.cpp: PState allowed range: 0-%d\n", powerStates - 1);
-		return;
-	}
 
 	fid=(unsigned int)floatFid;
 
@@ -489,11 +480,6 @@ void Interlagos::setDID(PState ps, float floatDid)
 
 	unsigned int did;
 	MSRObject *msrObject;
-
-	if (ps.getPState() >= powerStates) {
-		printf("Interlagos.cpp: PState allowed range: 0-%d\n", powerStates - 1);
-		return;
-	}
 
 	did=(unsigned int)floatDid;
 
@@ -703,11 +689,6 @@ void Interlagos::pStateDisable (PState ps)
 {
 	MSRObject *msrObject;
 
-	if (ps.getPState() >= powerStates) {
-		printf("Interlagos.cpp: PState allowed range: 0-%d\n", powerStates - 1);
-		return;
-	}
-
 	msrObject = new MSRObject();
 
 	if (!msrObject->readMSR(BASE_15H_PSTATEMSR + ps.getPState(), getMask ()))
@@ -735,11 +716,6 @@ void Interlagos::pStateDisable (PState ps)
 void Interlagos::pStateEnable (PState ps)
 {
 	MSRObject *msrObject;
-
-	if (ps.getPState() >= powerStates) {
-		printf("Interlagos.cpp: PState allowed range: 0-%d\n", powerStates - 1);
-		return;
-	}
 
 	msrObject = new MSRObject();
 
@@ -794,11 +770,6 @@ bool Interlagos::pStateEnabled(PState ps)
 void Interlagos::setMaximumPState (PState ps)
 {
 	PCIRegObject *pciRegObject;
-
-	if (ps.getPState() >= powerStates) {
-		printf("Interlagos.cpp: PState allowed range: 0-%d\n", powerStates - 1);
-		return;
-	}
 
 	pciRegObject=new PCIRegObject ();
 
@@ -970,11 +941,6 @@ void Interlagos::forcePState (PState ps)
 {
 	MSRObject *msrObject;
 	DWORD boostState = getNumBoostStates();
-
-	if (ps.getPState() >= powerStates) {
-		printf("Interlagos.cpp: PState allowed range: 0-%d\n", powerStates - 1);
-		return;
-	}
 
 	msrObject = new MSRObject();
 	
