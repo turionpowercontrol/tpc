@@ -498,21 +498,25 @@ static bool requireUnsignedInteger (int argc, const char **argv, int offset, uns
 bool requireFloat (int argc, const char **argv, int offset, float *output) {
 
 	const char *argument;
-	float value;
+	double value;
+	char *end;
 
-	if (offset>=argc) return true;
+	if (offset >= argc)
+		return true;
 
-	argument=argv[offset];
+	argument = argv[offset];
 
-	value=atof (argument);
+	if (argument[0] == '\0')
+		return true;
 
-	if (value==0)
-		if (strcmp(argument,"0")!=0) return true;
+	value = strtod(argument, &end);
 
-	*output=value;
+	if (end[0] != '\0')
+		return true;
+
+	*output = value;
 
 	return false;
-
 }
 
 //Simple method used by parseSetCommand to show some useful and tidy informations.
