@@ -521,7 +521,6 @@ void print_stat (Processor *p, PState ps, const char *what, float value) {
 		if (p->getCore()==p->ALL_CORES) printf ("all cores "); else printf ("core: %d ",p->getCore());
 		printf ("pstate %d - ", ps.getPState());
 		printf ("set %s to %0.4f", what, value);
-		printf ("\n");
 		return;
 }
 
@@ -627,6 +626,7 @@ int parseSetCommand (Processor *p, int argc, const char **argv, int argcOffset) 
 				print_stat (p,ps,"frequency",frequency);
 				p->setFrequency(ps, frequency);
 				if (p->getFrequency(ps)!=frequency) printf (" (rounded to %d)",p->getFrequency(ps));
+				printf("\n");
 
 			} else {
 				
@@ -649,6 +649,7 @@ int parseSetCommand (Processor *p, int argc, const char **argv, int argcOffset) 
 				print_stat (p,ps,"core voltage",voltage);
 				p->setVCore (ps, voltage);
 				if (p->getVCore(ps)!=voltage) printf (" (rounded to %0.4fV)",p->getVCore(ps));
+				printf("\n");
 
 			} else {
 	
@@ -679,6 +680,7 @@ int parseSetCommand (Processor *p, int argc, const char **argv, int argcOffset) 
 					print_stat (p,ps,"nbvoltage",nbvoltage);
 					p->setNBVid (ps, p->convertVcoretoVID(nbvoltage));
 					if (p->convertVIDtoVcore(p->getNBVid(ps,0))!=nbvoltage) printf (" (rounded to %0.4fV)",p->convertVIDtoVcore(p->getNBVid(ps,0)));
+					printf("\n");
 
 				} else if ((p->getProcessorIdentifier()==TURION_ULTRA_ZM_FAMILY) ||
 						(p->getProcessorIdentifier()==TURION_X2_RM_FAMILY) ||
@@ -688,6 +690,7 @@ int parseSetCommand (Processor *p, int argc, const char **argv, int argcOffset) 
 					print_stat (p,ps,"nbvoltage",nbvoltage);
 					p->setNBVid (p->convertVcoretoVID(nbvoltage));
 					if (p->convertVIDtoVcore(p->getNBVid())!=nbvoltage) printf (" (rounded to %0.4fV)",p->convertVIDtoVcore(p->getNBVid()));
+					printf("\n");
 				}
 
 			} else {
@@ -706,6 +709,7 @@ int parseSetCommand (Processor *p, int argc, const char **argv, int argcOffset) 
 				print_stat(p, ps, "FID", fid);
 				p->setFID(ps, fid);
 				if (p->getFID(ps)!=fid) printf (" (rounded to %0.0f)", p->getFID(ps));
+				printf("\n");
 
 			} else {
 
@@ -723,6 +727,7 @@ int parseSetCommand (Processor *p, int argc, const char **argv, int argcOffset) 
 				print_stat(p, ps, "DID", did);
 				p->setDID(ps, did);
 				if (p->getDID(ps)!=did) printf (" (rounded to %0.2f)", p->getDID(ps));
+				printf("\n");
 
 			} else {
 
@@ -740,6 +745,7 @@ int parseSetCommand (Processor *p, int argc, const char **argv, int argcOffset) 
 				print_stat(p, ps, "VID", vid);
 				p->setVID(ps, vid);
 				if (p->getVID(ps)!=vid) printf (" (rounded to %d)", p->getVID(ps));
+				printf("\n");
 
 			} else {
 
