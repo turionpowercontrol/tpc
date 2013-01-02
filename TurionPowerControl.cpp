@@ -836,11 +836,11 @@ int main (int argc,const char **argv) {
 			}
 			if (strcmp(arg, "all") != 0) {
 				if (requireUnsignedInteger(argc, argv, argvStep + 1, &thisNode)) {
-					printf("Invalid -node -- %s\n", arg);
+					printf("ERROR: invalid -node -- %s\n", arg);
 					return 1;
 				}
 				if (thisNode >= processor->getProcessorNodes()) {
-					printf("Node must be in 0-%u range\n", processor->getProcessorNodes() - 1);
+					printf("ERROR: node must be in 0-%u range\n", processor->getProcessorNodes() - 1);
 					return 1;
 				}
 				currentNode = thisNode;
