@@ -955,11 +955,11 @@ int main (int argc,const char **argv) {
 					break;
 				}
 				if (requireUnsignedInteger(argc, argv, argvStep + 1, &pstate)) { 
-					printf("ERROR: invalid P-state -- %s\n", argv[argvStep + 1]);
+					printf("ERROR: -nbvid: invalid P-state -- %s\n", argv[argvStep + 1]);
 					break;
 				}
 				if (pstate >= processor->getPowerStates()) {
-					printf("ERROR: P-state must be in 0-%u range\n", processor->getPowerStates() - 1);
+					printf("ERROR: -nbvid: P-state must be in 0-%u range\n", processor->getPowerStates() - 1);
 					break;
 				}
 				if (requireUnsignedInteger(argc, argv, argvStep + 2, &nbvid)) { 
@@ -996,11 +996,11 @@ int main (int argc,const char **argv) {
 					break;
 				}
 				if (requireUnsignedInteger(argc, argv, argvStep + 1, &pstate)) { 
-					printf("ERROR: invalid P-state -- %s\n", argv[argvStep + 1]);
+					printf("ERROR: -nbdid: invalid P-state -- %s\n", argv[argvStep + 1]);
 					break;
 				}
 				if (pstate >= processor->getPowerStates()) {
-					printf("ERROR: P-state must be in 0-%u range\n", processor->getPowerStates() - 1);
+					printf("ERROR: -nbdid:  P-state must be in 0-%u range\n", processor->getPowerStates() - 1);
 					break;
 				}
 				if (requireUnsignedInteger(argc, argv, argvStep + 2, &nbdid)) { 
@@ -1043,11 +1043,11 @@ int main (int argc,const char **argv) {
 				break;
 			}
 			if (requireUnsignedInteger(argc, argv, argvStep + 1, &pstate)) { 
-				printf("ERROR: invalid P-state -- %s\n", argv[argvStep + 1]);
+				printf("ERROR: -en: invalid P-state -- %s\n", argv[argvStep + 1]);
 				break;
 			}
 			if (pstate >= processor->getPowerStates()) {
-				printf("ERROR: P-state must be in 0-%u range\n", processor->getPowerStates() - 1);
+				printf("ERROR: -en: P-state must be in 0-%u range\n", processor->getPowerStates() - 1);
 				break;
 			}
 			processor->pStateEnable(pstate);
@@ -1065,11 +1065,11 @@ int main (int argc,const char **argv) {
 				break;
 			}
 			if (requireUnsignedInteger(argc, argv, argvStep + 1, &pstate)) { 
-				printf("ERROR: invalid P-state -- %s\n", argv[argvStep + 1]);
+				printf("ERROR: -di: invalid P-state -- %s\n", argv[argvStep + 1]);
 				break;
 			}
 			if (pstate >= processor->getPowerStates()) {
-				printf("ERROR: P-state must be in 0-%u range\n", processor->getPowerStates() - 1);
+				printf("ERROR: -di: P-state must be in 0-%u range\n", processor->getPowerStates() - 1);
 				break;
 			}
 			processor->pStateDisable(pstate);
@@ -1109,11 +1109,11 @@ int main (int argc,const char **argv) {
 				break;
 			}
 			if (requireUnsignedInteger(argc, argv, argvStep + 1, &pstate)) { 
-				printf("ERROR: invalid P-state -- %s\n", argv[argvStep + 1]);
+				printf("ERROR: -fo: invalid P-state -- %s\n", argv[argvStep + 1]);
 				break;
 			}
 			if (pstate >= processor->getPowerStates() - processor->getBoostStates()) {
-				printf("ERROR: P-state (software P-state) must be in 0-%u range\n", processor->getPowerStates() - processor->getBoostStates() - 1);
+				printf("ERROR: -fo: P-state (software P-state) must be in 0-%u range\n", processor->getPowerStates() - processor->getBoostStates() - 1);
 				break;
 			}
 			processor->forcePState(pstate);
