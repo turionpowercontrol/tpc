@@ -865,7 +865,17 @@ int main (int argc,const char **argv) {
 	//Initializes the scaler based on the processor found in the system
 	scaler=new Scaler (processor);
 	
-	for (argvStep=1;argvStep<argc;argvStep++) {
+	for (argvStep = 1; ; argvStep++) {
+
+		if (argvStep == argc) {
+			if (!autoRecall)
+				break;
+			//Autorecall feature set argvStep back to 1 when it reaches end
+			printf("Autorecall activated. Timeout: %d seconds\n", autoRecallTimer);
+			Sleep(autoRecallTimer * 1000);
+			printf("Autorecalling...\n");
+			argvStep = 1;
+		}
 
 		//Reinitializes the processor object for active node and core in the system
 		processor->setNode(currentNode);
@@ -877,6 +887,7 @@ int main (int argc,const char **argv) {
 		if (strcmp(argv[argvStep], "-l") == 0) {
 
 			processorStatus (processor);
+			continue;
 		}
 
 		//Set the current operational node
@@ -903,6 +914,7 @@ int main (int argc,const char **argv) {
 				currentNode = processor->ALL_NODES;
 			}
 			argvStep++;
+			continue;
 		}
 
 		//Set the current operational core
@@ -929,6 +941,7 @@ int main (int argc,const char **argv) {
 				currentCore = processor->ALL_CORES;
 			}
 			argvStep++;
+			continue;
 		}
 
 		if (strcmp(argv[argvStep], "-nbvid") == 0) {
@@ -969,6 +982,7 @@ int main (int argc,const char **argv) {
 				processor->setNBVid (nbvid);
 				argvStep = argvStep + 1;
 			}
+			continue;
 		}
 
 		if (strcmp(argv[argvStep], "-nbdid") == 0) {
@@ -999,6 +1013,7 @@ int main (int argc,const char **argv) {
 				printf("ERROR: -nbdid is only supported on family 10h processors\n");
 				return 1;
 			}
+			continue;
 		}
 
 		if (strcmp(argv[argvStep], "-nbfid") == 0) {
@@ -1015,6 +1030,7 @@ int main (int argc,const char **argv) {
 			}
 			processor->setNBFid(nbfid);
 			argvStep += 1;
+			continue;
 		}
 
 		//Enables a specified PState for current cores and current nodes
@@ -1036,6 +1052,7 @@ int main (int argc,const char **argv) {
 			}
 			processor->pStateEnable(pstate);
 			argvStep++;
+			continue;
 		}
 
 		//Disables a specified PState for current cores and current nodes
@@ -1057,6 +1074,7 @@ int main (int argc,const char **argv) {
 			}
 			processor->pStateDisable(pstate);
 			argvStep++;
+			continue;
 		}
 
 		//Set maximum PState for current nodes
@@ -1078,6 +1096,7 @@ int main (int argc,const char **argv) {
 			}
 			processor->setMaximumPState(pstate);
 			argvStep++;
+			continue;
 		}
 
 		//Force transition to a pstate for current cores and current nodes
@@ -1099,6 +1118,7 @@ int main (int argc,const char **argv) {
 			}
 			processor->forcePState(pstate);
 			argvStep++;
+			continue;
 		}
 
 		if (strcmp(argv[argvStep], "-bst") == 0) {
@@ -1115,12 +1135,14 @@ int main (int argc,const char **argv) {
 			}
 			processor->setNumBoostStates(numBoostStates);
 			argvStep++;
+			continue;
 		}
 
 		//Show temperature table
 		if (strcmp(argv[argvStep], "-temp") == 0) {
 
 			processorTempStatus(processor);
+			continue;
 		}
 
 		//Set vsSlamTime for current nodes
@@ -1138,6 +1160,7 @@ int main (int argc,const char **argv) {
 			}
 			processor->setSlamTime(slamtime);
 			argvStep++;
+			continue;
 		}
 
 		//Set vsAltVIDSlamTime for current nodes
@@ -1155,6 +1178,7 @@ int main (int argc,const char **argv) {
 			}
 			processor->setAltVidSlamTime(altvidslamtime);
 			argvStep++;
+			continue;
 		}
 
 		//Set Ramp time for StepUpTime for current nodes
@@ -1172,6 +1196,7 @@ int main (int argc,const char **argv) {
 			}
 			processor->setStepUpRampTime(rampuptime);
 			argvStep++;
+			continue;
 		}
 
 		//Set Ramp time for StepDownTime for current nodes
@@ -1189,41 +1214,48 @@ int main (int argc,const char **argv) {
 			}
 			processor->setStepDownRampTime(rampdowntime);
 			argvStep++;
+			continue;
 		}
 
 		if (strcmp(argv[argvStep], "-gettdp") == 0) {
 
 			processor->getTDP();
+			continue;
 		}
 
 		//Show information about per-family specifications
 		if (strcmp(argv[argvStep], "-spec") == 0) {
 
 			processor->showFamilySpecs();
+			continue;
 		}
 
 		//Show information about DRAM timing register
 		if (strcmp(argv[argvStep], "-dram") == 0) {
 
 			processor->showDramTimings();
+			continue;
 		}
 
 		//Show information about HTC registers status
 		if (strcmp(argv[argvStep], "-htc") == 0) {
 
 			processor->showHTC();
+			continue;
 		}
 		
 		//Enables HTC Features for current nodes
 		if (strcmp(argv[argvStep], "-htcenable") == 0) {
 
 			processor->HTCEnable();
+			continue;
 		}
 
 		//Disables HTC Features for current nodes
 		if (strcmp(argv[argvStep], "-htcdisable") == 0) {
 
 			processor->HTCDisable();
+			continue;
 		}
 
 		//Set HTC temperature limit for current nodes
@@ -1241,6 +1273,7 @@ int main (int argc,const char **argv) {
 			}
 			processor->HTCsetTempLimit(htctemplimit);
 			argvStep++;
+			continue;
 		}
 
 		//Set HTC hysteresis limit for current nodes
@@ -1258,6 +1291,7 @@ int main (int argc,const char **argv) {
 			}
 			processor->HTCsetHystLimit(htchystlimit);
 			argvStep++;
+			continue;
 		}
 
 		//Set AltVID for current nodes
@@ -1275,12 +1309,14 @@ int main (int argc,const char **argv) {
 			}
 			processor->setAltVid(altvid);
 			argvStep++;
+			continue;
 		}
 
 		//Show information about Hypertransport registers
 		if (strcmp(argv[argvStep], "-htstatus") == 0) {
 
 			processor->showHTLink();
+			continue;
 		}
 
 		//Set Hypertransport Link frequency for current nodes
@@ -1303,18 +1339,21 @@ int main (int argc,const char **argv) {
 			}
 			processor->setHTLinkSpeed(reg, value);
 			argvStep += 2;
+			continue;
 		}
 
 		//Enables PSI_L bit for current nodes
 		if (strcmp(argv[argvStep], "-psienable") == 0) {
 
 			processor->setPsiEnabled (true);
+			continue;
 		}
 
 		//Disables PSI_L bit for current nodes
 		if (strcmp(argv[argvStep], "-psidisable") == 0) {
 
 			processor->setPsiEnabled (false);
+			continue;
 		}
 
 		//Set PSI_L bit threshold for current nodes
@@ -1332,42 +1371,49 @@ int main (int argc,const char **argv) {
 			}
 			processor->setPsiThreshold(psithreshold);
 			argvStep++;
+			continue;
 		}
 
 		//Set C1E enabled on current nodes and current cores
 		if (strcmp(argv[argvStep], "-c1eenable") == 0) {
 
 			processor->setC1EStatus(true);
+			continue;
 		}
 
 		//Set C1E disabled on current nodes and current cores
 		if (strcmp(argv[argvStep], "-c1edisable") == 0) {
 
 			processor->setC1EStatus(false);
+			continue;
 		}
 
 		//Set Boost state to enabled for supported processors
 		if (strcmp(argv[argvStep], "-boostenable") == 0) {	
 
 			processor->setBoost(true);
+			continue;
 		}
 
 		//Set Boost state to disabled for supported processors
 		if (strcmp(argv[argvStep], "-boostdisable") == 0) {
 
 			processor->setBoost(false);
+			continue;
 		}
 
 		//Goes in temperature monitoring
 		if (strcmp(argv[argvStep], "-mtemp") == 0) {
 
 			processorTempMonitoring(processor);
+			continue;
 		}
 
 		//Goes into Check Mode and controls very fastly if a transition to a wrong pstate happens
 		if (strcmp(argv[argvStep], "-CM") == 0) {
 
 			processor->checkMode();
+			continue;
 		}
 
 		//Allow cyclic parameter auto recall
@@ -1377,12 +1423,14 @@ int main (int argc,const char **argv) {
 				autoRecall = true;
 				autoRecallTimer = 60;
 			}
+			continue;
 		}
 
 		//Get general info about Performance counters
 		if (strcmp(argv[argvStep], "-pcgetinfo") == 0) {
 
 			processor->perfCounterGetInfo();
+			continue;
 		}
 
 		//Get Performance counter value about a specific performance counter
@@ -1400,7 +1448,7 @@ int main (int argc,const char **argv) {
 			}
 			processor->perfCounterGetValue(counter);
 			argvStep++;
-
+			continue;
 		}
 
 		//Costantly monitors Performance counter value about a specific performance counter
@@ -1418,24 +1466,28 @@ int main (int argc,const char **argv) {
 
 			printf ("*** -set parsing completed\n");
 			argvStep--;
+			continue;
 		}
 
 		//Costantly monitors CPU Usage 
 		if (strcmp(argv[argvStep], "-perf-cpuusage") == 0) {
 
 			processor->perfMonitorCPUUsage ();
+			continue;
 		}
 
 		//Costantly monitors FPU Usage
 		if (strcmp(argv[argvStep], "-perf-fpuusage") == 0) {
 
 			processor->perfMonitorFPUUsage ();
+			continue;
 		}
 
 		//Constantly monitors Data Cache Misaligned Accesses
 		if (strcmp(argv[argvStep], "-perf-dcma") == 0) {
 
 			processor->perfMonitorDCMA();
+			continue;
 		}
 
 
@@ -1462,24 +1514,18 @@ int main (int argc,const char **argv) {
 			free (cfgInstance); 
 
 			argvStep++;
+			continue;
 		}
 
 		if (strcmp(argv[argvStep], "-scaler") == 0) {
 
 			printf ("Scaler is not active in this version.\n");
 			scaler->beginScaling ();
-
+			continue;
 		}
 
-		//Autorecall feature set argvStep back to 1 when it reaches end
-		if ((autoRecall==true) && (argvStep==(argc-1))) {
-			printf ("Autorecall activated. Timeout: %d seconds\n", autoRecallTimer);
-			Sleep (autoRecallTimer*1000);
-			printf ("Autorecalling...\n");
-			argvStep=0;
-		}
-
-
+		printf("ERROR: invalid argument -- %s\n", argv[argvStep]);
+		return 1;
 	}
 
 	printf ("\n");
