@@ -898,16 +898,16 @@ int main (int argc,const char **argv) {
 
 			if (arg == NULL) {
 				printf("-node requires an argument\n");
-				return 1;
+				break;
 			}
 			if (strcmp(arg, "all") != 0) {
 				if (requireUnsignedInteger(argc, argv, argvStep + 1, &thisNode)) {
 					printf("ERROR: invalid -node -- %s\n", arg);
-					return 1;
+					break;
 				}
 				if (thisNode >= processor->getProcessorNodes()) {
 					printf("ERROR: node must be in 0-%u range\n", processor->getProcessorNodes() - 1);
-					return 1;
+					break;
 				}
 				currentNode = thisNode;
 			} else {
@@ -925,16 +925,16 @@ int main (int argc,const char **argv) {
 
 			if (arg == NULL) {
 				printf("ERROR: -core requires an argument\n");
-				return 1;
+				break;
 			}
 			if (strcmp(arg, "all") != 0) {
 				if (requireUnsignedInteger(argc, argv, argvStep + 1, &thisCore)) {
 					printf("ERROR: invalid -core -- %s\n", arg);
-					return 1;
+					break;
 				}
 				if (thisCore >= processor->getProcessorCores()) {
 					printf("ERROR: core must be in 0-%u range\n", processor->getProcessorCores() - 1);
-					return 1;
+					break;
 				}
 				currentCore = thisCore;
 			} else {
@@ -952,19 +952,19 @@ int main (int argc,const char **argv) {
 
 				if ((argv[argvStep + 1] == NULL) || (argv[argvStep + 2] == NULL)) {
 					printf("ERROR: -nbvid requires two arguments on family 10h processor (pstate, nbvid), e.g. -nbvid 0 40\n");
-					return 1;
+					break;
 				}
 				if (requireUnsignedInteger(argc, argv, argvStep + 1, &pstate)) { 
 					printf("ERROR: invalid P-state -- %s\n", argv[argvStep + 1]);
-					return 1;
+					break;
 				}
 				if (pstate >= processor->getPowerStates()) {
 					printf("ERROR: P-state must be in 0-%u range\n", processor->getPowerStates() - 1);
-					return 1;
+					break;
 				}
 				if (requireUnsignedInteger(argc, argv, argvStep + 2, &nbvid)) { 
 					printf("ERROR: invalid NBVid -- %s\n", argv[argvStep + 2]);
-					return 1;
+					break;
 				}
 				processor->setNBVid (pstate, nbvid);
 				argvStep = argvStep + 2;
@@ -973,11 +973,11 @@ int main (int argc,const char **argv) {
 
 				if (argv[argvStep + 1] == NULL) {
 					printf ("ERROR: -nbvid requires an argument\n");
-					return 1;
+					break;
 				}
 				if (requireUnsignedInteger(argc, argv, argvStep + 1, &nbvid)) { 
 					printf("ERROR: invalid NBVid -- %s\n", argv[argvStep + 1]);
-					return 1;
+					break;
 				}
 				processor->setNBVid (nbvid);
 				argvStep = argvStep + 1;
@@ -993,25 +993,25 @@ int main (int argc,const char **argv) {
 
 				if ((argv[argvStep + 1] == NULL) || (argv[argvStep + 2] == NULL)) {
 					printf("ERROR: -nbdid requires two arguments on family 10h processor (pstate, nbdid), e.g. -nbdid 0 1\n");
-					return 1;
+					break;
 				}
 				if (requireUnsignedInteger(argc, argv, argvStep + 1, &pstate)) { 
 					printf("ERROR: invalid P-state -- %s\n", argv[argvStep + 1]);
-					return 1;
+					break;
 				}
 				if (pstate >= processor->getPowerStates()) {
 					printf("ERROR: P-state must be in 0-%u range\n", processor->getPowerStates() - 1);
-					return 1;
+					break;
 				}
 				if (requireUnsignedInteger(argc, argv, argvStep + 2, &nbdid)) { 
 					printf("ERROR: invalid NBDid -- %s\n", argv[argvStep + 2]);
-					return 1;
+					break;
 				}
 				processor->setNBDid (pstate, nbdid);
 				argvStep = argvStep + 2;
 			} else {
 				printf("ERROR: -nbdid is only supported on family 10h processors\n");
-				return 1;
+				break;
 			}
 			continue;
 		}
@@ -1022,11 +1022,11 @@ int main (int argc,const char **argv) {
 
 			if (argv[argvStep + 1] == NULL) {
 				printf ("ERROR: -nbfid requires an argument\n");
-				return 1;
+				break;
 			}
 			if (requireUnsignedInteger(argc, argv, argvStep + 1, &nbfid)) { 
 				printf("ERROR: invalid NBFid -- %s\n", argv[argvStep + 1]);
-				return 1;
+				break;
 			}
 			processor->setNBFid(nbfid);
 			argvStep += 1;
@@ -1040,15 +1040,15 @@ int main (int argc,const char **argv) {
 
 			if (argv[argvStep + 1] == NULL) {
 				printf ("ERROR: -en requires an argument\n");
-				return 1;
+				break;
 			}
 			if (requireUnsignedInteger(argc, argv, argvStep + 1, &pstate)) { 
 				printf("ERROR: invalid P-state -- %s\n", argv[argvStep + 1]);
-				return 1;
+				break;
 			}
 			if (pstate >= processor->getPowerStates()) {
 				printf("ERROR: P-state must be in 0-%u range\n", processor->getPowerStates() - 1);
-				return 1;
+				break;
 			}
 			processor->pStateEnable(pstate);
 			argvStep++;
@@ -1062,15 +1062,15 @@ int main (int argc,const char **argv) {
 
 			if (argv[argvStep + 1] == NULL) {
 				printf ("ERROR: -di requires an argument\n");
-				return 1;
+				break;
 			}
 			if (requireUnsignedInteger(argc, argv, argvStep + 1, &pstate)) { 
 				printf("ERROR: invalid P-state -- %s\n", argv[argvStep + 1]);
-				return 1;
+				break;
 			}
 			if (pstate >= processor->getPowerStates()) {
 				printf("ERROR: P-state must be in 0-%u range\n", processor->getPowerStates() - 1);
-				return 1;
+				break;
 			}
 			processor->pStateDisable(pstate);
 			argvStep++;
@@ -1084,15 +1084,15 @@ int main (int argc,const char **argv) {
 
 			if (argv[argvStep + 1] == NULL) {
 				printf ("ERROR: -psmax requires an argument\n");
-				return 1;
+				break;
 			}
 			if (requireUnsignedInteger(argc, argv, argvStep + 1, &pstate)) { 
 				printf("ERROR: invalid P-state -- %s\n", argv[argvStep + 1]);
-				return 1;
+				break;
 			}
 			if (pstate >= processor->getPowerStates()) {
 				printf("ERROR: P-state must be in 0-%u range\n", processor->getPowerStates() - 1);
-				return 1;
+				break;
 			}
 			processor->setMaximumPState(pstate);
 			argvStep++;
@@ -1106,15 +1106,15 @@ int main (int argc,const char **argv) {
 
 			if (argv[argvStep + 1] == NULL) {
 				printf ("ERROR: -fo requires an argument\n");
-				return 1;
+				break;
 			}
 			if (requireUnsignedInteger(argc, argv, argvStep + 1, &pstate)) { 
 				printf("ERROR: invalid P-state -- %s\n", argv[argvStep + 1]);
-				return 1;
+				break;
 			}
 			if (pstate >= processor->getPowerStates() - processor->getBoostStates()) {
 				printf("ERROR: P-state (software P-state) must be in 0-%u range\n", processor->getPowerStates() - processor->getBoostStates() - 1);
-				return 1;
+				break;
 			}
 			processor->forcePState(pstate);
 			argvStep++;
@@ -1127,11 +1127,11 @@ int main (int argc,const char **argv) {
 
 			if (argv[argvStep + 1] == NULL) {
 				printf ("ERROR: -bst requires an argument\n");
-				return 1;
+				break;
 			}
 			if (requireUnsignedInteger(argc, argv, argvStep + 1, &numBoostStates)) { 
 				printf("ERROR: invalid numBoostStates -- %s\n", argv[argvStep + 1]);
-				return 1;
+				break;
 			}
 			processor->setNumBoostStates(numBoostStates);
 			argvStep++;
@@ -1152,11 +1152,11 @@ int main (int argc,const char **argv) {
 
 			if (argv[argvStep + 1] == NULL) {
 				printf ("ERROR: -slamtime requires an argument\n");
-				return 1;
+				break;
 			}
 			if (requireUnsignedInteger(argc, argv, argvStep + 1, &slamtime)) { 
 				printf("ERROR: invalid slamtime -- %s\n", argv[argvStep + 1]);
-				return 1;
+				break;
 			}
 			processor->setSlamTime(slamtime);
 			argvStep++;
@@ -1170,11 +1170,11 @@ int main (int argc,const char **argv) {
 
 			if (argv[argvStep + 1] == NULL) {
 				printf ("ERROR: -altvidslamtime requires an argument\n");
-				return 1;
+				break;
 			}
 			if (requireUnsignedInteger(argc, argv, argvStep + 1, &altvidslamtime)) { 
 				printf("ERROR: invalid altvidslamtime -- %s\n", argv[argvStep + 1]);
-				return 1;
+				break;
 			}
 			processor->setAltVidSlamTime(altvidslamtime);
 			argvStep++;
@@ -1188,11 +1188,11 @@ int main (int argc,const char **argv) {
 
 			if (argv[argvStep + 1] == NULL) {
 				printf ("ERROR: -rampuptime requires an argument\n");
-				return 1;
+				break;
 			}
 			if (requireUnsignedInteger(argc, argv, argvStep + 1, &rampuptime)) { 
 				printf("ERROR: invalid rampuptime -- %s\n", argv[argvStep + 1]);
-				return 1;
+				break;
 			}
 			processor->setStepUpRampTime(rampuptime);
 			argvStep++;
@@ -1206,11 +1206,11 @@ int main (int argc,const char **argv) {
 
 			if (argv[argvStep + 1] == NULL) {
 				printf ("ERROR: -rampdowntime requires an argument\n");
-				return 1;
+				break;
 			}
 			if (requireUnsignedInteger(argc, argv, argvStep + 1, &rampdowntime)) { 
 				printf("ERROR: invalid rampdowntime -- %s\n", argv[argvStep + 1]);
-				return 1;
+				break;
 			}
 			processor->setStepDownRampTime(rampdowntime);
 			argvStep++;
@@ -1265,11 +1265,11 @@ int main (int argc,const char **argv) {
 
 			if (argv[argvStep + 1] == NULL) {
 				printf("ERROR: -htctemplimit requires an argument\n");
-				return 1;
+				break;
 			}
 			if (requireUnsignedInteger(argc, argv, argvStep + 1, &htctemplimit)) { 
 				printf("ERROR: invalid htctemplimit -- %s\n", argv[argvStep + 1]);
-				return 1;
+				break;
 			}
 			processor->HTCsetTempLimit(htctemplimit);
 			argvStep++;
@@ -1283,11 +1283,11 @@ int main (int argc,const char **argv) {
 
 			if (argv[argvStep + 1] == NULL) {
 				printf("ERROR: -htchystlimit requires an argument\n");
-				return 1;
+				break;
 			}
 			if (requireUnsignedInteger(argc, argv, argvStep + 1, &htchystlimit)) { 
 				printf("ERROR: invalid htchystlimit -- %s\n", argv[argvStep + 1]);
-				return 1;
+				break;
 			}
 			processor->HTCsetHystLimit(htchystlimit);
 			argvStep++;
@@ -1301,11 +1301,11 @@ int main (int argc,const char **argv) {
 
 			if (argv[argvStep + 1] == NULL) {
 				printf("ERROR: -altvid requires an argument\n");
-				return 1;
+				break;
 			}
 			if (requireUnsignedInteger(argc, argv, argvStep + 1, &altvid)) { 
 				printf("ERROR: invalid altvid -- %s\n", argv[argvStep + 1]);
-				return 1;
+				break;
 			}
 			processor->setAltVid(altvid);
 			argvStep++;
@@ -1327,15 +1327,15 @@ int main (int argc,const char **argv) {
 
 			if ((argv[argvStep + 1] == NULL) || (argv[argvStep + 2] == NULL)) {
 				printf("ERROR: -htset requires two arguments (register, value)\n");
-				return 1;
+				break;
 			}
 			if (requireUnsignedInteger(argc, argv, argvStep + 1, &reg)) { 
 				printf("ERROR: invalid register -- %s\n", argv[argvStep + 1]);
-				return 1;
+				break;
 			}
 			if (requireUnsignedInteger(argc, argv, argvStep + 2, &value)) { 
 				printf("ERROR: invalid value -- %s\n", argv[argvStep + 2]);
-				return 1;
+				break;
 			}
 			processor->setHTLinkSpeed(reg, value);
 			argvStep += 2;
@@ -1363,11 +1363,11 @@ int main (int argc,const char **argv) {
 
 			if (argv[argvStep + 1] == NULL) {
 				printf("ERROR: -psithreshold requires an argument\n");
-				return 1;
+				break;
 			}
 			if (requireUnsignedInteger(argc, argv, argvStep + 1, &psithreshold)) { 
 				printf("ERROR: invalid psithreshold -- %s\n", argv[argvStep + 1]);
-				return 1;
+				break;
 			}
 			processor->setPsiThreshold(psithreshold);
 			argvStep++;
@@ -1440,11 +1440,11 @@ int main (int argc,const char **argv) {
 
 			if (argv[argvStep + 1] == NULL) {
 				printf("ERROR: -pcgetvalue requires an argument\n");
-				return 1;
+				break;
 			}
 			if (requireUnsignedInteger(argc, argv, argvStep + 1, &counter)) { 
 				printf("ERROR: invalid counter -- %s\n", argv[argvStep + 1]);
-				return 1;
+				break;
 			}
 			processor->perfCounterGetValue(counter);
 			argvStep++;
@@ -1454,7 +1454,7 @@ int main (int argc,const char **argv) {
 		//Costantly monitors Performance counter value about a specific performance counter
 		if (strcmp(argv[argvStep], "-pcmonitor") == 0) {
 			printf("ERROR: -pcmonitor is currently not implemented\n");
-			return 1;
+			break;
 		}
 
 		//Handle -set switch. That is a user friendly way to set up a pstate or a pstate/core
@@ -1462,7 +1462,7 @@ int main (int argc,const char **argv) {
 		if (strcmp(argv[argvStep], "-set") == 0) {
 
 			if ((argvStep = parseSetCommand(processor, argc, argv, argvStep + 1)) == -1)
-				return 1;
+				break;
 
 			printf ("*** -set parsing completed\n");
 			argvStep--;
@@ -1525,12 +1525,13 @@ int main (int argc,const char **argv) {
 		}
 
 		printf("ERROR: invalid argument -- %s\n", argv[argvStep]);
-		return 1;
+		break;
 	}
 
-	printf ("\n");
-
-	printf ("Done.\n");
+	if (argvStep == argc) {
+		printf ("\n");
+		printf ("Done.\n");
+	}
 
 	free (processor);
 
