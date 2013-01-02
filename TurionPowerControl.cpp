@@ -999,7 +999,6 @@ int main (int argc,const char **argv) {
 				printf("ERROR: -nbdid is only supported on family 10h processors\n");
 				return 1;
 			}
-			argvStep = argvStep + 2;
 		}
 
 		if (strcmp(argv[argvStep], "-nbfid") == 0) {
