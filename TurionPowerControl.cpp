@@ -5,17 +5,6 @@
 //This program is supposed to compile with GCC under Linux x86/x86-64 platforms
 //and with Microsoft Visual C++ 2005/2008 under Windows x86/x86-64 platforms
 
-#ifdef _WIN32
-	#include <windows.h>
-	#include "OlsApi.h"
-	#include "OlsDef.h"
-	#include <tchar.h>
-#endif
-
-#ifdef __linux
-	#include "cpuPrimitives.h"
-#endif
-
 #include <string.h>
 
 //Main include for processor definitions:
@@ -34,72 +23,7 @@
 #include "source_version.h"
 #include "version.h"
 
-#ifdef _WIN32
-int initWinRing0 () {
-
-	int dllStatus;
-	BYTE verMajor,verMinor,verRevision,verRelease;
-
-	InitializeOls ();
-
-	dllStatus=GetDllStatus ();
-	
-	if (dllStatus!=0) {
-		printf ("Unable to initialize WinRing0 library\n");
-
-		switch (dllStatus) {
-			case OLS_DLL_UNSUPPORTED_PLATFORM:
-				printf ("Error: unsupported platform\n");
-				break;
-			case OLS_DLL_DRIVER_NOT_LOADED:
-				printf ("Error: driver not loaded\n");
-				break;
-			case OLS_DLL_DRIVER_NOT_FOUND:
-				printf ("Error: driver not found\n");
-				break;
-			case OLS_DLL_DRIVER_UNLOADED:
-				printf ("Error: driver unloaded by other process\n");
-				break;
-			case OLS_DLL_DRIVER_NOT_LOADED_ON_NETWORK:
-				printf ("Error: driver not loaded from network\n");
-				break;
-			case OLS_DLL_UNKNOWN_ERROR:
-				printf ("Error: unknown error\n");
-				break;
-			default:
-				printf ("Error: unknown error\n");
-		}
-
-		return false;
-	}
-
-	GetDriverVersion (&verMajor,&verMinor,&verRevision,&verRelease);
-
-	if ((verMajor>=1) && (verMinor>=2)) return true;
-
-	return false;
-
-}
-
-int closeWinRing0 () {
-
-	DeinitializeOls ();	
-
-	return true;
-
-}
-#endif
-
-#ifdef __linux
-int initWinRing0 () {
-	return true;
-}
-
-int closeWinRing0 () {
-	return true;
-}
-#endif
-
+#include "sysdep.h"
 
 //Checks for all modules available and returns the right Processor object
 //for current system. If there isn't a valid module, returns null
@@ -848,8 +772,8 @@ int main (int argc,const char **argv) {
 		return 0;
 	}
 
-	if (initWinRing0()==false) {
-		return false;
+	if (initializeCore() == false) {
+		return -1;
 	}
 
 	processor=getSupportedProcessor ();
@@ -1535,7 +1459,7 @@ int main (int argc,const char **argv) {
 
 	free (processor);
 
-	closeWinRing0 ();
+	deinitializeCore();
 
 	return 0;
 }

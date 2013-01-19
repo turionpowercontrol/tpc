@@ -3,6 +3,22 @@
 #include <curses.h>
 #include <unistd.h>
 
+#include <fcntl.h>
+#include <errno.h>
+#include <string.h>
+
+bool initializeCore()
+{
+	return true;
+}
+
+
+bool deinitializeCore()
+{
+	return true;
+}
+
+
 void ClearScreen(unsigned int flags)
 {
 	static char *clearstr;
