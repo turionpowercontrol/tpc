@@ -644,8 +644,8 @@ int parseSetCommand (Processor *p, int argc, const char **argv, int argcOffset) 
 
 				print_stat(p,ps, "nbvoltage", nbvoltage);
 				p->setNBVid(ps, p->convertVcoretoVID(nbvoltage));
-				if (p->convertVIDtoVcore(p->getNBVid(ps, 0)) != nbvoltage)
-					printf(" (rounded to %0.4fV)", p->convertVIDtoVcore(p->getNBVid(ps, 0)));
+				if (p->convertVIDtoVcore(p->getNBVid(ps)) != nbvoltage)
+					printf(" (rounded to %0.4fV)", p->convertVIDtoVcore(p->getNBVid(ps)));
 				printf("\n");
 				argcOffset++;
 				continue;

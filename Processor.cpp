@@ -535,7 +535,7 @@ DWORD Processor::getNBVid() {
 	return -1;
 }
 
-DWORD Processor::getNBVid(PState ps, DWORD vid) {
+DWORD Processor::getNBVid(PState ps) {
 	printf("Unsupported processor feature\n");
 	return -1;
 }

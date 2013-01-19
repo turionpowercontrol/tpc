@@ -283,7 +283,7 @@ public:
 	virtual void setNBVid(DWORD);
 
 	//Family 10h require northbridge vid per each pstate
-	virtual DWORD getNBVid(PState, DWORD);
+	virtual DWORD getNBVid(PState);
 	virtual void setNBVid(PState, DWORD);
 
 	//Northbridge DID and FID are available only on family 10h processors
