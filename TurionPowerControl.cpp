@@ -791,7 +791,9 @@ int main (int argc,const char **argv) {
 	int errorLine;
 	
 	Scaler *scaler;
-	
+
+	int rv;
+
 	printf ("TurionPowerControl %s (%s)\n", _VERSION, _SOURCE_VERSION);
 	printf ("Turion Power States Optimization and Control - by blackshard\n\n");
 
@@ -895,6 +897,16 @@ int main (int argc,const char **argv) {
 			}
 			argvStep++;
 			continue;
+		}
+
+		rv = parseSingleSetSubcommand(processor, argc, argv, argvStep, 1, &ps);
+		if (rv >= 0) {
+			printf("\n");
+			argvStep = rv - 1;
+			continue;
+		}
+		if (rv == PARSE_WRONG_FORMAT) {
+			break;
 		}
 
 		if (strcmp(argv[argvStep], "-nbvid") == 0) {
