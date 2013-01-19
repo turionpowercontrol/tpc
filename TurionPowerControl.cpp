@@ -578,8 +578,8 @@ int parseSetCommand (Processor *p, int argc, const char **argv, int argcOffset) 
 				printf("ERROR: invalid frequency -- %s\n", argv[argcOffset]);
 				return -1;
 			}
-			print_stat(p,ps, "frequency", frequency);
 			p->setFrequency(ps, frequency);
+			print_stat(p,ps, "frequency", frequency);
 			if (p->getFrequency(ps) != frequency)
 				printf(" (actual: %d)", p->getFrequency(ps));
 			printf("\n");
@@ -606,8 +606,8 @@ int parseSetCommand (Processor *p, int argc, const char **argv, int argcOffset) 
 				printf("ERROR: invalid vcore -- %s\n", argv[argcOffset]);
 				return -1;
 			}
-			print_stat(p,ps, "core voltage", voltage);
 			p->setVCore(ps, voltage);
+			print_stat(p,ps, "core voltage", voltage);
 			if (p->getVCore(ps) != voltage)
 				printf(" (actual: %0.4fV)", p->getVCore(ps));
 			printf("\n");
@@ -642,8 +642,8 @@ int parseSetCommand (Processor *p, int argc, const char **argv, int argcOffset) 
 			//manipulating
 			if (p->getProcessorIdentifier() == PROCESSOR_10H_FAMILY) {
 
-				print_stat(p,ps, "nbvoltage", nbvoltage);
 				p->setNBVid(ps, p->convertVcoretoVID(nbvoltage));
+				print_stat(p,ps, "nbvoltage", nbvoltage);
 				if (p->convertVIDtoVcore(p->getNBVid(ps)) != nbvoltage)
 					printf(" (actual: %0.4fV)", p->convertVIDtoVcore(p->getNBVid(ps)));
 				printf("\n");
@@ -656,8 +656,8 @@ int parseSetCommand (Processor *p, int argc, const char **argv, int argcOffset) 
 				p->getProcessorIdentifier() == ATHLON_X2_QL_FAMILY ||
 				p->getProcessorIdentifier() == SEMPRON_SI_FAMILY) {
 
-				print_stat(p,ps, "nbvoltage", nbvoltage);
 				p->setNBVid(p->convertVcoretoVID(nbvoltage));
+				print_stat(p,ps, "nbvoltage", nbvoltage);
 				if (p->convertVIDtoVcore(p->getNBVid()) != nbvoltage)
 					printf (" (actual: %0.4fV)", p->convertVIDtoVcore(p->getNBVid()));
 				printf("\n");
@@ -682,8 +682,8 @@ int parseSetCommand (Processor *p, int argc, const char **argv, int argcOffset) 
 				printf("ERROR: invald fid -- %s\n", argv[argcOffset]);
 				return -1;
 			}
-			print_stat(p, ps, "FID", fid);
 			p->setFID(ps, fid);
+			print_stat(p, ps, "FID", fid);
 			if (p->getFID(ps) != fid)
 				printf (" (actual: %0.0f)", p->getFID(ps));
 			printf("\n");
@@ -705,8 +705,8 @@ int parseSetCommand (Processor *p, int argc, const char **argv, int argcOffset) 
 				printf("ERROR: invald did -- %s\n", argv[argcOffset]);
 				return -1;
 			}
-			print_stat(p, ps, "DID", did);
 			p->setDID(ps, did);
+			print_stat(p, ps, "DID", did);
 			if (p->getDID(ps) != did)
 				printf (" (actual: %0.2f)", p->getDID(ps));
 			printf("\n");
@@ -728,8 +728,8 @@ int parseSetCommand (Processor *p, int argc, const char **argv, int argcOffset) 
 				printf("ERROR: invalid frequency -- %s\n", argv[argcOffset]);
 				return -1;
 			}
-			print_stat(p, ps, "VID", vid);
 			p->setVID(ps, vid);
+			print_stat(p, ps, "VID", vid);
 			if (p->getVID(ps) != vid)
 				printf (" (actual: %d)", p->getVID(ps));
 			printf("\n");
