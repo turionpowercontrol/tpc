@@ -447,7 +447,7 @@ bool requireFloat (int argc, const char **argv, int offset, float *output) {
 void print_stat (Processor *p, PState ps, const char *what, float value) {
 		if (p->getNode()==p->ALL_NODES) printf ("All nodes "); else printf ("Node: %d ",p->getNode());
 		if (p->getCore()==p->ALL_CORES) printf ("all cores "); else printf ("core: %d ",p->getCore());
-		printf ("pstate %d - ", ps.getPState());
+		printf ("pstate: %d -- ", ps.getPState());
 		printf ("set %s to %0.4f", what, value);
 		return;
 }
