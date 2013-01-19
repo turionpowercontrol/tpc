@@ -9,6 +9,40 @@
 
 bool initializeCore()
 {
+	int fd;
+
+	fd = open("/dev/cpu/0/cpuid", O_RDONLY);
+	if (fd == -1) {
+		printf("ERROR: couldn't open /dev/cpu/0/cpuid (%s).", strerror(errno));
+		if (errno == ENXIO || errno == ENOENT) {
+			printf(" Make sure that cpuid module is loaded.\n");
+			return false;
+		}
+		if (errno == EACCES) {			
+			printf(" Not root?.\n", strerror(errno));
+			return false;
+		}
+		printf("\n");
+		return false;
+	}
+	close(fd);
+
+	fd = open("/dev/cpu/0/msr", O_RDWR);
+	if (fd == -1) {
+		printf("ERROR: couldn't open /dev/cpu/0/msr (%s).", strerror(errno));
+		if (errno == ENXIO || errno == ENOENT) {
+			printf(" Make sure that msr module is loaded.\n");
+			return false;
+		}
+		if (errno == EACCES) {			
+			printf(" Not root?.\n");
+			return false;
+		}
+		printf("\n");
+		return false;
+	}
+	close(fd);
+
 	return true;
 }
 
