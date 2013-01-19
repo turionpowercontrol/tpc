@@ -581,7 +581,7 @@ int parseSetCommand (Processor *p, int argc, const char **argv, int argcOffset) 
 			print_stat(p,ps, "frequency", frequency);
 			p->setFrequency(ps, frequency);
 			if (p->getFrequency(ps) != frequency)
-				printf(" (rounded to %d)", p->getFrequency(ps));
+				printf(" (actual: %d)", p->getFrequency(ps));
 			printf("\n");
 			argcOffset++;
 			continue;
@@ -609,7 +609,7 @@ int parseSetCommand (Processor *p, int argc, const char **argv, int argcOffset) 
 			print_stat(p,ps, "core voltage", voltage);
 			p->setVCore(ps, voltage);
 			if (p->getVCore(ps) != voltage)
-				printf(" (rounded to %0.4fV)", p->getVCore(ps));
+				printf(" (actual: %0.4fV)", p->getVCore(ps));
 			printf("\n");
 			argcOffset++;
 			continue;
@@ -645,7 +645,7 @@ int parseSetCommand (Processor *p, int argc, const char **argv, int argcOffset) 
 				print_stat(p,ps, "nbvoltage", nbvoltage);
 				p->setNBVid(ps, p->convertVcoretoVID(nbvoltage));
 				if (p->convertVIDtoVcore(p->getNBVid(ps)) != nbvoltage)
-					printf(" (rounded to %0.4fV)", p->convertVIDtoVcore(p->getNBVid(ps)));
+					printf(" (actual: %0.4fV)", p->convertVIDtoVcore(p->getNBVid(ps)));
 				printf("\n");
 				argcOffset++;
 				continue;
@@ -659,7 +659,7 @@ int parseSetCommand (Processor *p, int argc, const char **argv, int argcOffset) 
 				print_stat(p,ps, "nbvoltage", nbvoltage);
 				p->setNBVid(p->convertVcoretoVID(nbvoltage));
 				if (p->convertVIDtoVcore(p->getNBVid()) != nbvoltage)
-					printf (" (rounded to %0.4fV)", p->convertVIDtoVcore(p->getNBVid()));
+					printf (" (actual: %0.4fV)", p->convertVIDtoVcore(p->getNBVid()));
 				printf("\n");
 				argcOffset++;
 				continue;
@@ -685,7 +685,7 @@ int parseSetCommand (Processor *p, int argc, const char **argv, int argcOffset) 
 			print_stat(p, ps, "FID", fid);
 			p->setFID(ps, fid);
 			if (p->getFID(ps) != fid)
-				printf (" (rounded to %0.0f)", p->getFID(ps));
+				printf (" (actual: %0.0f)", p->getFID(ps));
 			printf("\n");
 			argcOffset++;
 			continue;
@@ -708,7 +708,7 @@ int parseSetCommand (Processor *p, int argc, const char **argv, int argcOffset) 
 			print_stat(p, ps, "DID", did);
 			p->setDID(ps, did);
 			if (p->getDID(ps) != did)
-				printf (" (rounded to %0.2f)", p->getDID(ps));
+				printf (" (actual: %0.2f)", p->getDID(ps));
 			printf("\n");
 			argcOffset++;
 			continue;
@@ -731,7 +731,7 @@ int parseSetCommand (Processor *p, int argc, const char **argv, int argcOffset) 
 			print_stat(p, ps, "VID", vid);
 			p->setVID(ps, vid);
 			if (p->getVID(ps) != vid)
-				printf (" (rounded to %d)", p->getVID(ps));
+				printf (" (actual: %d)", p->getVID(ps));
 			printf("\n");
 			argcOffset++;
 			continue;
