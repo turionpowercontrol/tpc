@@ -1426,6 +1426,9 @@ int main (int argc,const char **argv) {
 		//with frequency value and voltage value.
 		if (strcmp(argv[argvStep], "-set") == 0) {
 
+			printf("WARNING: -set is deprecated and will be removed in future versions.\n");
+			printf("          Please consider using standalone versions of your sub-commands.\n");
+			printf("          Consult the documentation for details.\n\n");
 			if ((argvStep = parseSetCommand(processor, argc, argv, argvStep + 1)) == PARSE_WRONG_FORMAT)
 				break;
 
