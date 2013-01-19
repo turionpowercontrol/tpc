@@ -793,6 +793,8 @@ int main (int argc,const char **argv) {
 	Scaler *scaler;
 
 	int rv;
+	int parsed = 0;
+	int parsed_set = 0;
 
 	printf ("TurionPowerControl %s (%s)\n", _VERSION, _SOURCE_VERSION);
 	printf ("Turion Power States Optimization and Control - by blackshard\n\n");
@@ -837,6 +839,12 @@ int main (int argc,const char **argv) {
 		processor->setCore(currentCore);
 
 		//printf ("Parsing argument %d %s\n",argvStep,argv[argvStep]);
+
+		if (parsed_set) {
+			printf("ERROR: -set can only be used exclusively\n");
+			break;
+		}
+		parsed++;
 
 		//List power states action
 		if (strcmp(argv[argvStep], "-l") == 0) {
@@ -1426,6 +1434,12 @@ int main (int argc,const char **argv) {
 		//with frequency value and voltage value.
 		if (strcmp(argv[argvStep], "-set") == 0) {
 
+			parsed_set++;
+			
+			if (parsed - parsed_set) {
+				printf("ERROR: -set can only be used exclusively\n");
+				break;
+			}
 			printf("WARNING: -set is deprecated and will be removed in future versions.\n");
 			printf("          Please consider using standalone versions of your sub-commands.\n");
 			printf("          Consult the documentation for details.\n\n");
