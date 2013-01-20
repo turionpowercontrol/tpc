@@ -876,6 +876,21 @@ void K10Processor::setNBDid (PState ps, DWORD nbdid) {
 
 }
 
+bool K10Processor::setNBFrequency(PState ps, DWORD freq)
+{
+	int fid, did;
+
+	convertNBFreqtoFD (freq, &fid, &did);
+
+	setNBFid ((DWORD)fid);
+	setNBDid (ps, (DWORD)did);
+}
+
+DWORD K10Processor::getNBFrequency(PState ps)
+{
+	return convertNBFDtoFreq(getNBFid(), getNBDid(ps));
+}
+
 /*
  *MaxNBFrequency is stored per-node, even though it is stored in a
  *MSR and is available per-core
