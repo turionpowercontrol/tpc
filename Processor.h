@@ -292,6 +292,9 @@ public:
 	virtual DWORD getNBFid();
 	virtual void setNBFid(DWORD);
 
+	virtual bool setNBFrequency(PState, DWORD);
+	virtual DWORD getNBFrequency(PState);
+
 	virtual DWORD getMaxNBFrequency();
 
 	//Family 11h should not implement this
