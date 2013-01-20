@@ -338,8 +338,7 @@ DWORD Interlagos::convertFDtoFreq (DWORD curFid, DWORD curDid)
 	return (100 * (curFid + 0x10)) / (1 << curDid);
 }
 
-void Interlagos::convertFreqtoFD(DWORD freq, int *oFid, int *oDid)
-{
+void Interlagos::convertFreqtoFDEx(DWORD freq, int *oFid, int *oDid, int basefid, int maxfid, int basefreq) {
 	/*Needs to calculate the approximate frequency using FID and DID right
 	 combinations. Take in account that base frequency is always 200 MHz
 	 (that is Hypertransport 1x link speed).
@@ -373,15 +372,15 @@ void Interlagos::convertFreqtoFD(DWORD freq, int *oFid, int *oDid)
 	do
 	{
 
-		fid = (((1 << (int) did) * (float) freq) / 100) - 16;
+		fid = (((1 << (int) did) * (float) freq) / basefreq) - basefid;
 
 		if (fid < 0)
 			did++;
 
 	} while (fid < 0);
 
-	if (fid > 63)
-		fid = 63;
+	if (fid > maxfid)
+		fid = maxfid;
 
 	//Actually we don't need to reculate DID, since we guessed a
 	//valid one due to the fact that the argument is positive.
@@ -395,6 +394,10 @@ void Interlagos::convertFreqtoFD(DWORD freq, int *oFid, int *oDid)
 	return;
 }
 
+void Interlagos::convertFreqtoFD(DWORD freq, int *oFid, int *oDid)
+{
+	convertFreqtoFDEx(freq, oFid, oDid, 16, 63, 100);
+}
 
 //-----------------------setVID-----------------------------
 //Overloads abstract class setVID to allow per-core personalization
