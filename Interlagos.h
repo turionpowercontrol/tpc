@@ -61,7 +61,7 @@ public:
 	void forcePState(PState);
 
 	void setNBVid(DWORD);
-	void setNBDid(PState, DWORD);
+	void setNBDid(DWORD);
 	DWORD getNBVid();
 
 	DWORD getNBDid();

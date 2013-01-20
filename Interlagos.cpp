@@ -857,38 +857,32 @@ void Interlagos::setNBVid(DWORD nbvid)
 	delete pciRegObject;
 }
 
-void Interlagos::setNBDid (PState ps, DWORD nbdid)
+void Interlagos::setNBDid(DWORD nbdid)
 {
-	MSRObject *msrObject;
+	PCIRegObject *pciRegObject;
 
-	msrObject = new MSRObject ();
-
-	if ((nbdid!=0) && (nbdid!=1))
-	{
-		printf ("Northbridge DID must be 0 or 1\n");
+	if (nbdid != 0 && nbdid != 1) {
+		printf ("Interlagos::setNBDid - Northbridge DID must be 0 or 1\n");
 		return;
 	}
 
-	if (!msrObject->readMSR(BASE_15H_PSTATEMSR + ps.getPState(), getMask(ALL_CORES, selectedNode)))
-	{
-		printf ("Interlagos::setNBDid - Unable to read MSR\n");
-		free (msrObject);
+	pciRegObject = new PCIRegObject();
+
+	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_5, 0x160, getNodeMask())) {
+		printf("Interlagos::setNBDid - Unable to read PCI register\n");
+		delete pciRegObject;
 		return;
 	}
 
-	//Northbridge DID is stored in low half of MSR register (eax) in bit 22
-	msrObject->setBitsLow(22, 1, nbdid);
+	pciRegObject->setBits(7, 1, nbdid);
 
-	if (!msrObject->writeMSR())
-	{
-		printf ("Interlagos::setNBDid - Unable to write MSR\n");
-		free (msrObject);
+	if (!pciRegObject->writePCIReg()) {
+		printf ("Interlagos::setNBDid - unable to write PCI register\n");
+		delete pciRegObject;
 		return;
 	}
-	
-	free (msrObject);
 
-	return;
+	delete pciRegObject;
 }
 
 /*
