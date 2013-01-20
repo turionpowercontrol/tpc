@@ -338,6 +338,11 @@ DWORD Interlagos::convertFDtoFreq (DWORD curFid, DWORD curDid)
 	return (100 * (curFid + 0x10)) / (1 << curDid);
 }
 
+DWORD Interlagos::convertNBFDtoFreq (DWORD curFid, DWORD curDid)
+{
+	return (200 * (curFid + 4)) / (1 << curDid);
+}
+
 void Interlagos::convertFreqtoFDEx(DWORD freq, int *oFid, int *oDid, int basefid, int maxfid, int basefreq) {
 	/*Needs to calculate the approximate frequency using FID and DID right
 	 combinations. Take in account that base frequency is always 200 MHz
@@ -397,6 +402,11 @@ void Interlagos::convertFreqtoFDEx(DWORD freq, int *oFid, int *oDid, int basefid
 void Interlagos::convertFreqtoFD(DWORD freq, int *oFid, int *oDid)
 {
 	convertFreqtoFDEx(freq, oFid, oDid, 16, 63, 100);
+}
+
+void Interlagos::convertNBFreqtoFD(DWORD freq, int *oFid, int *oDid)
+{
+	convertFreqtoFDEx(freq, oFid, oDid, 4, 31, 200);
 }
 
 //-----------------------setVID-----------------------------

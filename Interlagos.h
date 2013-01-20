@@ -35,6 +35,8 @@ public:
 	void convertFreqtoFDEx(DWORD, int *, int *, int, int, int);
 	void convertFreqtoFD(DWORD, int *, int *);
 	DWORD convertFDtoFreq(DWORD, DWORD);
+	void convertNBFreqtoFD(DWORD, int *, int *);
+	DWORD convertNBFDtoFreq(DWORD, DWORD);
 
 	void setVID(PState, DWORD);
 	void setFID(PState, float);
