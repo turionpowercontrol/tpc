@@ -1539,13 +1539,13 @@ int main (int argc,const char **argv) {
 		break;
 	}
 
-	if (argvStep == argc) {
-		printf ("Done.\n");
-	}
-
 	free (processor);
 
 	deinitializeCore();
 
-	return 0;
+	if (argvStep == argc) {
+		printf ("Done.\n");
+		return 0;
+	}
+	return -1;
 }
