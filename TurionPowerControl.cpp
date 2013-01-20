@@ -445,12 +445,29 @@ bool requireFloat (int argc, const char **argv, int offset, float *output) {
 }
 
 //Simple method used by parseSetCommand to show some useful and tidy informations.
-void print_stat (Processor *p, PState ps, const char *what, float value) {
-		if (p->getNode()==p->ALL_NODES) printf ("All nodes "); else printf ("Node: %d ",p->getNode());
-		if (p->getCore()==p->ALL_CORES) printf ("all cores "); else printf ("core: %d ",p->getCore());
-		printf ("pstate: %d -- ", ps.getPState());
-		printf ("set %s to %0.4f", what, value);
-		return;
+#define PRINT_STAT_FLAG_NONE	0x00
+#define PRINT_STAT_FLAG_CORE	0x01
+#define PRINT_STAT_FLAG_NODE	0x02
+#define PRINT_STAT_FLAG_PSTATE	0x04
+#define PRINT_STAT_FLAG_ALL	0x07
+void print_stat(Processor *p, PState ps, const char *what, float value, int flags)
+{
+		if (flags & PRINT_STAT_FLAG_NODE) {
+			if (p->getNode() == p->ALL_NODES)
+				printf("All nodes ");
+			else
+				printf("Node: %d ", p->getNode());
+		}
+		if (flags & PRINT_STAT_FLAG_CORE) {
+			if (p->getCore() == p->ALL_CORES)
+				printf("all cores ");
+			else
+				printf("core: %d ", p->getCore());
+		}
+		if (flags & PRINT_STAT_FLAG_PSTATE) {
+			printf("pstate: %d ", ps.getPState());
+		}
+		printf("-- set %s to %0.4f", what, value);
 }
 
 #define PARSE_WRONG_FORMAT		-1 /* known argument but used incorrectly */
@@ -579,7 +596,7 @@ static int parseSingleSetSubcommand(Processor *p, int argc, const char **argv, i
 			return PARSE_WRONG_FORMAT;
 		}
 		p->setFrequency(*ps, frequency);
-		print_stat(p, *ps, "frequency", frequency);
+		print_stat(p, *ps, "frequency", frequency, PRINT_STAT_FLAG_ALL);
 		if (p->getFrequency(*ps) != frequency)
 			printf(" (actual: %d)", p->getFrequency(*ps));
 		printf("\n");
@@ -607,7 +624,7 @@ static int parseSingleSetSubcommand(Processor *p, int argc, const char **argv, i
 			return PARSE_WRONG_FORMAT;
 		}
 		p->setVCore(*ps, voltage);
-		print_stat(p, *ps, "core voltage", voltage);
+		print_stat(p, *ps, "core voltage", voltage, PRINT_STAT_FLAG_ALL);
 		if (p->getVCore(*ps) != voltage)
 			printf(" (actual: %0.4fV)", p->getVCore(*ps));
 		printf("\n");
@@ -643,7 +660,7 @@ static int parseSingleSetSubcommand(Processor *p, int argc, const char **argv, i
 		if (p->getProcessorIdentifier() == PROCESSOR_10H_FAMILY) {
 
 			p->setNBVid(*ps, p->convertVcoretoVID(nbvoltage));
-			print_stat(p, *ps, "nbvoltage", nbvoltage);
+			print_stat(p, *ps, "nbvoltage", nbvoltage, PRINT_STAT_FLAG_NODE | PRINT_STAT_FLAG_PSTATE);
 			if (p->convertVIDtoVcore(p->getNBVid(*ps)) != nbvoltage)
 				printf(" (actual: %0.4fV)", p->convertVIDtoVcore(p->getNBVid(*ps)));
 			printf("\n");
@@ -657,7 +674,7 @@ static int parseSingleSetSubcommand(Processor *p, int argc, const char **argv, i
 			p->getProcessorIdentifier() == SEMPRON_SI_FAMILY) {
 
 			p->setNBVid(p->convertVcoretoVID(nbvoltage));
-			print_stat(p, *ps, "nbvoltage", nbvoltage);
+			print_stat(p, *ps, "nbvoltage", nbvoltage, PRINT_STAT_FLAG_NODE);
 			if (p->convertVIDtoVcore(p->getNBVid()) != nbvoltage)
 				printf (" (actual: %0.4fV)", p->convertVIDtoVcore(p->getNBVid()));
 			printf("\n");
@@ -683,7 +700,7 @@ static int parseSingleSetSubcommand(Processor *p, int argc, const char **argv, i
 			return PARSE_WRONG_FORMAT;
 		}
 		p->setFID(*ps, fid);
-		print_stat(p, *ps, "FID", fid);
+		print_stat(p, *ps, "FID", fid, PRINT_STAT_FLAG_ALL);
 		if (p->getFID(*ps) != fid)
 			printf (" (actual: %0.0f)", p->getFID(*ps));
 		printf("\n");
@@ -706,7 +723,7 @@ static int parseSingleSetSubcommand(Processor *p, int argc, const char **argv, i
 			return PARSE_WRONG_FORMAT;
 		}
 		p->setDID(*ps, did);
-		print_stat(p, *ps, "DID", did);
+		print_stat(p, *ps, "DID", did, PRINT_STAT_FLAG_ALL);
 		if (p->getDID(*ps) != did)
 			printf (" (actual: %0.2f)", p->getDID(*ps));
 		printf("\n");
@@ -729,7 +746,7 @@ static int parseSingleSetSubcommand(Processor *p, int argc, const char **argv, i
 			return PARSE_WRONG_FORMAT;
 		}
 		p->setVID(*ps, vid);
-		print_stat(p, *ps, "VID", vid);
+		print_stat(p, *ps, "VID", vid, PRINT_STAT_FLAG_ALL);
 		if (p->getVID(*ps) != vid)
 			printf (" (actual: %d)", p->getVID(*ps));
 		printf("\n");
