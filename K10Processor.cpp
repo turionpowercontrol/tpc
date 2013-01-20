@@ -317,7 +317,7 @@ DWORD K10Processor::convertFDtoFreq (DWORD curFid, DWORD curDid) {
 	return (100*(curFid+0x10))/(1<<curDid);
 }
 
-void K10Processor::convertFreqtoFD(DWORD freq, int *oFid, int *oDid) {
+void K10Processor::convertFreqtoFDEx(DWORD freq, int *oFid, int *oDid, int basefid, int maxfid, int basefreq) {
 	/*Needs to calculate the approximate frequency using FID and DID right
 	 combinations. Take in account that base frequency is always 200 MHz
 	 (that is Hypertransport 1x link speed).
@@ -350,15 +350,15 @@ void K10Processor::convertFreqtoFD(DWORD freq, int *oFid, int *oDid) {
 	did = 0;
 	do {
 
-		fid = (((1 << (int) did) * (float) freq) / 100) - 16;
+		fid = (((1 << (int) did) * (float) freq) / basefreq) - basefid;
 
 		if (fid < 0)
 			did++;
 
 	} while (fid < 0);
 
-	if (fid > 63)
-		fid = 63;
+	if (fid > maxfid)
+		fid = maxfid;
 
 	//Actually we don't need to reculate DID, since we guessed a
 	//valid one due to the fact that the argument is positive.
@@ -372,6 +372,10 @@ void K10Processor::convertFreqtoFD(DWORD freq, int *oFid, int *oDid) {
 	return;
 }
 
+void K10Processor::convertFreqtoFD(DWORD freq, int *oFid, int *oDid)
+{
+	convertFreqtoFDEx(freq, oFid, oDid, 16, 63, 100);
+}
 
 //-----------------------setVID-----------------------------
 //Overloads abstract class setVID to allow per-core personalization

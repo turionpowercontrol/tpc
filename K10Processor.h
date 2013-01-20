@@ -42,9 +42,10 @@ public:
 
 	float convertVIDtoVcore (DWORD);
 	DWORD convertVcoretoVID (float);
-	DWORD convertFDtoFreq (DWORD, DWORD);
+	void convertFreqtoFDEx(DWORD, int *, int *, int, int, int);
 	void convertFreqtoFD(DWORD, int *, int *);
-		
+	DWORD convertFDtoFreq (DWORD, DWORD);
+
 	void setVID (PState , DWORD);
 	void setFID (PState , float);
 	void setDID (PState , float);
