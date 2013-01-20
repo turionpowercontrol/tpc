@@ -947,8 +947,16 @@ int main (int argc,const char **argv) {
 			}
 			if (processor->getProcessorIdentifier() == PROCESSOR_10H_FAMILY) {
 				processor->setNBVid (ps, nbvid);
+				print_stat(processor, ps, "nbvid", nbvid, PRINT_STAT_FLAG_NODE | PRINT_STAT_FLAG_PSTATE);
+				if (processor->getNBVid(ps) != nbvid)
+					printf(" (actual: %d)", processor->getNBVid(ps));
+				printf("\n\n");
 			} else {
 				processor->setNBVid (nbvid);
+				print_stat(processor, ps, "nbvid", nbvid, PRINT_STAT_FLAG_NODE);
+				if (processor->getNBVid() != nbvid)
+					printf(" (actual: %d)", processor->getNBVid());
+				printf("\n\n");
 			}
 			argvStep = argvStep + 1;
 			continue;
@@ -968,6 +976,10 @@ int main (int argc,const char **argv) {
 					break;
 				}
 				processor->setNBDid (ps, nbdid);
+				print_stat(processor, ps, "nbdid", nbdid, PRINT_STAT_FLAG_NODE | PRINT_STAT_FLAG_PSTATE);
+				if (processor->getNBDid(ps) != nbdid)
+					printf(" (actual: %d)", processor->getNBDid(ps));
+				printf("\n\n");
 				argvStep = argvStep + 1;
 			} else {
 				printf("ERROR: -nbdid is only supported on family 10h processors\n");
@@ -989,6 +1001,10 @@ int main (int argc,const char **argv) {
 				break;
 			}
 			processor->setNBFid(nbfid);
+			print_stat(processor, ps, "nbfid", nbfid, PRINT_STAT_FLAG_NODE);
+			if (processor->getNBFid() != nbfid)
+				printf(" (actual: %d)", processor->getNBFid());
+			printf("\n\n");
 			argvStep += 1;
 			continue;
 		}
@@ -1011,6 +1027,10 @@ int main (int argc,const char **argv) {
 				return -1;
 			}
 			processor->setNBFrequency(ps, nbfrequency);
+			print_stat(processor, ps, "nbfrequency", nbfrequency, PRINT_STAT_FLAG_NODE | PRINT_STAT_FLAG_PSTATE);
+			if (processor->getNBFrequency(ps) != nbfrequency)
+				printf(" (actual: %d)", processor->getNBFrequency(ps));
+			printf("\n\n");
 			argvStep++;
 			continue;
 		}
