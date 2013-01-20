@@ -1540,7 +1540,6 @@ int main (int argc,const char **argv) {
 	}
 
 	if (argvStep == argc) {
-		printf ("\n");
 		printf ("Done.\n");
 	}
 
