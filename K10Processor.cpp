@@ -1054,13 +1054,6 @@ void K10Processor::setNBFid(DWORD fid) {
 	 * bits from 0 to 4
 	 */
 
-	for (i = 0; i < pciRegObject->getCount(); i++) {
-		unsigned int current = pciRegObject->getBits(i, 0, 5);
-			
-		printf("Node %u: current nbfid: %u (%u MHz), target nbfid: %u (%u MHz)\n",
-			pciRegObject->indexToAbsolute(i), current, (current + 4) * 200, fid, (fid + 4) * 200);
-	}
-
 	pciRegObject->setBits(0, 5, fid);
 
 	if (!pciRegObject->writePCIReg()) {
