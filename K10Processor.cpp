@@ -317,6 +317,11 @@ DWORD K10Processor::convertFDtoFreq (DWORD curFid, DWORD curDid) {
 	return (100*(curFid+0x10))/(1<<curDid);
 }
 
+DWORD K10Processor::convertNBFDtoFreq (DWORD curFid, DWORD curDid)
+{
+	return (200 * (curFid + 4)) / (1 << curDid);
+}
+
 void K10Processor::convertFreqtoFDEx(DWORD freq, int *oFid, int *oDid, int basefid, int maxfid, int basefreq) {
 	/*Needs to calculate the approximate frequency using FID and DID right
 	 combinations. Take in account that base frequency is always 200 MHz
@@ -375,6 +380,11 @@ void K10Processor::convertFreqtoFDEx(DWORD freq, int *oFid, int *oDid, int basef
 void K10Processor::convertFreqtoFD(DWORD freq, int *oFid, int *oDid)
 {
 	convertFreqtoFDEx(freq, oFid, oDid, 16, 63, 100);
+}
+
+void K10Processor::convertNBFreqtoFD(DWORD freq, int *oFid, int *oDid)
+{
+	convertFreqtoFDEx(freq, oFid, oDid, 4, 31, 200);
 }
 
 //-----------------------setVID-----------------------------
