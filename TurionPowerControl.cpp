@@ -918,70 +918,40 @@ int main (int argc,const char **argv) {
 		}
 
 		if (strcmp(argv[argvStep], "-nbvid") == 0) {
+			unsigned int nbvid;
 
-			if (processor->getProcessorIdentifier() == PROCESSOR_10H_FAMILY) {
-				unsigned int pstate;
-				unsigned int nbvid;
-
-				if ((argv[argvStep + 1] == NULL) || (argv[argvStep + 2] == NULL)) {
-					printf("ERROR: -nbvid requires two arguments on family 10h processor (pstate, nbvid), e.g. -nbvid 0 40\n");
-					break;
-				}
-				if (requireUnsignedInteger(argc, argv, argvStep + 1, &pstate)) { 
-					printf("ERROR: -nbvid: invalid P-state -- %s\n", argv[argvStep + 1]);
-					break;
-				}
-				if (pstate >= processor->getPowerStates()) {
-					printf("ERROR: -nbvid: P-state must be in 0-%u range\n", processor->getPowerStates() - 1);
-					break;
-				}
-				if (requireUnsignedInteger(argc, argv, argvStep + 2, &nbvid)) { 
-					printf("ERROR: invalid NBVid -- %s\n", argv[argvStep + 2]);
-					break;
-				}
-				processor->setNBVid (pstate, nbvid);
-				argvStep = argvStep + 2;
-			} else {
-				unsigned int nbvid;
-
-				if (argv[argvStep + 1] == NULL) {
-					printf ("ERROR: -nbvid requires an argument\n");
-					break;
-				}
-				if (requireUnsignedInteger(argc, argv, argvStep + 1, &nbvid)) { 
-					printf("ERROR: invalid NBVid -- %s\n", argv[argvStep + 1]);
-					break;
-				}
-				processor->setNBVid (nbvid);
-				argvStep = argvStep + 1;
+			if (argv[argvStep + 1] == NULL) {
+				printf ("ERROR: -nbvid requires an argument\n");
+				break;
 			}
+			if (requireUnsignedInteger(argc, argv, argvStep + 1, &nbvid)) { 
+				printf("ERROR: invalid NBVid -- %s\n", argv[argvStep + 1]);
+				break;
+			}
+			if (processor->getProcessorIdentifier() == PROCESSOR_10H_FAMILY) {
+				processor->setNBVid (ps, nbvid);
+			} else {
+				processor->setNBVid (nbvid);
+			}
+			argvStep = argvStep + 1;
 			continue;
 		}
 
 		if (strcmp(argv[argvStep], "-nbdid") == 0) {
 
 			if (processor->getProcessorIdentifier() == PROCESSOR_10H_FAMILY) {
-				unsigned int pstate;
 				unsigned int nbdid;
 
-				if ((argv[argvStep + 1] == NULL) || (argv[argvStep + 2] == NULL)) {
-					printf("ERROR: -nbdid requires two arguments on family 10h processor (pstate, nbdid), e.g. -nbdid 0 1\n");
+				if (argv[argvStep + 1] == NULL) {
+					printf("ERROR: -nbdid requires an argument\n");
 					break;
 				}
-				if (requireUnsignedInteger(argc, argv, argvStep + 1, &pstate)) { 
-					printf("ERROR: -nbdid: invalid P-state -- %s\n", argv[argvStep + 1]);
+				if (requireUnsignedInteger(argc, argv, argvStep + 1, &nbdid)) { 
+					printf("ERROR: invalid NBDid -- %s\n", argv[argvStep + 1]);
 					break;
 				}
-				if (pstate >= processor->getPowerStates()) {
-					printf("ERROR: -nbdid:  P-state must be in 0-%u range\n", processor->getPowerStates() - 1);
-					break;
-				}
-				if (requireUnsignedInteger(argc, argv, argvStep + 2, &nbdid)) { 
-					printf("ERROR: invalid NBDid -- %s\n", argv[argvStep + 2]);
-					break;
-				}
-				processor->setNBDid (pstate, nbdid);
-				argvStep = argvStep + 2;
+				processor->setNBDid (ps, nbdid);
+				argvStep = argvStep + 1;
 			} else {
 				printf("ERROR: -nbdid is only supported on family 10h processors\n");
 				break;
