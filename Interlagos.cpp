@@ -829,46 +829,32 @@ PState Interlagos::getMaximumPState ()
 	return pState;
 }
 
-void Interlagos::setNBVid (PState ps, DWORD nbvid)
+void Interlagos::setNBVid(DWORD nbvid)
 {
-	MSRObject *msrObject;
+	PCIRegObject *pciRegObject;
 
-	msrObject = new MSRObject();
-
-	if ((nbvid < maxVID()) || (nbvid > minVID()))
-	{
-		printf ("Interlagos.cpp::setNBVid - Northbridge VID Allowed range 0-127\n");
+	if (nbvid > 127) {
+		printf("Interlagos::setNBVid - Northbridge VID Allowed range 0-127\n");
 		return;
 	}
 
-	/*
-	 * Northbridge VID for a specific pstate must be set for all cores
-	 * of a single node. In SVI systems, it should also be coherent with
-	 * pstates which have DID=0 or DID=1 (see MSRC001_0064-68 pag. 327 of
-	 * AMD Family 10h Processor BKDG document). We don't care here of this
-	 * fact, this is a user concern.
-	 */
+	pciRegObject = new PCIRegObject();
 
-	if (!msrObject->readMSR(BASE_15H_PSTATEMSR + ps.getPState(), getMask(ALL_NODES, selectedNode)))
-	{
-		printf ("Interlagos::setNBVid - Unable to read MSR\n");
-		free (msrObject);
+	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_5, 0x160, getNodeMask())) {
+		printf("Interlagos::setNBVid - Unable to read PCI register\n");
+		delete pciRegObject;
 		return;
 	}
 
-	//Northbridge VID is stored in low half of MSR register (eax) in bits from 25 to 31
-	msrObject->setBitsLow(25, 7, nbvid);
+	pciRegObject->setBits(10, 7, nbvid);
 
-	if (!msrObject->writeMSR())
-	{
-		printf ("Interlagos::setNBVid - Unable to write MSR\n");
-		free (msrObject);
+	if (!pciRegObject->writePCIReg()) {
+		printf ("Interlagos::setNBVid - unable to write PCI register\n");
+		delete pciRegObject;
 		return;
 	}
-	
-	free (msrObject);
 
-	return;
+	delete pciRegObject;
 }
 
 void Interlagos::setNBDid (PState ps, DWORD nbdid)
