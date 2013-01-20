@@ -976,6 +976,28 @@ int main (int argc,const char **argv) {
 			continue;
 		}
 
+		/*
+		 * Following section will set a new frequency for selected pstate/core/node
+		 */
+		if (strcmp(argv[argvStep], "-nbfreq") == 0 || 
+			strcmp(argv[argvStep], "-nbf") == 0 || 
+			strcmp(argv[argvStep], "-nbfrequency") == 0) {
+
+			unsigned int nbfrequency;
+
+			if (argv[argvStep + 1] == NULL) {
+				printf("ERROR: %s requires an argument\n", argv[argvStep + 1]);
+				return -1;
+			}
+			if (requireUnsignedInteger(argc, argv, argvStep + 1, &nbfrequency)) {
+				printf("ERROR: invalid nbfrequency -- %s\n", argv[argvStep + 1]);
+				return -1;
+			}
+			processor->setNBFrequency(ps, nbfrequency);
+			argvStep++;
+			continue;
+		}
+
 		//Enables a specified PState for current cores and current nodes
 		if (strcmp(argv[argvStep], "-en") == 0) {
 
