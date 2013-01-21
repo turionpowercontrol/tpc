@@ -568,6 +568,16 @@ DWORD Processor::getNBFrequency(PState ps) {
 	return -1;
 }
 
+bool Processor::setNBFrequency(DWORD frequency) {
+	printf ("Unsupported processor feature\n");
+	return false;
+}
+
+DWORD Processor::getNBFrequency() {
+	printf ("Unsupported processor feature\n");
+	return -1;
+}
+
 /* getMaxNBFrequency */
 DWORD Processor::getMaxNBFrequency() {
 	printf("Unsupported processor feature\n");

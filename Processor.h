@@ -294,6 +294,8 @@ public:
 
 	virtual bool setNBFrequency(PState, DWORD);
 	virtual DWORD getNBFrequency(PState);
+	virtual bool setNBFrequency(DWORD);
+	virtual DWORD getNBFrequency();
 
 	virtual DWORD getMaxNBFrequency();
 

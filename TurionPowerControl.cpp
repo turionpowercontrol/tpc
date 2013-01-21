@@ -1026,11 +1026,19 @@ int main (int argc,const char **argv) {
 				printf("ERROR: invalid nbfrequency -- %s\n", argv[argvStep + 1]);
 				return -1;
 			}
-			processor->setNBFrequency(ps, nbfrequency);
-			print_stat(processor, ps, "nbfrequency", nbfrequency, PRINT_STAT_FLAG_NODE | PRINT_STAT_FLAG_PSTATE);
-			if (processor->getNBFrequency(ps) != nbfrequency)
-				printf(" (actual: %d)", processor->getNBFrequency(ps));
-			printf("\n\n");
+			if (processor->getProcessorIdentifier() == PROCESSOR_10H_FAMILY) {
+				processor->setNBFrequency(ps, nbfrequency);
+				print_stat(processor, ps, "nbfrequency", nbfrequency, PRINT_STAT_FLAG_NODE | PRINT_STAT_FLAG_PSTATE);
+				if (processor->getNBFrequency(ps) != nbfrequency)
+					printf(" (actual: %d)", processor->getNBFrequency(ps));
+				printf("\n\n");
+			} else {
+				processor->setNBFrequency(nbfrequency);
+				print_stat(processor, ps, "nbfrequency", nbfrequency, PRINT_STAT_FLAG_NODE);
+				if (processor->getNBFrequency() != nbfrequency)
+					printf(" (actual: %d)", processor->getNBFrequency());
+				printf("\n\n");
+			}
 			argvStep++;
 			continue;
 		}
