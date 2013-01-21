@@ -71,6 +71,10 @@ public:
 	DWORD getNBFid();
 	DWORD getNBCOF();
 	void setNBFid(DWORD);
+
+	bool setNBFrequency(DWORD);
+	DWORD getNBFrequency();
+
 	DWORD getMaxNBFrequency();
 
 	DWORD minVID();

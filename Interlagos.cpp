@@ -898,6 +898,22 @@ void Interlagos::setNBDid(DWORD nbdid)
 	delete pciRegObject;
 }
 
+bool Interlagos::setNBFrequency(DWORD freq)
+{
+	int fid, did;
+
+	convertNBFreqtoFD (freq, &fid, &did);
+
+	setNBFid ((DWORD)fid);
+	setNBDid ((DWORD)did);
+	return true;
+}
+
+DWORD Interlagos::getNBFrequency()
+{
+	return convertNBFDtoFreq(getNBFid(), getNBDid());
+}
+
 /*
  *MaxNBFrequency is stored per-node, even though it is stored in a
  *MSR and is available per-core
