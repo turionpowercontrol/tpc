@@ -1078,7 +1078,6 @@ DWORD Interlagos::getNBCOF()
 void Interlagos::setNBFid(DWORD fid)
 {
 	PCIRegObject *pciRegObject;
-	unsigned int i, current;
 	bool bnbfid;
 	
 	if (fid > 0x1B)
@@ -1096,14 +1095,6 @@ void Interlagos::setNBFid(DWORD fid)
 		printf("Interlagos::setNBFid - Unable to read PCI register\n");
 		free(pciRegObject);
 		return;
-	}
-	
-	for (i = 0; i < pciRegObject->getCount(); i++)
-	{
-		current = pciRegObject->getBits(i, 1, 5);
-			
-		printf("Node %u: current nbfid: %u (%u MHz), target nbfid: %u (%u MHz)\n",
-			pciRegObject->indexToAbsolute(i), current, (current + 4) * 200, fid, (fid + 4) * 200);
 	}
 
 	pciRegObject->setBits(1, 5, fid);
