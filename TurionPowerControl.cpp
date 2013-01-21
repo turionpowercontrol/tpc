@@ -1019,7 +1019,7 @@ int main (int argc,const char **argv) {
 			unsigned int nbfrequency;
 
 			if (argv[argvStep + 1] == NULL) {
-				printf("ERROR: %s requires an argument\n", argv[argvStep + 1]);
+				printf("ERROR: %s requires an argument\n", argv[argvStep]);
 				return -1;
 			}
 			if (requireUnsignedInteger(argc, argv, argvStep + 1, &nbfrequency)) {
