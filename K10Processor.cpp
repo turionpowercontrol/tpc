@@ -884,6 +884,8 @@ bool K10Processor::setNBFrequency(PState ps, DWORD freq)
 
 	setNBFid ((DWORD)fid);
 	setNBDid (ps, (DWORD)did);
+
+	return true;
 }
 
 DWORD K10Processor::getNBFrequency(PState ps)
