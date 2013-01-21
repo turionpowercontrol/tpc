@@ -1030,7 +1030,6 @@ DWORD K10Processor::getNBFid () {
 void K10Processor::setNBFid(DWORD fid) {
 
 	PCIRegObject *pciRegObject;
-	unsigned int i;
 
 	if (fid > 0x1b) {
 		printf("setNBFid: fid value must be between 0 and 27\n");
