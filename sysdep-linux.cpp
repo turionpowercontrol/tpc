@@ -19,7 +19,7 @@ bool initializeCore()
 			return false;
 		}
 		if (errno == EACCES) {			
-			printf(" Not root?.\n", strerror(errno));
+			printf(" Not root?.\n");
 			return false;
 		}
 		printf("\n");
