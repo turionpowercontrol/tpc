@@ -2482,7 +2482,6 @@ DWORD Interlagos::getHTLinkSpeed (DWORD link, DWORD Sublink)
 
 	dwReturn = linkRegisterRegObject->getBits(0,8,4); //dwReturn = (miscReg >> 8) & 0xF;
 
-	if (getSpecModelExtended() >= 8) /* revision D or later */
 	{
 		DWORD linkFrequencyExtensionRegister = 0x9c;
 		PCIRegObject *linkExtRegisterRegObject = new PCIRegObject();
