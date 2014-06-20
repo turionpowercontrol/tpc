@@ -203,12 +203,6 @@ void Interlagos::showFamilySpecs()
 			printf("%d MHz\n", getMaxNBFrequency());
 		}
 
-		if (getPVIMode())
-		{
-			printf("* Warning: PVI mode is set. Northbridge voltage is used for processor voltage at given pstates!\n");
-			printf("* Changing Northbridge voltage changes core voltage too.\n");
-		}
-
 		printf("\n");
 
 		for (i = 0; i < getProcessorCores(); i++)
@@ -245,18 +239,7 @@ void Interlagos::showFamilySpecs()
 
 		psi_thres = getPsiThreshold();
 
-		//Parallel VID Interface is available only on family 10h processor
-		//when it is allocated on a Single Plane motherboard
-		//Family 11h processors and Family 10h processors on Dual Plane
-		//motherboards should use Serial Vid Interface
-		if (getPVIMode())
-		{
-			printf("Processor is using Parallel VID Interface (probably Single Plane mode)\n");
-		}
-		else
-		{
-			printf("Processor is using Serial VID Interface (probably Dual Plane mode)\n");
-		}
+		printf("Processor is using Serial VID Interface (Dual Plane mode)\n");
 
 		if (psi_l_enable)
 		{
@@ -293,31 +276,13 @@ float Interlagos::convertVIDtoVcore(DWORD curVid)
 
 	float curVcore;
 
-	if (getPVIMode())
+	if (curVid >= 0x7c)
 	{
-		if (curVid >= 0x5d)
-		{
-			curVcore = 0.375;
-		}
-		else
-		{
-			if (curVid < 0x3f)
-			{
-				curVid = (curVid >> 1) << 1;
-			}
-			curVcore = (float) (1.550 - (0.0125 * curVid));
-		}
+		curVcore = 0;
 	}
 	else
 	{
-		if (curVid >= 0x7c)
-		{
-			curVcore = 0;
-		}
-		else
-		{
-			curVcore = (float) (1.550 - (0.0125 * curVid));
-		}
+		curVcore = (float) (1.550 - (0.0125 * curVid));
 	}
 
 	return curVcore;
@@ -677,24 +642,7 @@ float Interlagos::getVCore(PState ps)
 
 bool Interlagos::getPVIMode ()
 {
-
-	PCIRegObject *pciRegObject;
-	bool pviMode;
-
-	pciRegObject = new PCIRegObject();
-
-	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3, 0xa0, getNodeMask()))
-	{
-		printf ("Interlagos.cpp::getPVIMode - Unable to read PCI register\n");
-		return false;
-	}
-
-	pviMode = (bool)pciRegObject->getBits(0, 8, 1);
-
-	free (pciRegObject);
-
-	return pviMode;
-
+	return false;
 }
 
 //PStates enable/disable/peek
@@ -1130,25 +1078,11 @@ DWORD Interlagos::minVID ()
 
 	free (msrObject);
 
-	//If minVid==0, then there's no minimum vid.
-	//Since the register is 7-bit wide, then 127 is
-	//the maximum value allowed.
-	if (getPVIMode())
-	{
-		//Parallel VID mode, allows minimum vcore VID up to 0x5d
-		if (minVid == 0)
-			return 0x5d;
-		else
-			return minVid;
-	}
+	//Serial VID mode, allows minimum vcore VID up to 0x7b
+	if (minVid==0)
+		return 0x7b;
 	else
-	{
-		//Serial VID mode, allows minimum vcore VID up to 0x7b
-		if (minVid==0)
-			return 0x7b;
-		else
-			return minVid;
-	}
+		return minVid;
 }
 
 //maxVID is reported per-node, so selected core is always discarded
