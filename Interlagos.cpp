@@ -3122,6 +3122,7 @@ int Interlagos::getDramFrequency (DWORD device, DWORD *T_mode)
 {
 	PCIRegObject *dramConfigurationHighRegister;
 	DWORD regValue;
+	DWORD speed;
 
 	if (!setDramController(device)) {
 		return 0;
@@ -3147,28 +3148,11 @@ int Interlagos::getDramFrequency (DWORD device, DWORD *T_mode)
 	
 	regValue = dramConfigurationHighRegister->getBits(0, 0, 5);
 	delete dramConfigurationHighRegister;
-	
-	switch (regValue)
-	{
-		case 0x04:
-			return 667;
-		case 0x06:
-			return 800;
-		case 0x0A:
-			return 1066;
-		case 0x0E:
-			return 1333;
-		case 0x12:
-			return 1600;
-		case 0x16:
-			return 1866;
-		case 0x1A:
-			return 2133;
-		case 0x1E:
-			return 2400;
-		default:
-			return 0;
-	}
+
+	speed = 400 + regValue * 200 / 3;
+	speed += speed == 666 ? 1 : 0;
+
+	return speed;
 }
 
 void Interlagos::getDramTiming(DWORD device, /* 0 or 1   DCT0 or DCT1 */
