@@ -208,14 +208,6 @@ void Interlagos::showFamilySpecs()
 		for (i = 0; i < getProcessorCores(); i++)
 		{
 			setCore(i);
-			if (getC1EStatus() == false)
-			{
-				printf("Core %d C1E CMP halt bit is disabled\n", i);
-			}
-			else
-			{
-				printf("Core %d C1E CMP halt bit is enabled\n", i);
-			}
 		}
 
 		printf("\nVoltage Regulator Slamming time register: %d\n", getSlamTime());
