@@ -100,7 +100,7 @@ Interlagos::Interlagos ()
 		return;
 	}
 
-	cores = ((ecx & 0xff) + 1) / 2; /* cores per node */
+	cores = (ecx & 0xff) + 1; /* cores per package */
 	
 	/*
 	 * Normally we assume that nodes per package is always 1 (one physical processor = one package), but
@@ -127,7 +127,7 @@ Interlagos::Interlagos ()
 	}
 	
 	setProcessorNodes(nodes);
-	setProcessorCores(cores);
+	setProcessorCores(cores/nodes_per_package);
 	setNode(0);
 	setBoostStates (getNumBoostStates());
 	setPowerStates(7);
