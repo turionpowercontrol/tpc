@@ -108,7 +108,6 @@ Interlagos::Interlagos ()
 	 * chips (16 cores distributed on a single package but on two nodes).
 	 */
 	int nodes_per_package = 1;
-	if (modelExtended >= 8)
 	{
 		PCIRegObject *pci_F3xE8_NbCapReg = new PCIRegObject();
 		
