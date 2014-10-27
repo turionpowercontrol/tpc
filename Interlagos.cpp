@@ -2879,7 +2879,6 @@ void Interlagos::checkMode()
 	DWORD savedstates[processorNodes][processorCores][getPowerStates()];
 	DWORD minTemp, maxTemp, temp, savedMinTemp, savedMaxTemp;
 	DWORD oTimeStamp, iTimeStamp;
-	float curVcore;
 	DWORD maxPState;
 
 	maxPState=getMaximumPState().getPState();
@@ -2918,7 +2917,6 @@ void Interlagos::checkMode()
 				RdmsrPx (0xc0010071, &eaxMsr, &edxMsr, (PROCESSORMASK)1 << (i * processorCores + j));
 				pstate = (eaxMsr >> 16) & 0x7;
 				vid = (eaxMsr >> 9) & 0x7f;
-				curVcore = (float)((124 - vid) * 0.0125);
 				fid = eaxMsr & 0x3f;
 				did = (eaxMsr >> 6) & 0x7;
 
