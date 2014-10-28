@@ -28,6 +28,7 @@ private:
 			DWORD *Trfc2, DWORD *Trfc3, DWORD *MaxRdLatency);
 
 	int boostSupported;
+	bool isPsiThresholdValid(DWORD);
 
 public:
 

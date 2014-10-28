@@ -2712,6 +2712,17 @@ DWORD K10Processor::getPsiThreshold () {
 
 }
 
+bool K10Processor::isPsiThresholdValid(DWORD psiThreshold)
+{
+	if (psiThreshold == 0)
+		return false;
+	if (psiThreshold > minVID())
+		return false;
+	if (psiThreshold < maxVID())
+		return false;
+	return true;
+}
+
 void K10Processor::setPsiEnabled (bool toggle) {
 
 	PCIRegObject *pciRegObject;
