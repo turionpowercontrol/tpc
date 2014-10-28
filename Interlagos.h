@@ -20,6 +20,7 @@ private:
 			DWORD *Trfc0, DWORD *Trfc1, DWORD *Trfc2, DWORD *Trfc3, DWORD *MaxRdLatency);
 
 	float getVidUnit();
+	bool isPsiThresholdValid(DWORD);
 
 public:
 

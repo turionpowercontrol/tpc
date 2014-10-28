@@ -2732,6 +2732,17 @@ DWORD Interlagos::getPsiThreshold()
 	return psiThreshold;
 }
 
+bool Interlagos::isPsiThresholdValid(DWORD psiThreshold)
+{
+	if (psiThreshold == 0)
+		return false;
+	if (psiThreshold > minVID())
+		return false;
+	if (psiThreshold < maxVID())
+		return false;
+	return true;
+}
+
 void Interlagos::setPsiEnabled (bool toggle)
 {
 	PCIRegObject *pciRegObject;
