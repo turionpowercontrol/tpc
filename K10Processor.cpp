@@ -2762,10 +2762,11 @@ void K10Processor::setPsiThreshold (DWORD threshold) {
 
 	PCIRegObject *pciRegObject;
 
-	if (threshold>minVID() || threshold<maxVID()) {
-			printf ("setPsiThreshold: value must be between %d and %d\n",minVID(), maxVID());
-			return;
-		}
+	if (isPsiThresholdValid(threshold) == false)
+	{
+		printf ("setPsiThreshold: value must be non-zero value between %d and %d\n", minVID(), maxVID());
+		return;
+	}
 
 
 	pciRegObject = new PCIRegObject();
