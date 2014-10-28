@@ -30,14 +30,14 @@ Interlagos::Interlagos ()
 	bool pciReg160Success;
 	DWORD nodes;
 	DWORD cores;
-	
+
 	//Check extended CpuID Information - CPUID Function 0000_0001 reg EAX
 	if (Cpuid(0x1,&eax,&ebx,&ecx,&edx)!=TRUE)
 	{
 		printf ("Interlagos::Interlagos - Fatal error during querying for Cpuid(0x1) instruction.\n");
 		return;
 	}
-	
+
 	int familyBase = (eax & 0xf00) >> 8;
 	int model = (eax & 0xf0) >> 4;
 	int stepping = eax & 0xf;
@@ -101,7 +101,7 @@ Interlagos::Interlagos ()
 	}
 
 	cores = (ecx & 0xff) + 1; /* cores per package */
-	
+
 	/*
 	 * Normally we assume that nodes per package is always 1 (one physical processor = one package), but
 	 * with Interlagos chips (modelExtended>=8) this is not true since they share a single package for two
@@ -125,7 +125,7 @@ Interlagos::Interlagos ()
 
 		free(pci_F3xE8_NbCapReg);
 	}
-	
+
 	setProcessorNodes(nodes);
 	setProcessorCores(cores/nodes_per_package);
 	setNode(0);
@@ -150,7 +150,7 @@ bool Interlagos::isProcessorSupported() {
 	//Check base CpuID information
 	if (Cpuid(0x0, &eax, &ebx, &ecx, &edx) != TRUE)
 	  return false;
-	
+
 	//Checks if eax is 0xd. It determines the largest CPUID function available
 	//Family 15h returns eax=0xd
 	if (eax != 0xd)
@@ -169,7 +169,7 @@ bool Interlagos::isProcessorSupported() {
 
 	if (familyExtended != 0x15)
 	  return false;
-	
+
 	//Detects a Family 15h processor, i.e. Bulldozer/Interlagos/Valencia
 	return true;
 }
@@ -284,7 +284,7 @@ DWORD Interlagos::convertVcoretoVID (float vcore)
 	DWORD vid;
 
 	vid = round(((1.55 - vcore) / 0.0125));
-	
+
 	return vid;
 
 }
@@ -566,7 +566,7 @@ void Interlagos::setFrequency (PState ps, DWORD freq)
 	int fid, did;
 
 	convertFreqtoFD (freq, &fid, &did);
-	
+
 	setFID (ps, (DWORD)fid);
 	setDID (ps, (DWORD)did);
 
@@ -891,7 +891,7 @@ void Interlagos::forcePState (PState ps)
 	DWORD boostState = getNumBoostStates();
 
 	msrObject = new MSRObject();
-	
+
 	if (ps.getPState() > 6 - boostState)
 	{
 		printf ("Interlagos.cpp::forcePState - Forcing PStates on a boosted processor ignores boosted PStates\n");
@@ -906,7 +906,7 @@ void Interlagos::forcePState (PState ps)
 		free (msrObject);
 		return;
 	}
-	
+
 	//To force a pstate, we act on setting the first 3 bits of register. All other bits must be zero
 	msrObject->setBits(0, 64, 0);
 	msrObject->setBitsLow(0, 3, ps.getPState());
@@ -917,7 +917,7 @@ void Interlagos::forcePState (PState ps)
 		free (msrObject);
 		return;
 	}
-	
+
 	printf ("PState set to %d\n", ps.getPState());
 
 	free (msrObject);
@@ -930,22 +930,22 @@ DWORD Interlagos::getNBVid()
 	PCIRegObject *pciRegObject;
 	DWORD nbVid;
 	bool bnbvid;
-	
+
 	pciRegObject = new PCIRegObject();
-	
+
 	bnbvid = pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_5, 0x160, getNodeMask());
-	
+
 	if (!bnbvid)
 	{
 		printf("Interlagos::getNBVid - Unable to read MSR\n");
 		free (pciRegObject);
 		return false;
 	}
-	
+
 	nbVid = pciRegObject->getBits(0, 10, 7);
-	
+
 	free (pciRegObject);
-	
+
 	return nbVid;
 }
 
@@ -954,18 +954,18 @@ DWORD Interlagos::getNBDid ()
 	PCIRegObject *pciRegObject;
 	DWORD nbDid;
 	bool bnbdid;
-	
+
 	pciRegObject = new PCIRegObject();
-	
+
 	bnbdid = pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_5, 0x160, getNodeMask());
-	
+
 	if (!bnbdid)
 	{
 		printf("Interlagos::getNBDid - Unable to read MSR\n");
 		free (pciRegObject);
 		return false;
 	}
-	
+
 	nbDid = pciRegObject->getBits(0, 7, 1);
 
 	free (pciRegObject);
@@ -978,11 +978,11 @@ DWORD Interlagos::getNBFid ()
 	PCIRegObject *pciRegObject;
 	DWORD nbFid;
 	bool bnbfid;
-	
+
 	pciRegObject = new PCIRegObject();
-	
+
 	bnbfid = pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_5, 0x160, getNodeMask());
-	
+
 	if (!bnbfid)
 	{
 		printf ("Interlagos::getNBFid - Unable to read PCI register\n");
@@ -1002,7 +1002,7 @@ DWORD Interlagos::getNBFid ()
 	nbFid = pciRegObject->getBits(0, 1, 5);
 
 	free (pciRegObject);
-	
+
 	return nbFid;
 }
 
@@ -1010,7 +1010,7 @@ DWORD Interlagos::getNBCOF()
 {
 	//Northbridge Current Operating Frequency
 	//D18F5x[6C:60][NbFid] + 4 / 2 ^ D18F5x[6C:60][NbDid]
-	
+
 	return ((200 * (getNBFid() + 4)) / (1 << getNBDid()));
 }
 
@@ -1018,17 +1018,17 @@ void Interlagos::setNBFid(DWORD fid)
 {
 	PCIRegObject *pciRegObject;
 	bool bnbfid;
-	
+
 	if (fid > 0x1B)
 	{
 		printf("setNBFid: fid value must be between 0 and 27\n");
 		return;
 	}
-	
+
 	pciRegObject = new PCIRegObject();
-	
+
 	bnbfid = pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_5, 0x160, getNodeMask());
-	
+
 	if (!bnbfid)
 	{
 		printf("Interlagos::setNBFid - Unable to read PCI register\n");
@@ -1044,9 +1044,9 @@ void Interlagos::setNBFid(DWORD fid)
 		free(pciRegObject);
 		return;
 	}
-	
+
 	free(pciRegObject);
-	
+
 	return ;
 }
 
@@ -1064,7 +1064,7 @@ DWORD Interlagos::minVID ()
 		free (msrObject);
 		return false;
 	}
-	
+
 	minVid=msrObject->getBits(0, 42, 7);
 
 	free (msrObject);
@@ -1090,11 +1090,11 @@ DWORD Interlagos::maxVID()
 		free(msrObject);
 		return false;
 	}
-	
+
 	maxVid = msrObject->getBits(0, 35, 7);
-	
+
 	free(msrObject);
-	
+
 	return maxVid;
 }
 
@@ -1112,11 +1112,11 @@ DWORD Interlagos::startupPState ()
 		free(msrObject);
 		return false;
 	}
-	
+
 	pstate = msrObject->getBits(0, 32, 3);
-	
+
 	free(msrObject);
-	
+
 	return pstate;
 }
 
@@ -1133,11 +1133,11 @@ DWORD Interlagos::maxCPUFrequency()
 		free(msrObject);
 		return false;
 	}
-	
+
 	maxCPUFid = msrObject->getBits(0, 49, 6);
-	
+
 	free(msrObject);
-	
+
 	return maxCPUFid * 100;
 }
 
@@ -1153,56 +1153,56 @@ DWORD Interlagos::getNumBoostStates(void)
 {	
 	PCIRegObject *boostControl = new PCIRegObject();
 	DWORD numBoostStates;
-	
+
 	if (!boostControl->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_LINK_CONTROL, 0x15C, getNodeMask()))
 	{
 		printf("Interlagos::getNumBoostStates unable to read boost control register\n");
 		return false;
 	}
-	
+
 	numBoostStates = boostControl->getBits(0, 2, 3);
-	
+
 	free(boostControl);
-	
+
 	return numBoostStates;
 }
 
 void Interlagos::setNumBoostStates(DWORD numBoostStates)
 {
 	PCIRegObject *boostControl = new PCIRegObject();
-	
+
 	if (!boostControl->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_LINK_CONTROL, 0x15C, getNodeMask()))
 	{
 		printf("Interlagos::getNumBoostStates unable to read boost control register\n");
 		return;
 	}
-	
+
 	if (boostControl->getBits(0, 31, 1))
 	{
 		printf("Boost Lock Enabled. Cannot edit NumBoostStates\n");
 		return;
 	}
-	
+
 	if (boostControl->getBits(0, 7, 1))
 	{
 		printf("Disable boost before changing the number of boost states\n");
 		return;
 	}
-	
+
 	boostControl->setBits(2, 3, numBoostStates);
-	
+
 	if (!boostControl->writePCIReg())
 	{
 		printf("Interlagos::setNumBoostStates unable to write PCI Reg\n");
 		return;
 	}
-	
+
 	setBoostStates(numBoostStates);
-	
+
 	printf("Number of boosted states set to %d\n", numBoostStates);
-	
+
 	free(boostControl);
-	
+
 	return;
 }
 
@@ -1214,17 +1214,17 @@ DWORD Interlagos::getBoost(void)
 {
 	PCIRegObject *boostControl = new PCIRegObject();
 	DWORD boostSrc;
-	
+
 	if (!boostControl->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_LINK_CONTROL, 0x15C, getNodeMask()))
 	{
 		printf("Interlagos::getBoost unable to read boost control register\n");
 		return -1;
 	}
-	
+
 	boostSrc = boostControl->getBits(0, 0, 2);
-	
+
 	free(boostControl);
-	
+
 	if (boostSrc == 1)
 		return 1;
 	else if (boostSrc == 0)
@@ -1243,7 +1243,7 @@ void Interlagos::setBoost(bool boost)
 		free(boostControl);
 		return;
 	}
-	
+
 	if (boostControl->getBits(0, 31, 1))
 	{
 		printf("Boost Lock Enabled. Fid, Did, Vid, NodeTdp, NumBoostStates and CStateBoost limited\n");
@@ -1278,27 +1278,27 @@ DWORD Interlagos::getTDP(void)
 	PCIRegObject *TDP2Watt = new PCIRegObject();
 	DWORD TDP;
 	float tdpwatt;
-	
+
 	if (!TDPReg->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_LINK_CONTROL, 0x1B8, getNodeMask()))
 	{
 		printf("Interlagos::getTDP unable to read boost control register\n");
 		return -1;
 	}
-	
+
 	if (!TDP2Watt->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_5, 0xE8, getNodeMask()))
 	{
 		printf("Interlagos::getTDP unable to read TDP2Watt control register\n");
 		return -1;
 	}
-	
+
 	TDP = TDPReg->getBits(0, 0, 16);
 	tdpwatt = TDP2Watt->getBits(0, 0, 10);
 	tdpwatt = (tdpwatt / 1024) * TDP;
-	
+
 	printf("TDP is: %f\n",tdpwatt);
-	
+
 	setTDP(TDP);
-	
+
 	return(TDP);
 }
 
@@ -1345,19 +1345,19 @@ DWORD Interlagos::setDramTiming(DWORD device, /* 0 or 1 */
 		printf("Trtp out of allowed range (4-10)\n");
 		return false;
 	}
-	
+
 	if (Tras < 8 || Tras > 0x28)
 	{
 		printf("Tras out of allowed range (8-40)\n");
 		return false;
 	}
-	
+
 	if (Trrd < 1 || Trrd > 9)
 	{
 		printf("Trrd out of allowed range (1-9)\n");
 		return false;
 	}
-	
+
 	if (Trc < 0x0A || Trc > 0x38)
 	{
 		printf("Trrd out of allowed range (10-56)\n");
@@ -1369,7 +1369,7 @@ DWORD Interlagos::setDramTiming(DWORD device, /* 0 or 1 */
 		printf("T out of allowed range (1-2)\n");
 		return false;
 	}
-	
+
 	if (device == 0)
 	{
 		regconfhigh = dramConfigurationHighRegister->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_DRAM_CONTROLLER, 0x94, getNodeMask());
@@ -1394,7 +1394,7 @@ DWORD Interlagos::setDramTiming(DWORD device, /* 0 or 1 */
 		free(dramTiming10);
 		return false;
 	}
-	
+
 	if (dramConfigurationHighRegister->getBits(0, 20, 1))
 	{
 		T_mode_current = 2;
@@ -1403,16 +1403,16 @@ DWORD Interlagos::setDramTiming(DWORD device, /* 0 or 1 */
 	{
 		T_mode_current = 1;
 	}
-	
+
 	dramTiming0->setBits(0, 5, Tcl);
 	dramTiming0->setBits(8, 5, Trcd);
 	dramTiming0->setBits(16, 5, Trp);
 	dramTiming0->setBits(24, 6, Tras);
-	
+
 	dramTiming1->setBits(24, 4, Trtp);
 	dramTiming1->setBits(0, 6, Trc);
 	dramTiming1->setBits(8, 4, Trrd);
-	
+
 	dramTiming3->setBits(0, 5, Tcwl);
 
 	dramTiming10->setBits(0, 5, Twr);
@@ -1428,13 +1428,13 @@ DWORD Interlagos::setDramTiming(DWORD device, /* 0 or 1 */
 		printf ("failed\n");
 	else
 		printf ("success\n");
-	
+
 	printf ("Updating DRAM Timing3 Register... ");
 	if (!dramTiming3->writePCIReg())
 		printf ("failed\n");
 	else
 		printf ("success\n");
-	
+
 	printf ("Updating DRAM Timing10 Register... ");
 	if (!dramTiming10->writePCIReg())
 		printf ("failed\n");
@@ -1459,7 +1459,7 @@ DWORD Interlagos::setDramTiming(DWORD device, /* 0 or 1 */
 		else
 			printf ("success\n");
 	}
-	
+
 	free(dramConfigurationHighRegister);
 	free(dramTiming0);
 	free(dramTiming1);
@@ -2766,9 +2766,9 @@ bool Interlagos::getC1EStatus()
 // 
 	// There are a number of requirements for C1E on 15h
 	// These can be found on pg 85 of the BKDG for 15h
-	
+
 	printf("Not configured for 15h\n");
-	
+
 	return false;
 }
 
@@ -2801,9 +2801,9 @@ void Interlagos::setC1EStatus (bool toggle)
 // 
 	// There are a number of requirements for C1E on 15h
 	// These can be found on pg 85 of the BKDG for 15h
-	
+
 	printf("Not configured for 15h\n");
-	
+
 	return;
 }
 
@@ -2856,13 +2856,13 @@ void Interlagos::perfMonitorDCMA()
 void Interlagos::getCurrentStatus (struct procStatus *pStatus, DWORD core)
 {
 	DWORD eaxMsr, edxMsr;
-	
+
 	RdmsrPx (0xc0010071, &eaxMsr, &edxMsr,(DWORD_PTR) 1 << core);
 	pStatus->pstate = (eaxMsr >> 16) & 0x7;
 	pStatus->vid = (eaxMsr >> 9) & 0x7f;
 	pStatus->fid = eaxMsr & 0x3f;
 	pStatus->did = (eaxMsr >> 6) & 0x7;
-	
+
 	return;
 }
 
@@ -2985,7 +2985,7 @@ void Interlagos::checkMode()
 bool Interlagos::setDramController(DWORD device)
 {
 	PCIRegObject *dctConfigurationSelect;
-	
+
 	dctConfigurationSelect = new PCIRegObject();
 
 	if (!dctConfigurationSelect->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_ADDRESS_MAP, 0x10C, getNodeMask())) {
@@ -3055,7 +3055,7 @@ int Interlagos::getDramFrequency (DWORD device, DWORD *T_mode)
 		delete dramConfigurationHighRegister;
 		return 0;
 	}
-	
+
 	if (dramConfigurationHighRegister->getBits(0, 20, 1))
 	{
 		*T_mode = 2;
@@ -3064,7 +3064,7 @@ int Interlagos::getDramFrequency (DWORD device, DWORD *T_mode)
 	{
 		*T_mode = 1;
 	}
-	
+
 	regValue = dramConfigurationHighRegister->getBits(0, 0, 5);
 	delete dramConfigurationHighRegister;
 
@@ -3128,39 +3128,39 @@ void Interlagos::getDramTiming(DWORD device, /* 0 or 1   DCT0 or DCT1 */
 		free(dramTiming10);
 		return;
 	}
-	
+
 	*Tref = dramTimingHigh->getBits(0, 16, 2);
-	
+
 	*Tras = dramTiming0->getBits(0, 24, 6);
 	*Trp = dramTiming0->getBits(0, 16, 5);
 	*Trcd = dramTiming0->getBits(0, 8, 5);
 	*Tcl = dramTiming0->getBits(0, 0, 5);
-	
+
 	*Trtp = dramTiming1->getBits(0, 24, 4);
 	*Trrd = dramTiming1->getBits(0, 8, 4);
 	*Trc = dramTiming1->getBits(0, 0, 6);
 	*Tfaw = dramTiming1->getBits(0, 16, 6);
-	
+
 	*Trfc0 = dramTiming2->getBits(0, 0, 3);
 	*Trfc1 = dramTiming2->getBits(0, 8, 3);
 	*Trfc2 = dramTiming2->getBits(0, 16, 3);
 	*Trfc3 = dramTiming2->getBits(0, 24, 3);
-	
+
 	*Twtr = dramTiming3->getBits(0, 8, 4);
 	*Tcwl = dramTiming3->getBits(0, 0, 5);
-	
+
 	*MaxRdLatency = dramNBPState->getBits(0, 22, 10);
-	
+
 	*Twrwrsdsc = dramTiming4->getBits(0, 16, 4);
-	
+
 	*Twrrd = dramTiming5->getBits(0, 8, 4);
 	*Trdrdsdsc = dramTiming5->getBits(0, 24, 4);
-	
+
 	*TrwtTO = dramTiming6->getBits(0, 8, 5);
 	*TrwtWB = dramTiming6->getBits(0, 16, 5);
-	
+
 	*Twr = dramTiming10->getBits(0, 0, 5);
-	
+
 	free(dramTimingHigh);
 	free(dramTiming0);
 	free(dramTiming1);
@@ -3171,7 +3171,7 @@ void Interlagos::getDramTiming(DWORD device, /* 0 or 1   DCT0 or DCT1 */
 	free(dramTiming5);
 	free(dramTiming6);
 	free(dramTiming10);
-	
+
 	return;
 }
 
