@@ -552,7 +552,7 @@ float Interlagos::getDID (PState ps)
 
 	//Returns data for the first cpu in cpuMask (cpu 0)
 	//DID is stored after 6 bits of offset and is 3 bits wide
-	did=msrObject->getBitsLow(0, 6, 3);
+	did = msrObject->getBitsLow(0, 6, 3);
 
 	free (msrObject);
 
@@ -1065,7 +1065,7 @@ DWORD Interlagos::minVID ()
 		return false;
 	}
 
-	minVid=msrObject->getBits(0, 42, 7);
+	minVid = msrObject->getBits(0, 42, 7);
 
 	free (msrObject);
 
@@ -1649,7 +1649,7 @@ DWORD Interlagos::getStepUpRampTime (void)
 	 * bits from 24 to 27
 	 */
 
-	vsRampTime=pciRegObject->getBits(0, 24, 4);
+	vsRampTime = pciRegObject->getBits(0, 24, 4);
 
 	free (pciRegObject);
 
@@ -1678,7 +1678,7 @@ DWORD Interlagos::getStepDownRampTime (void)
 	 * bits from 20 to 23
 	 */
 
-	vsRampTime=pciRegObject->getBits(0, 20, 4);
+	vsRampTime = pciRegObject->getBits(0, 20, 4);
 
 	free (pciRegObject);
 
@@ -2628,7 +2628,7 @@ bool Interlagos::getPsiEnabled()
 	 * bit 7
 	 */
 
-	psiEnabled=pciRegObject->getBits(0, 7, 1);
+	psiEnabled = pciRegObject->getBits(0, 7, 1);
 
 	free(pciRegObject);
 
@@ -2891,8 +2891,8 @@ void Interlagos::checkMode()
 		}
 	}
 
-	minTemp=getTctlRegister();
-	maxTemp=minTemp;
+	minTemp = getTctlRegister();
+	maxTemp = minTemp;
 	iTimeStamp = GetTickCount();
 	oTimeStamp = iTimeStamp;
 
