@@ -2782,9 +2782,9 @@ void Interlagos::setPsiThreshold (DWORD threshold)
 {
 	PCIRegObject *pciRegObject;
 
-	if (threshold > minVID() || threshold < maxVID())
+	if (isPsiThresholdValid(threshold) == false)
 	{
-		printf ("setPsiThreshold: value must be between %d and %d\n",minVID(), maxVID());
+		printf ("setPsiThreshold: value must be non-zero value between %d and %d\n", minVID(), maxVID());
 		return;
 	}
 
