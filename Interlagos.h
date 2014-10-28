@@ -19,6 +19,8 @@ private:
 			DWORD *TrwtTO, DWORD *Twtr, DWORD *Twrrd, DWORD *Twrwrsdsc, DWORD *Trdrdsdsc, DWORD *Tref,
 			DWORD *Trfc0, DWORD *Trfc1, DWORD *Trfc2, DWORD *Trfc3, DWORD *MaxRdLatency);
 
+	float getVidUnit();
+
 public:
 
 	Interlagos();

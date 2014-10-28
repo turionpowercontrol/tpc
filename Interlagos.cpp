@@ -245,6 +245,21 @@ void Interlagos::showFamilySpecs()
 
 }
 
+float Interlagos::getVidUnit()
+{
+	int modelExtended;
+	
+	modelExtended = getSpecModelExtended();
+
+	if ((modelExtended >= 0x10 && modelExtended <= 0x1F) ||
+	    (modelExtended >= 0x30 && modelExtended <= 0x3F)) {
+	    	// models 10h-1Fh, 30h-3Fh use SVID2
+		return 0.00625;
+	}
+
+	return 0.0125;
+}
+
 //Miscellaneous function inherited by Processor abstract class and that
 //needs to be reworked for family 10h
 float Interlagos::convertVIDtoVcore(DWORD curVid)
@@ -257,11 +272,11 @@ float Interlagos::convertVIDtoVcore(DWORD curVid)
 	 Serial VID Interface is simple to calculate.
 	 To obtain vcore from VID you need to do:
 
-	 vcore = 1,55 – (VID * 0.0125)
+	 vcore = 1.55 – (VID * VID unit)
 
 	 The inverse formula to obtain VID from vcore is:
 
-	 vid = (1.55-vcore)/0.0125
+	 vid = (1.55 - vcore) / VID unit
 
 	 */
 
@@ -273,7 +288,7 @@ float Interlagos::convertVIDtoVcore(DWORD curVid)
 	}
 	else
 	{
-		curVcore = (float) (1.550 - (0.0125 * curVid));
+		curVcore = (float) (1.55 - (getVidUnit() * curVid));
 	}
 
 	return curVcore;
@@ -283,7 +298,7 @@ DWORD Interlagos::convertVcoretoVID (float vcore)
 {
 	DWORD vid;
 
-	vid = round(((1.55 - vcore) / 0.0125));
+	vid = round(((1.55 - vcore) / getVidUnit()));
 
 	return vid;
 
@@ -371,6 +386,7 @@ void Interlagos::setVID (PState ps, DWORD vid)
 {
 
 	MSRObject *msrObject;
+	int modelExtended;
 
 	if ((vid > minVID()) || (vid < maxVID()))
 	{
@@ -387,8 +403,14 @@ void Interlagos::setVID (PState ps, DWORD vid)
 		return;
 	}
 
-	//To set VID, base offset is 9 bits and value is 7 bit wide.
-	msrObject->setBitsLow(9, 7, vid);
+	modelExtended = getSpecModelExtended();
+	if ((modelExtended >= 0x10 && modelExtended <= 0x1F) ||
+	    (modelExtended >= 0x30 && modelExtended <= 0x3F)) {
+	        // models 10h-1Fh, 30h-3Fh use 8 bits for VID
+		msrObject->setBitsLow(9, 8, vid);
+	} else {
+		msrObject->setBitsLow(9, 7, vid);
+	}
 
 	if (!msrObject->writeMSR())
 	{
@@ -489,6 +511,7 @@ DWORD Interlagos::getVID (PState ps)
 
 	MSRObject *msrObject;
 	DWORD vid;
+	int modelExtended;
 
 	msrObject=new MSRObject ();
 
@@ -499,9 +522,14 @@ DWORD Interlagos::getVID (PState ps)
 		return false;
 	}
 
-	//Returns data for the first cpu in cpuMask.
-	//VID is stored after 9 bits of offset and is 7 bits wide
-	vid = msrObject->getBitsLow(0, 9, 7);
+	modelExtended = getSpecModelExtended();
+	if ((modelExtended >= 0x10 && modelExtended <= 0x1F) ||
+	    (modelExtended >= 0x30 && modelExtended <= 0x3F)) {
+	        // models 10h-1Fh, 30h-3Fh use 8 bits for VID
+		vid = msrObject->getBitsLow(0, 9, 8);
+	} else {
+		vid = msrObject->getBitsLow(0, 9, 7);
+	}
 
 	free (msrObject);
 
@@ -1050,50 +1078,90 @@ void Interlagos::setNBFid(DWORD fid)
 	return ;
 }
 
-//minVID is reported per-node, so selected core is always discarded
 DWORD Interlagos::minVID ()
 {
-	MSRObject *msrObject;
+	int modelExtended;
 	DWORD minVid;
 
-	msrObject = new MSRObject;
+	modelExtended = getSpecModelExtended();
 
-	if (!msrObject->readMSR(COFVID_STATUS_REG, getMask(0, selectedNode)))
-	{
-		printf ("Interlagos::minVID - Unable to read MSR\n");
+	if ((modelExtended >= 0x10 && modelExtended <= 0x1F) ||
+	    (modelExtended >= 0x30 && modelExtended <= 0x3F)) {
+		PCIRegObject *pciReg;
+
+		pciReg = new PCIRegObject;
+		
+		if (!pciReg->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_5, 0x17C, getNodeMask())) {
+			printf("Interlagos::minVID - Unable to read PCI register\n");
+			delete pciReg;
+			return (DWORD)-1;
+		}
+		minVid = pciReg->getBits(0, 10, 8);
+		delete pciReg;
+
+		// SVID2 allows minimum vcore VID up to 0xf7
+		if (minVid == 0)
+			minVid = 0xf7;
+	} else {
+		MSRObject *msrObject;
+		msrObject = new MSRObject;
+
+		//minVID is reported per-node, so selected core is always discarded
+		if (!msrObject->readMSR(COFVID_STATUS_REG, getMask(0, selectedNode)))
+		{
+			printf ("Interlagos::minVID - Unable to read MSR\n");
+			free (msrObject);
+			return false;
+		}
+
+		minVid = msrObject->getBits(0, 42, 7);
+
 		free (msrObject);
-		return false;
+
+		//Serial VID mode, allows minimum vcore VID up to 0x7b
+		if (minVid == 0)
+			minVid = 0x7b;
 	}
 
-	minVid = msrObject->getBits(0, 42, 7);
-
-	free (msrObject);
-
-	//Serial VID mode, allows minimum vcore VID up to 0x7b
-	if (minVid==0)
-		return 0x7b;
-	else
-		return minVid;
+	return minVid;
 }
 
-//maxVID is reported per-node, so selected core is always discarded
 DWORD Interlagos::maxVID()
 {
-	MSRObject *msrObject;
+	int modelExtended;
 	DWORD maxVid;
 
-	msrObject = new MSRObject;
+	modelExtended = getSpecModelExtended();
 
-	if (!msrObject->readMSR(COFVID_STATUS_REG, getMask(0, selectedNode)))
-	{
-		printf("Interlagos::maxVID - Unable to read MSR\n");
+	if ((modelExtended >= 0x10 && modelExtended <= 0x1F) ||
+	    (modelExtended >= 0x30 && modelExtended <= 0x3F)) {
+		PCIRegObject *pciReg;
+
+		pciReg = new PCIRegObject;
+		
+		if (!pciReg->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_5, 0x17C, getNodeMask())) {
+			printf("Interlagos::maxVID - Unable to read PCI register\n");
+			delete pciReg;
+			return (DWORD)-1;
+		}
+		maxVid = pciReg->getBits(0, 0, 8);
+		delete pciReg;
+	} else {
+		MSRObject *msrObject;
+		msrObject = new MSRObject;
+
+		//maxVID is reported per-node, so selected core is always discarded
+		if (!msrObject->readMSR(COFVID_STATUS_REG, getMask(0, selectedNode)))
+		{
+			printf("Interlagos::maxVID - Unable to read MSR\n");
+			free(msrObject);
+			return false;
+		}
+
+		maxVid = msrObject->getBits(0, 35, 7);
+
 		free(msrObject);
-		return false;
 	}
-
-	maxVid = msrObject->getBits(0, 35, 7);
-
-	free(msrObject);
 
 	return maxVid;
 }
