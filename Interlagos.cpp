@@ -2747,6 +2747,11 @@ void Interlagos::setPsiEnabled (bool toggle)
 {
 	PCIRegObject *pciRegObject;
 
+	if (isPsiThresholdValid(getPsiThreshold()) == false) {
+		printf("Interlagos::setPsiEnabled - PSI threshold invalid or unset. PSI not enabled.\n");
+		return;
+	}
+
 	pciRegObject = new PCIRegObject();
 
 	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3, 0xa0, getNodeMask()))
