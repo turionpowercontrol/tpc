@@ -1095,11 +1095,7 @@ DWORD Interlagos::maxVID()
 	
 	free(msrObject);
 	
-	//If maxVid==0, then there's no maximum set in hardware
-	if (maxVid == 0)
-		return 0;
-	else
-		return maxVid;
+	return maxVid;
 }
 
 //StartupPState is reported per-node. Selected core is discarded
