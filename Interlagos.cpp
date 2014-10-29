@@ -1665,35 +1665,6 @@ void Interlagos::setSlamTime (DWORD slmTime)
 	return;
 }
 
-/*
-DWORD K10Processor::getAltVidSlamTime (void) {
-	DWORD miscReg;
-	DWORD vsSlamTime;
-
-	ReadPciConfigDwordEx (MISC_CONTROL_3,0xdc,&miscReg);
-
-	vsSlamTime=(miscReg >> 29) & 0x7;
-
-	return vsSlamTime;
-}
-
-void K10Processor::setAltVidSlamTime (DWORD slmTime) {
-	DWORD miscReg;
-
-	if (slmTime<0 || slmTime >7) {
-		printf ("Invalid AltVID Slam Time: must be between 0 and 7\n");
-		return;
-	}
-
-	ReadPciConfigDwordEx (MISC_CONTROL_3,0xdc,&miscReg);
-
-	miscReg=(miscReg & 0xE0000000)+ (slmTime<<29);
-
-	WritePciConfigDwordEx (MISC_CONTROL_3,0xdc,miscReg);
-
-} */
-
-
 //Voltage Ramping time
 DWORD Interlagos::getStepUpRampTime (void)
 {
@@ -2236,76 +2207,6 @@ void Interlagos::HTCsetHystLimit(DWORD hystLimit)
 	if (!pciRegObject->writePCIReg())
 	{
 		printf("Interlagos::HTCsetHystLimit - unable to write PCI register\n");
-		free(pciRegObject);
-		return;
-	}
-
-	free(pciRegObject);
-
-	return;
-}
-
-DWORD Interlagos::getAltVID()
-{
-	PCIRegObject *pciRegObject;
-	DWORD altVid;
-
-	pciRegObject = new PCIRegObject();
-
-	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3, 0xdc, getNodeMask()))
-	{
-		printf("Interlagos.cpp::getAltVID - unable to read PCI register\n");
-		free(pciRegObject);
-		return false;
-	}
-
-	/*
-	 * AltVid is stored in PCI register with
-	 * device PCI_DEV_NORTHBRIDGE
-	 * function PC_FUNC_MISC_CONTROL_3
-	 * register 0xDC
-	 * bits from 0 to 6
-	 */
-
-	altVid = pciRegObject->getBits(0, 0, 7);
-
-	free(pciRegObject);
-
-	return altVid;
-}
-
-void Interlagos::setAltVid(DWORD altVid)
-{
-	PCIRegObject *pciRegObject;
-
-	if ((altVid < maxVID()) || (altVid > minVID()))
-	{
-		printf("setAltVID: VID Allowed range %d-%d\n", maxVID(), minVID());
-		return;
-	}
-
-	pciRegObject = new PCIRegObject();
-
-	if (!pciRegObject->readPCIReg(PCI_DEV_NORTHBRIDGE, PCI_FUNC_MISC_CONTROL_3, 0xdc, getNodeMask()))
-	{
-		printf("Interlagos.cpp::setAltVID - unable to read PCI register\n");
-		free(pciRegObject);
-		return;
-	}
-
-	/*
-	 * AltVid is stored in PCI register with
-	 * device PCI_DEV_NORTHBRIDGE
-	 * function PC_FUNC_MISC_CONTROL_3
-	 * register 0xDC
-	 * bits from 0 to 6
-	 */
-
-	pciRegObject->setBits(0, 7, altVid);
-
-	if (!pciRegObject->writePCIReg())
-	{
-		printf("Interlagos.cpp::setAltVID - unable to write to PCI register\n");
 		free(pciRegObject);
 		return;
 	}

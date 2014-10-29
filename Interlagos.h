@@ -104,9 +104,6 @@ public:
 	DWORD getSlamTime(void);
 	void setSlamTime(DWORD);
 
-	/*DWORD getAltVidSlamTime (void);
-	void setAltVidSlamTime (DWORD);*/
-
 	DWORD getStepUpRampTime(void);
 	DWORD getStepDownRampTime(void);
 	void setStepUpRampTime(DWORD);
@@ -123,15 +120,12 @@ public:
 	DWORD HTCPStateLimit();
 	bool HTCLocked();
 
-	DWORD getAltVID();
-
 	//HTC Section - Change status
 	void HTCEnable();
 
 	void HTCDisable();
 	void HTCsetTempLimit(DWORD);
 	void HTCsetHystLimit(DWORD);
-	void setAltVid(DWORD);
 		
 	//PSI_L bit
 	bool getPsiEnabled();
