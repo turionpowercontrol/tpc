@@ -249,7 +249,7 @@ void Interlagos::showFamilySpecs()
 #define SVI_MINVID 0x7b
 
 #define SVI2_VIDUNIT 0.00625
-#define SVI2_MINVID 0xa7
+#define SVI2_MINVID 0xf7
 
 bool Interlagos::isSvi2()
 {
