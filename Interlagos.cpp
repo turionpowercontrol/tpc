@@ -245,12 +245,6 @@ void Interlagos::showFamilySpecs()
 
 }
 
-#define SVI_VIDUNIT 0.0125
-#define SVI_MINVID 0x7b
-
-#define SVI2_VIDUNIT 0.00625
-#define SVI2_MINVID 0xf7
-
 bool Interlagos::isSvi2()
 {
 	if ((modelExtended >= 0x10 && modelExtended <= 0x1F) ||
@@ -258,6 +252,14 @@ bool Interlagos::isSvi2()
 		return true;
 	}
 	return false;
+}
+
+float Interlagos::getVidUnit()
+{
+	if (isSvi2()) {
+		return 0.00625;
+	}
+	return 0.0125;
 }
 
 //Miscellaneous function inherited by Processor abstract class and that
@@ -282,18 +284,9 @@ float Interlagos::convertVIDtoVcore(DWORD curVid)
 
 	float curVcore;
 
-	if (isSvi2()) {
-		if (curVid > SVI2_MINVID) {
-			curVcore = 0;
-		} else {
-			curVcore = (float) (1.55 - (SVI2_VIDUNIT * curVid));
-		}
-	} else {
-		if (curVid > SVI_MINVID) {
-			curVcore = 0;
-		} else {
-			curVcore = (float) (1.55 - (SVI_VIDUNIT * curVid));
-		}
+	curVcore = (float) (1.55 - (getVidUnit() * curVid));
+	if (curVcore < getVidUnit()) {
+		curVcore = 0;
 	}
 
 	return curVcore;
@@ -303,13 +296,10 @@ DWORD Interlagos::convertVcoretoVID (float vcore)
 {
 	DWORD vid;
 
-	if (isSvi2()) {
-		vid = round(((1.55 - vcore) / SVI2_VIDUNIT));
-	} else {
-		vid = round(((1.55 - vcore) / SVI_VIDUNIT));
-	}
+	vid = round(((1.55 - vcore) / getVidUnit()));
 
 	return vid;
+
 }
 
 DWORD Interlagos::convertFDtoFreq (DWORD curFid, DWORD curDid)
@@ -1106,8 +1096,9 @@ DWORD Interlagos::minVID ()
 		minVid = pciReg->getBits(0, 10, 8);
 		delete pciReg;
 
+		// SVID2 allows minimum vcore VID up to 0xf7
 		if (minVid == 0)
-			minVid = SVI2_MINVID;
+			minVid = 0xf7;
 	} else {
 		MSRObject *msrObject;
 		msrObject = new MSRObject;
@@ -1124,8 +1115,9 @@ DWORD Interlagos::minVID ()
 
 		free (msrObject);
 
+		//Serial VID mode, allows minimum vcore VID up to 0x7b
 		if (minVid == 0)
-			minVid = SVI_MINVID;
+			minVid = 0x7b;
 	}
 
 	return minVid;
