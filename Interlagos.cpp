@@ -130,7 +130,7 @@ Interlagos::Interlagos ()
 	setProcessorCores(cores/nodes_per_package);
 	setNode(0);
 	setBoostStates (getNumBoostStates());
-	setPowerStates(7);
+	setPowerStates(8);
 	setProcessorIdentifier(PROCESSOR_15H_FAMILY);
 	setProcessorStrId("Family 15h (Bulldozer/Interlagos/Valencia) Processor");
 }
