@@ -1381,6 +1381,11 @@ int main (int argc,const char **argv) {
 				printf("ERROR: invalid psithreshold -- %s\n", argv[argvStep + 1]);
 				break;
 			}
+			if (processor->getPsiEnabled() == true) {
+				printf("ERROR: PSI enabled; disable PSI before changing PSI threshold\n");
+				break;
+			}
+			printf("WARNING: changing PSI threshold may cause permanent damage to your hardware!\n\n");
 			processor->setPsiThreshold(psithreshold);
 			argvStep++;
 			continue;
