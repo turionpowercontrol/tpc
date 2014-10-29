@@ -147,7 +147,9 @@ void processorStatus (Processor *p) {
 
 		printf ("\nMinimum allowed VID: %d (%0.4fV) - Maximum allowed VID %d (%0.4fV)\n", p->minVID(),
 			p->convertVIDtoVcore(p->minVID()),p->maxVID(),p->convertVIDtoVcore(p->maxVID()));
-		printf ("Processor AltVID: %d (%0.4fV)\n",p->getAltVID(),p->convertVIDtoVcore(p->getAltVID()));
+		if (p->getAltVID() != -1) {
+			printf ("Processor AltVID: %d (%0.4fV)\n",p->getAltVID(),p->convertVIDtoVcore(p->getAltVID()));
+		}
 	}
 
 }
