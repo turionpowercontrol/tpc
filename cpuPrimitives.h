@@ -13,17 +13,18 @@
 
 #define TRUE true
 #define FALSE false
+#define BOOL bool
 
-bool Cpuid (DWORD fn, DWORD *eax, DWORD *ebx, DWORD *ecx, DWORD *edx);
-bool ReadPciConfigDwordEx (DWORD devfunc, DWORD reg, DWORD *res);
+BOOL Cpuid(DWORD index, PDWORD eax, PDWORD ebx, PDWORD ecx, PDWORD edx);
 
-bool WritePciConfigDwordEx (DWORD devfunc, DWORD reg, DWORD res) ;
+BOOL ReadPciConfigDwordEx(DWORD pciAddress, DWORD regAddress, PDWORD value);
+BOOL WritePciConfigDwordEx(DWORD pciAddress, DWORD regAddress, DWORD value);
 
-bool RdmsrPx (DWORD msr,DWORD *eax,DWORD *ebx,PROCESSORMASK processor) ;
-bool Rdmsr (DWORD msr,DWORD *eax,DWORD *ebx) ;
+BOOL RdmsrPx(DWORD index, PDWORD eax, PDWORD edx, DWORD_PTR processAffinityMask);
+BOOL Rdmsr(DWORD index, PDWORD eax, PDWORD edx);
 
-bool WrmsrPx (DWORD msr,DWORD eax,DWORD ebx,PROCESSORMASK processor);
-bool Wrmsr (DWORD msr,DWORD eax,DWORD ebx);
+BOOL WrmsrPx(DWORD index, DWORD eax, DWORD edx, DWORD_PTR processorAffinityMask);
+BOOL Wrmsr(DWORD index, DWORD eax, DWORD edx);
 
 void Sleep (DWORD ms);
 

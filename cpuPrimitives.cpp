@@ -12,8 +12,8 @@
 #define TRUE true
 #define FALSE false
 
-bool Cpuid (DWORD fn, DWORD *eax, DWORD *ebx, DWORD *ecx, DWORD *edx) {
-
+BOOL Cpuid(DWORD index, PDWORD eax, PDWORD ebx, PDWORD ecx, PDWORD edx)
+{
 	char cpuid_filename[128];
 	DWORD data[4];
 	int fd;
@@ -41,7 +41,7 @@ bool Cpuid (DWORD fn, DWORD *eax, DWORD *ebx, DWORD *ecx, DWORD *edx) {
 		}
 	}
   
-	if ( pread(fd, &data, sizeof data, fn) != sizeof data )
+	if ( pread(fd, &data, sizeof data, index) != sizeof data )
 	{
 		perror("cpuid:pread");
 		return false;
@@ -57,16 +57,16 @@ bool Cpuid (DWORD fn, DWORD *eax, DWORD *ebx, DWORD *ecx, DWORD *edx) {
 	return true;
 }
 
-bool ReadPciConfigDwordEx (DWORD devfunc, DWORD reg, DWORD *res)
+BOOL ReadPciConfigDwordEx(DWORD pciAddress, DWORD regAddress, PDWORD value)
 {
 	char pcidev_filename[128];
 	int fd;
 	DWORD data;
 	DWORD bus, device, function;
 
-	bus=(devfunc >> 8) & 0xff;
-	device=(devfunc >> 3) & 0x1f;
-	function=devfunc & 0x7;
+	bus=(pciAddress >> 8) & 0xff;
+	device=(pciAddress >> 3) & 0x1f;
+	function=pciAddress & 0x7;
 
 	sprintf(pcidev_filename, "/proc/bus/pci/%02x/%02x.%x",bus,device,function);
 
@@ -91,29 +91,29 @@ bool ReadPciConfigDwordEx (DWORD devfunc, DWORD reg, DWORD *res)
 		}
 	}
   
-	if ( pread(fd, &data, sizeof data, reg) != sizeof data )
+	if ( pread(fd, &data, sizeof data, regAddress) != sizeof data )
 	{
 		perror("ReadPciConfigDwordEx: pread");
 		return false;
 	}
 	
-	*res = data;
+	*value = data;
 	
 	close(fd);
 	
 	return true;
 }
 
-bool WritePciConfigDwordEx (DWORD devfunc, DWORD reg, DWORD res)
+BOOL WritePciConfigDwordEx(DWORD pciAddress, DWORD regAddress, DWORD value)
 {
 	char pcidev_filename[128];
 	int fd;
 	DWORD data;
 	DWORD bus, device, function;
 	
-	bus=(devfunc >> 8) & 0xff;
-	device=(devfunc >> 3) & 0x1f;
-	function=devfunc & 0x7;
+	bus=(pciAddress >> 8) & 0xff;
+	device=(pciAddress >> 3) & 0x1f;
+	function=pciAddress & 0x7;
 	
 	sprintf(pcidev_filename, "/proc/bus/pci/%02x/%02x.%x",bus,device,function);
 	
@@ -138,9 +138,9 @@ bool WritePciConfigDwordEx (DWORD devfunc, DWORD reg, DWORD res)
 		}
 	}
 	
-	data=res;
+	data=value;
 	
-	if ( pwrite(fd, &data, sizeof data, reg) != sizeof data )
+	if ( pwrite(fd, &data, sizeof data, regAddress) != sizeof data )
 	{
 		perror("WritePciConfigDwordEx: pwrite");
 		return false;
@@ -151,7 +151,7 @@ bool WritePciConfigDwordEx (DWORD devfunc, DWORD reg, DWORD res)
 	return true;
 }
 
-bool RdmsrPx (DWORD msr,DWORD *eax,DWORD *ebx,PROCESSORMASK processorMask)
+BOOL RdmsrPx(DWORD index, PDWORD eax, PDWORD edx, DWORD_PTR processAffinityMask)
 {
 	char msr_filename[128];
 	DWORD data[2];
@@ -161,7 +161,7 @@ bool RdmsrPx (DWORD msr,DWORD *eax,DWORD *ebx,PROCESSORMASK processorMask)
 
 	while (processor<MAX_CORES)
 	{
-		isValidProcessor=processorMask & ((PROCESSORMASK)1<<processor);
+		isValidProcessor=processAffinityMask & ((DWORD_PTR)1<<processor);
 
 		if (isValidProcessor)
 		{			
@@ -183,14 +183,14 @@ bool RdmsrPx (DWORD msr,DWORD *eax,DWORD *ebx,PROCESSORMASK processorMask)
 			}
 	
   	
-			if ( pread(fd, &data, sizeof data, msr) != sizeof data )
+			if ( pread(fd, &data, sizeof data, index) != sizeof data )
 			{
 				perror("rdmsr: pread");
 				return false;
 			}
 	
 			*eax=data[0];
-			*ebx=data[1];
+			*edx=data[1];
 	
 			close(fd);
 
@@ -206,29 +206,31 @@ bool RdmsrPx (DWORD msr,DWORD *eax,DWORD *ebx,PROCESSORMASK processorMask)
 	return true;
 }
 
-bool Rdmsr (DWORD msr,DWORD *eax,DWORD *ebx) {
-	return RdmsrPx (msr, eax, ebx, 0x1);
+BOOL Rdmsr(DWORD index, PDWORD eax, PDWORD edx)
+{
+	return RdmsrPx(index, eax, edx, 0x1);
 }
 
-bool WrmsrPx (DWORD msr,DWORD eax,DWORD ebx,PROCESSORMASK processorMask) {
+BOOL WrmsrPx(DWORD index, DWORD eax, DWORD edx, DWORD_PTR processAffinityMask)
+{
 	char msr_filename[128];
 	DWORD data[2];
 	int fd;
 	DWORD processor=0;
 	bool isValidProcessor;
 
-// 	printf ("Mask: %x\n", processorMask);
+// 	printf ("Mask: %x\n", processAffinityMask);
 
 	while (processor<MAX_CORES) {
 
-		isValidProcessor=(processorMask>>processor) & 1;
+		isValidProcessor=(processAffinityMask>>processor) & 1;
 
 		if (isValidProcessor) {
 
 // 			printf ("processor %d is valid\n", processor);
 
 			data[0]=eax;
-			data[1]=ebx;
+			data[1]=edx;
 	
 			sprintf(msr_filename, "/dev/cpu/%u/msr",processor);
 	
@@ -253,10 +255,10 @@ bool WrmsrPx (DWORD msr,DWORD eax,DWORD ebx,PROCESSORMASK processorMask) {
 				}
 			}
   	
-			if ( pwrite(fd, &data, sizeof data, msr) != sizeof data)
+			if ( pwrite(fd, &data, sizeof data, index) != sizeof data)
 			{
 				if (errno == EIO) 
-					fprintf(stderr, "wrmsr: CPU %d cannot set MSR %X to %X %X\n", processor, msr, data[0], data[1]);
+					fprintf(stderr, "wrmsr: CPU %d cannot set MSR %X to %X %X\n", processor, index, data[0], data[1]);
 				else
 					fprintf(stderr, "WrmsrPx pread Errno %x\n",errno);
 				close(fd);
@@ -267,14 +269,14 @@ bool WrmsrPx (DWORD msr,DWORD eax,DWORD ebx,PROCESSORMASK processorMask) {
 			
 			/*
 			 * Removes the current processor from the mask to optimize the write loop with
-			 * a further check on processorMask variable
+			 * a further check on processAffinityMask variable
 			 */
-			processorMask ^= (PROCESSORMASK)1 << processor;
+			processAffinityMask ^= (DWORD_PTR)1 << processor;
 	
 		}
 
-		//Breaks the loop if processorMask is empty.
-		if (processorMask==0) {
+		//Breaks the loop if processAffinityMask is empty.
+		if (processAffinityMask==0) {
 			return true;
 		}
 
@@ -285,8 +287,9 @@ bool WrmsrPx (DWORD msr,DWORD eax,DWORD ebx,PROCESSORMASK processorMask) {
 	return true;
 }
 
-bool Wrmsr (DWORD msr,DWORD eax,DWORD ebx) {
-	return WrmsrPx (msr, eax, ebx, 0x1);
+BOOL Wrmsr(DWORD index, DWORD eax, DWORD edx)
+{
+	return WrmsrPx(index, eax, edx, 0x1);
 }
 
 void Sleep (DWORD ms) {
