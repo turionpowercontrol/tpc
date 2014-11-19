@@ -1,5 +1,4 @@
 #include <inttypes.h>
-#include <sys/types.h>
 
 #define DWORD uint32_t
 #define PDWORD DWORD*
