@@ -794,6 +794,19 @@ int parseSetCommand (Processor *p, int argc, const char **argv, int argcOffset) 
 
 }
 
+#ifdef _WIN32
+#  ifdef _WIN64
+#    define _TARGET_OS "Windows 64-bit"
+#  else
+#    define _TARGET_OS "Windows 32-bit"
+#  endif
+#else
+#  ifdef __amd64
+#    define _TARGET_OS "Linux 64-bit"
+#  else
+#    define _TARGET_OS "Linux 32-bit"
+#  endif
+#endif
 int main (int argc,const char **argv) {
 
 	int argvStep;
@@ -815,7 +828,7 @@ int main (int argc,const char **argv) {
 	int parsed = 0;
 	int parsed_set = 0;
 
-	printf ("TurionPowerControl %s (%s)\n", _VERSION, _SOURCE_VERSION);
+	printf ("TurionPowerControl %s (%s) %s\n", _VERSION, _SOURCE_VERSION, _TARGET_OS);
 	printf ("Turion Power States Optimization and Control - by blackshard\n\n");
 
 	if (argc<2) {
