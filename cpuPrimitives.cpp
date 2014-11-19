@@ -8,10 +8,6 @@
 #include "cpuPrimitives.h"
 #include <time.h>
 
-#define DWORD uint32_t
-#define TRUE true
-#define FALSE false
-
 BOOL Cpuid(DWORD index, PDWORD eax, PDWORD ebx, PDWORD ecx, PDWORD edx)
 {
 	char cpuid_filename[128];
