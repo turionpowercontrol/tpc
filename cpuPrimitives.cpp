@@ -153,13 +153,10 @@ BOOL RdmsrPx(DWORD index, PDWORD eax, PDWORD edx, DWORD_PTR processAffinityMask)
 	DWORD data[2];
 	int fd;
 	DWORD processor=0;
-	bool isValidProcessor;
 
-	while (processor<MAX_CORES)
+	while (processAffinityMask)
 	{
-		isValidProcessor=processAffinityMask & ((DWORD_PTR)1<<processor);
-
-		if (isValidProcessor)
+		if (processAffinityMask & 1)
 		{			
 			sprintf(msr_filename, "/dev/cpu/%d/msr",processor);
 
@@ -198,6 +195,7 @@ BOOL RdmsrPx(DWORD index, PDWORD eax, PDWORD edx, DWORD_PTR processAffinityMask)
 			return true;
 		}
 		processor++;
+		processAffinityMask >>= 1;
 	}
 	return true;
 }
@@ -213,15 +211,12 @@ BOOL WrmsrPx(DWORD index, DWORD eax, DWORD edx, DWORD_PTR processAffinityMask)
 	DWORD data[2];
 	int fd;
 	DWORD processor=0;
-	bool isValidProcessor;
 
 // 	printf ("Mask: %x\n", processAffinityMask);
 
-	while (processor<MAX_CORES) {
+	while (processAffinityMask) {
 
-		isValidProcessor=(processAffinityMask>>processor) & 1;
-
-		if (isValidProcessor) {
+		if (processAffinityMask & 1) {
 
 // 			printf ("processor %d is valid\n", processor);
 
@@ -262,22 +257,10 @@ BOOL WrmsrPx(DWORD index, DWORD eax, DWORD edx, DWORD_PTR processAffinityMask)
 			}
 
 			close(fd);
-			
-			/*
-			 * Removes the current processor from the mask to optimize the write loop with
-			 * a further check on processAffinityMask variable
-			 */
-			processAffinityMask ^= (DWORD_PTR)1 << processor;
 	
 		}
-
-		//Breaks the loop if processAffinityMask is empty.
-		if (processAffinityMask==0) {
-			return true;
-		}
-
 		processor++;
-
+		processAffinityMask >>= 1;
 	}
 
 	return true;
