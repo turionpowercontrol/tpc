@@ -2939,7 +2939,7 @@ void K10Processor::checkMode () {
 
 	states = new DWORD[processorNodes * processorCores * getPowerStates()]();
 	savedstates = new DWORD[processorNodes * processorCores * getPowerStates()]();
- 
+
 	minTemp=getTctlRegister();
 	maxTemp=minTemp;
 	iTimeStamp = GetTickCount();
