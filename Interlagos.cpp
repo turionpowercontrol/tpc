@@ -2865,9 +2865,6 @@ void Interlagos::checkMode()
 	DWORD savedstates[processorNodes][processorCores][getPowerStates()];
 	DWORD minTemp, maxTemp, temp, savedMinTemp, savedMaxTemp;
 	DWORD oTimeStamp, iTimeStamp;
-	DWORD maxPState;
-
-	maxPState=getMaximumPState().getPState();
 
 	for (i = 0; i < processorNodes; i++)
 	{

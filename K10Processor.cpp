@@ -2931,9 +2931,6 @@ void K10Processor::checkMode () {
 	DWORD minTemp, maxTemp, temp, savedMinTemp, savedMaxTemp;
 	DWORD oTimeStamp, iTimeStamp;
 	float curVcore;
-	DWORD maxPState;
-
-	maxPState=getMaximumPState().getPState();
 
 	for (i = 0; i < processorNodes; i++)
 	{
