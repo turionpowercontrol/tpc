@@ -35,9 +35,8 @@ PCIRegObject::PCIRegObject()
  */
 void PCIRegObject::newPCIReg(DWORD device, DWORD function, DWORD reg, DWORD nodeMask)
 {
-	DWORD nid;
 	DWORD mask;
-	unsigned int count=0;
+	unsigned int count;
 
 	this->nodeMask = nodeMask;
 	this->reg = reg;
@@ -45,11 +44,13 @@ void PCIRegObject::newPCIReg(DWORD device, DWORD function, DWORD reg, DWORD node
 	this->device = device;
 
 	//count as many nodes are accounted in nodeMask
-	for (nid = 0; nid < MAX_NODES; nid++)
-	{
-		mask = (DWORD) 1 << nid;
-		if (nodeMask & mask)
+	mask = this->nodeMask;
+	count = 0;
+	while (mask) {
+		if (mask & 1) {
 			count++;
+		}
+		mask >>= 1;
 	}
 
 	this->nodeCount = count;
@@ -79,9 +80,9 @@ void PCIRegObject::newPCIReg(DWORD device, DWORD function, DWORD reg, DWORD node
  */
 bool PCIRegObject::readPCIReg(DWORD device, DWORD function, DWORD reg, DWORD nodeMask)
 {
-	DWORD nid;
 	DWORD mask;
-	unsigned int count=0;
+	unsigned int count;
+	DWORD nid;
 
 	this->nodeMask = nodeMask;
 	this->reg = reg;
@@ -89,11 +90,13 @@ bool PCIRegObject::readPCIReg(DWORD device, DWORD function, DWORD reg, DWORD nod
 	this->device = device;
 
 	//count as many nodes are accounted in nodeMask
-	for (nid = 0; nid < MAX_NODES; nid++)
-	{
-		mask = (DWORD) 1 << nid;
-		if (nodeMask & mask)
+	mask = this->nodeMask;
+	count = 0;
+	while (mask) {
+		if (mask & 1) {
 			count++;
+		}
+		mask >>= 1;
 	}
 
 	this->nodeCount = count;
@@ -104,13 +107,13 @@ bool PCIRegObject::readPCIReg(DWORD device, DWORD function, DWORD reg, DWORD nod
 	this->reg_ptr = (DWORD *) calloc(this->nodeCount, sizeof(DWORD));
 	this->absIndex = (unsigned int *) calloc (this->nodeCount, sizeof(unsigned int));
 
+	mask = this->nodeMask;
 	count = 0;
 	nid = 0;
 
-	while (nid < MAX_NODES)
+	while (mask)
 	{
-		mask = (DWORD) 1 << nid;
-		if (nodeMask & mask)
+		if (mask & 1)
 		{
 			if (!ReadPciConfigDwordEx(getPath(this->device+nid, this->function), this->reg, &this->reg_ptr[count]))
 			{
@@ -125,6 +128,7 @@ bool PCIRegObject::readPCIReg(DWORD device, DWORD function, DWORD reg, DWORD nod
 		}
 
 		nid++;
+		mask >>= 1;
 
 	}
 
@@ -139,25 +143,25 @@ bool PCIRegObject::readPCIReg(DWORD device, DWORD function, DWORD reg, DWORD nod
 bool PCIRegObject::writePCIReg ()
 {
 	DWORD mask;
-	DWORD nid;
 	unsigned int count;
+	DWORD nid;
 
 	if (this->nodeCount==0) return true;
 
-	nid=0;
+	mask = this->nodeMask;
 	count=0;
+	nid=0;
 
-	while (nid<MAX_NODES)
+	while (mask)
 	{
-		mask=(DWORD)1<<nid;
-
-		if (this->nodeMask & mask)
+		if (mask & 1)
 		{
 			if (!WritePciConfigDwordEx (getPath(this->device+nid, this->function),this->reg,this->reg_ptr[count])) return false;
 			count++;
 		}
 
 		nid++;
+		mask >>= 1;
 
 	}
 
