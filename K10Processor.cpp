@@ -2926,24 +2926,20 @@ void K10Processor::checkMode () {
 	DWORD a, b, c, i, j, k, pstate, vid, fid, did;
 	DWORD eaxMsr, edxMsr;
 	DWORD timestamp;
-	DWORD states[processorNodes][processorCores][getPowerStates()];
-	DWORD savedstates[processorNodes][processorCores][getPowerStates()];
+
+	DWORD *states;
+	DWORD *savedstates;
+#define STATEACCESS(VAR, NODE, CORE, PSTATE) VAR[(NODE) * processorCores * getPowerStates() + (CORE) * getPowerStates() + (PSTATE)]
+#define STATES(NODE, CORE, PSTATE) STATEACCESS(states, NODE, CORE, PSTATE)
+#define SAVEDSTATES(NODE, CORE, PSTATE) STATEACCESS(savedstates, NODE, CORE, PSTATE)
+
 	DWORD minTemp, maxTemp, temp, savedMinTemp, savedMaxTemp;
 	DWORD oTimeStamp, iTimeStamp;
 	float curVcore;
 
-	for (i = 0; i < processorNodes; i++)
-	{
-		for (j = 0; j < processorCores; j++)
-		{
-			for (k = 0; k < getPowerStates(); k++)
-			{
-				states[i][j][k] = 0;
-				savedstates[i][j][k] = 0;
-			}
-		}
-	}
-
+	states = new DWORD[processorNodes * processorCores * getPowerStates()]();
+	savedstates = new DWORD[processorNodes * processorCores * getPowerStates()]();
+ 
 	minTemp=getTctlRegister();
 	maxTemp=minTemp;
 	iTimeStamp = GetTickCount();
@@ -2969,7 +2965,7 @@ void K10Processor::checkMode () {
 				fid = eaxMsr & 0x3f;
 				did = (eaxMsr >> 6) & 0x7;
 
-				states[i][j][pstate]++;
+				STATES(i, j, pstate)++;
 
 				printf ("c%d:ps%d - ", j, pstate);
 			}
@@ -2991,8 +2987,8 @@ void K10Processor::checkMode () {
 				{
 					for (c = 0; c < getPowerStates(); c++)
 					{
-						savedstates[a][b][c] = states[a][b][c];
-						states[a][b][c] = 0;
+						SAVEDSTATES(a, b, c) = STATES(a, b, c);
+						STATES(a, b, c) = 0;
 					}
 				}
 			}
@@ -3017,7 +3013,7 @@ void K10Processor::checkMode () {
 					printf(" C%d:", b);
 					for (c = 0; c < getPowerStates(); c++)
 					{
-						printf("%6d", savedstates[a][b][c]);
+						printf("%6d", SAVEDSTATES(a, b, c));
 					}
 				}
 			}
@@ -3029,6 +3025,8 @@ void K10Processor::checkMode () {
 		Sleep (50);
 	}
 
+	delete savedstates;
+	delete states;
 	return;
 }
 
