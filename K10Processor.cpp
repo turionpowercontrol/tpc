@@ -2946,7 +2946,7 @@ void K10Processor::checkMode () {
 	oTimeStamp = iTimeStamp;
 
 	while (1) {
-	        ClearScreen(CLEARSCREEN_FLAG_SMART);
+		ClearScreen(CLEARSCREEN_FLAG_SMART);
 
 		timestamp=GetTickCount ();
 
@@ -3006,10 +3006,10 @@ void K10Processor::checkMode () {
 				printf("\nNode%d", a);
 				for (b = 0; b < processorCores; b++)
 				{
-				        if ((b & 1) == 0)
-				                printf("\n");
-                                        else
-                                                printf("      ");
+					if ((b & 1) == 0)
+						printf("\n");
+					else
+						printf("      ");
 					printf(" C%d:", b);
 					for (c = 0; c < getPowerStates(); c++)
 					{
@@ -3549,7 +3549,7 @@ void K10Processor::showDramTimings() {
 					unsigned int val;
 					PCIRegObject *csbaseaddr = new PCIRegObject();
 					csbaseaddr->readPCIReg(PCI_DEV_NORTHBRIDGE,
-                                                PCI_FUNC_DRAM_CONTROLLER, 0x100 * dct_index + 0x40 + 4 * i, 1 << node_index);
+						PCI_FUNC_DRAM_CONTROLLER, 0x100 * dct_index + 0x40 + 4 * i, 1 << node_index);
 					val = csbaseaddr->getBits(0, 0, 32);
 					if ((i & 1) == 0) {
 						printf("LDIMM%d=", i >> 1);
