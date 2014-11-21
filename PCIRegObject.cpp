@@ -6,6 +6,7 @@
  */
 
 #include "PCIRegObject.h"
+#include "sysdep.h"
 
 DWORD PCIRegObject::getPath()
 {
@@ -115,7 +116,7 @@ bool PCIRegObject::readPCIReg(DWORD device, DWORD function, DWORD reg, DWORD nod
 	{
 		if (mask & 1)
 		{
-			if (!ReadPciConfigDwordEx(getPath(this->device+nid, this->function), this->reg, &this->reg_ptr[count]))
+			if (!SysReadPciConfigDwordEx(getPath(this->device+nid, this->function), this->reg, &this->reg_ptr[count]))
 			{
 				/*This is not needed since memory will be freed by destructor
 				free(this->reg_ptr);
@@ -156,7 +157,7 @@ bool PCIRegObject::writePCIReg ()
 	{
 		if (mask & 1)
 		{
-			if (!WritePciConfigDwordEx (getPath(this->device+nid, this->function),this->reg,this->reg_ptr[count])) return false;
+			if (!SysWritePciConfigDwordEx (getPath(this->device+nid, this->function),this->reg,this->reg_ptr[count])) return false;
 			count++;
 		}
 
