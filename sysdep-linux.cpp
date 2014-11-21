@@ -7,6 +7,8 @@
 #include <errno.h>
 #include <string.h>
 
+#include "cpuPrimitives.h"
+
 bool initializeCore()
 {
 	int fd;
@@ -71,4 +73,14 @@ void ClearScreen(unsigned int flags)
 		}
 	}
 	putp(clearstr);
+}
+
+BOOL SysReadPciConfigDwordEx(DWORD pciAddress, DWORD regAddress, PDWORD value)
+{
+	return ReadPciConfigDwordEx(pciAddress, regAddress, value);
+}
+
+BOOL SysWritePciConfigDwordEx(DWORD pciAddress, DWORD regAddress, DWORD value)
+{
+	return WritePciConfigDwordEx(pciAddress, regAddress, value);
 }
