@@ -414,7 +414,7 @@ void Interlagos::setVID (PState ps, DWORD vid)
 	modelExtended = getSpecModelExtended();
 	if ((modelExtended >= 0x10 && modelExtended <= 0x1F) ||
 	    (modelExtended >= 0x30 && modelExtended <= 0x3F)) {
-	        // models 10h-1Fh, 30h-3Fh use 8 bits for VID
+		// models 10h-1Fh, 30h-3Fh use 8 bits for VID
 		msrObject->setBitsLow(9, 8, vid);
 	} else {
 		msrObject->setBitsLow(9, 7, vid);
@@ -533,7 +533,7 @@ DWORD Interlagos::getVID (PState ps)
 	modelExtended = getSpecModelExtended();
 	if ((modelExtended >= 0x10 && modelExtended <= 0x1F) ||
 	    (modelExtended >= 0x30 && modelExtended <= 0x3F)) {
-	        // models 10h-1Fh, 30h-3Fh use 8 bits for VID
+		// models 10h-1Fh, 30h-3Fh use 8 bits for VID
 		vid = msrObject->getBitsLow(0, 9, 8);
 	} else {
 		vid = msrObject->getBitsLow(0, 9, 7);
@@ -2881,7 +2881,7 @@ void Interlagos::checkMode()
 
 	while(1)
 	{
-	        ClearScreen(CLEARSCREEN_FLAG_SMART);
+		ClearScreen(CLEARSCREEN_FLAG_SMART);
 
 		timestamp=GetTickCount ();
 
@@ -2941,10 +2941,10 @@ void Interlagos::checkMode()
 				printf("\nNode%d", a);
 				for (b = 0; b < processorCores; b++)
 				{
-				        if ((b & 1) == 0)
-				                printf("\n");
-                                        else
-                                                printf("      ");
+					if ((b & 1) == 0)
+						printf("\n");
+					else
+						printf("      ");
 					printf(" C%d:", b);
 					for (c = 0; c < getPowerStates(); c++)
 					{
@@ -3336,7 +3336,7 @@ void Interlagos::showDramTimings()
 					PCIRegObject *csbaseaddr = new PCIRegObject();
 					setDramController(dct_index);
 					csbaseaddr->readPCIReg(PCI_DEV_NORTHBRIDGE,
-                                                PCI_FUNC_DRAM_CONTROLLER, 0x40 + 4 * i, 1 << node_index);
+						PCI_FUNC_DRAM_CONTROLLER, 0x40 + 4 * i, 1 << node_index);
 					val = csbaseaddr->getBits(0, 0, 32);
 					if ((i & 1) == 0) {
 						printf("LDIMM%d=", i >> 1);
