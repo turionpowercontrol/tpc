@@ -150,6 +150,7 @@ void Processor::K10PerformanceCounters::perfMonitorCPUUsage(class Processor *p)
 					cpuIndex++;
 				}
 			}
+			fflush(stdout);
 			Sleep(1000);
 		}
 
@@ -297,6 +298,7 @@ void Processor::K10PerformanceCounters::perfMonitorFPUUsage(class Processor *p)
 				}
 				printf("\n");
 			}
+			fflush(stdout);
 			Sleep(1000);
 		}
 
@@ -428,6 +430,7 @@ void Processor::K10PerformanceCounters::perfMonitorDCMA(class Processor *p)
 				}
 				printf("\n");
 			}
+			fflush(stdout);
 			Sleep(1000);
 		}
 
