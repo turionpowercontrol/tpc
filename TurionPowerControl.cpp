@@ -205,6 +205,7 @@ void processorTempMonitoring (Processor *p) {
 			}
 		}
 		printf("\n");
+		fflush(stdout);
 		Sleep(100);
 		Sleep(900);
 	};
