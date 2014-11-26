@@ -18,6 +18,7 @@ public:
 	static void signalHandler (int signo);
 	static void activateSignalHandler (int signo);
 	static bool getSignalStatus ();
+	static void activateUserSignalsHandler ();
 
 };
 

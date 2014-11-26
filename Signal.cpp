@@ -27,3 +27,15 @@ bool Signal::getSignalStatus () {
 	return signaled;
 
 }
+
+void Signal::activateUserSignalsHandler () {
+
+	activateSignalHandler(SIGINT);
+	activateSignalHandler(SIGTERM);
+#ifdef SIGBREAK
+	activateSignalHandler(SIGBREAK);
+#endif /* SIGBREAK */
+#ifdef SIGQUIT
+	activateSignalHandler(SIGQUIT);
+#endif /* SIGQUIT */
+}
