@@ -205,7 +205,9 @@ void processorTempMonitoring (Processor *p) {
 			}
 		}
 		printf("\n");
-		fflush(stdout);
+		if (fflush(stdout) == EOF) {
+			break;
+		}
 		Sleep(100);
 		Sleep(900);
 	};

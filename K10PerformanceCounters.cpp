@@ -298,7 +298,9 @@ void Processor::K10PerformanceCounters::perfMonitorFPUUsage(class Processor *p)
 				}
 				printf("\n");
 			}
-			fflush(stdout);
+			if (fflush(stdout) == EOF) {
+				break;
+			}
 			Sleep(1000);
 		}
 
@@ -430,7 +432,9 @@ void Processor::K10PerformanceCounters::perfMonitorDCMA(class Processor *p)
 				}
 				printf("\n");
 			}
-			fflush(stdout);
+			if (fflush(stdout) == EOF) {
+				break;
+			}
 			Sleep(1000);
 		}
 

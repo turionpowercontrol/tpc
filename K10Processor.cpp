@@ -2997,7 +2997,9 @@ void K10Processor::checkMode () {
 			minTemp = getTctlRegister();
 			maxTemp = minTemp;
 		}
-		fflush(stdout);
+		if (fflush(stdout) == EOF) {
+			break;
+		}
 
 		if ((timestamp - iTimeStamp) > 30000)
 		{
@@ -3019,7 +3021,9 @@ void K10Processor::checkMode () {
 			}
 			printf ("\nMinTctl:%d\t MaxTctl:%d\n\n", savedMinTemp, savedMaxTemp);
 		}
-		fflush(stdout);
+		if (fflush(stdout) == EOF) {
+			break;
+		}
 
 
 		Sleep (50);
