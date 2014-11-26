@@ -7,6 +7,8 @@
 #include <errno.h>
 #include <string.h>
 
+#include <signal.h>
+
 #include "cpuPrimitives.h"
 
 bool initializeCore()
@@ -44,6 +46,8 @@ bool initializeCore()
 		return false;
 	}
 	close(fd);
+
+	signal(SIGPIPE, SIG_IGN);
 
 	return true;
 }
