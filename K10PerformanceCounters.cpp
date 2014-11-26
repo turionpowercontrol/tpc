@@ -114,7 +114,7 @@ void Processor::K10PerformanceCounters::perfMonitorCPUUsage(class Processor *p)
 			}
 		}
 
-		Signal::activateSignalHandler(SIGINT);
+		Signal::activateUserSignalsHandler();
 		printf("Values >100%% can be expected if the CPU is in a Boosted State\n");
 
 		while (!Signal::getSignalStatus())
@@ -267,7 +267,7 @@ void Processor::K10PerformanceCounters::perfMonitorFPUUsage(class Processor *p)
 			}
 		}
 
-		Signal::activateSignalHandler(SIGINT);
+		Signal::activateUserSignalsHandler();
 
 		while (!Signal::getSignalStatus())
 		{
@@ -407,7 +407,7 @@ void Processor::K10PerformanceCounters::perfMonitorDCMA(class Processor *p)
 			}
 		}
 
-		Signal::activateSignalHandler(SIGINT);
+		Signal::activateUserSignalsHandler();
 
 		while (!Signal::getSignalStatus())
 		{
