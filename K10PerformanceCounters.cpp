@@ -156,8 +156,6 @@ void Processor::K10PerformanceCounters::perfMonitorCPUUsage(class Processor *p)
 
 		perfCounter->disable();
 
-		printf ("CTRL-C executed. Cleaning on exit...\n");
-
 	} catch (char const *str) {
 
 		if (perfCounter->getEnabled()) perfCounter->disable();
@@ -306,8 +304,6 @@ void Processor::K10PerformanceCounters::perfMonitorFPUUsage(class Processor *p)
 
 		perfCounter->disable();
 
-		printf ("CTRL-C executed. Cleaning on exit...\n");
-
 	} catch (char const *str) {
 
 		if (perfCounter->getEnabled()) perfCounter->disable();
@@ -439,8 +435,6 @@ void Processor::K10PerformanceCounters::perfMonitorDCMA(class Processor *p)
 		}
 
 		perfCounter->disable();
-
-		printf ("CTRL-C executed. Cleaning on exit...\n");
 
 	} catch (char const *str) {
 
