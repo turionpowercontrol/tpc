@@ -52,7 +52,10 @@ uninstall:
 	$(RM) $(DESTDIR)$(PREFIX)/bin/$(PROJECT)
 	$(RM) $(DESTDIR)$(PREFIX)/bin/tpc
 
-$(PROJECT): $(OBJECTS)
+$(PROJECT): $(OBJDIR)/$(PROJECT)
+	cp $< $@
+
+$(OBJDIR)/$(PROJECT): $(OBJECTS)
 	$(CXX) $(PROJ_LDFLAGS) -o $@ $(OBJECTS) $(PROJ_LIBS)
 
 $(OBJDIR)/%.o: %.cpp
