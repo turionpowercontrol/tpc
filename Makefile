@@ -65,7 +65,7 @@ $(OBJDIR):
 	mkdir -p $(OBJDIR)
 
 clean:
-	$(RM) $(OBJECTS) $(PROJECT)
+	$(RM) $(OBJECTS) $(OBJDIR)/$(PROJECT) $(PROJECT)
 
 distclean: clean
 	$(RM) -r $(OBJROOT)
