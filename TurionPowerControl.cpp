@@ -157,6 +157,7 @@ void processorStatus (Processor *p) {
 void processorTempMonitoring (Processor *p) {
 
 	unsigned int node, core;
+	unsigned int nexttick;
 
 	printf("Detected processor: %s\n", p->getProcessorStrId());
 
@@ -192,8 +193,12 @@ void processorTempMonitoring (Processor *p) {
 
 	printf ("\nTemperature table (monitoring):\n");
 
+	nexttick = GetTickCount();
+
 	while (1)
 	{
+		int sleepval;
+
 		for (node = 0; node < p->getProcessorNodes(); node++)
 		{
 			printf("\nNode %d\t", node);
@@ -208,8 +213,13 @@ void processorTempMonitoring (Processor *p) {
 		if (fflush(stdout) == EOF) {
 			break;
 		}
-		Sleep(100);
-		Sleep(900);
+		nexttick += 1000;
+		sleepval = nexttick - GetTickCount();
+		if (sleepval < 0) {
+			nexttick -= sleepval;
+			sleepval = 0;
+		}
+		Sleep(sleepval);
 	};
 
 	return;
